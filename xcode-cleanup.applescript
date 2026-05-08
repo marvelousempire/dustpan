@@ -10,8 +10,18 @@
 --   XCODE_CLEANUP_DEMO=1      Sleep instead of deleting (for screen recording).
 --   XCODE_CLEANUP_FORCE=1     Skip the >50 GB free threshold check.
 --   XCODE_CLEANUP_AUTO_CONFIRM=1  Skip the confirmation alert (for scripted recording).
+--   XCODE_CLEANUP_TMP_PATTERNS=...  Override /tmp orphan globs. Empty string skips phase 4.
 
-property kVersion : "0.2"
+property kVersion : "0.3"
+
+-- Default /private/tmp orphan patterns. These are example patterns from
+-- the maintainer's project (Red-E Play); other users should override via
+-- the XCODE_CLEANUP_TMP_PATTERNS environment variable, or fork and edit.
+-- Set to empty string to skip phase 4 entirely.
+property kDefaultTmpPatterns : "/private/tmp/redeplay-* /private/tmp/RedEPlay-* /private/tmp/sweep.mov.sb-* /private/tmp/sweep*_build.log /private/tmp/keen-euclid-*"
+
+-- Run history log
+property kHistoryLog : "~/Library/Logs/xcode-cleanup.log"
 
 on run
 	set dryRun to my isFlag("XCODE_CLEANUP_DRY_RUN")
@@ -74,27 +84,53 @@ on run
 	set measuredKB to measuredKB + p3KB
 	set progress completed steps to 3
 	
-	set p4 to "/private/tmp/redeplay-* /private/tmp/RedEPlay-* /private/tmp/sweep.mov.sb-* /private/tmp/sweep*_build.log /private/tmp/keen-euclid-*"
-	set measuredKB to measuredKB + my doPhase("4/4 · /tmp orphans", p4, dryRun, demoMode)
+	set p4 to my readPatterns()
+	if p4 is not "" then
+		set measuredKB to measuredKB + my doPhase("4/4 · /tmp orphans", p4, dryRun, demoMode)
+	else
+		set progress additional description to "4/4 · /tmp orphans (skipped)"
+	end if
 	set progress completed steps to 4
 	
 	-- 5. Report
 	if dryRun then
 		set wouldGB to ((round ((measuredKB / 1024 / 1024) * 10)) / 10)
 		display notification "Would free ~" & wouldGB & " GB" with title "Xcode Cleanup (Dry Run)" sound name "Tink"
+		my logRun("dry-run", wouldGB, ((round (beforeGB * 10)) / 10), ((round (beforeGB * 10)) / 10))
 		return "Dry run: would free ~" & wouldGB & " GB"
 	else if demoMode then
 		display notification "Demo complete — no files touched" with title "Xcode Cleanup (Demo)" sound name "Tink"
+		my logRun("demo", 0, ((round (beforeGB * 10)) / 10), ((round (beforeGB * 10)) / 10))
 		return "Demo complete"
 	else
 		set afterKB to my freeKB()
+		set afterGB to (afterKB / 1024 / 1024)
 		set freedGB to ((afterKB - beforeKB) / 1024 / 1024)
 		set freedRounded to ((round (freedGB * 10)) / 10)
 		set newFree to my freeHuman()
 		display notification "Freed " & freedRounded & " GB · " & newFree & " free" with title "Xcode Cleanup" sound name "Glass"
+		my logRun("real", freedRounded, ((round (beforeGB * 10)) / 10), ((round (afterGB * 10)) / 10))
 		return "Freed " & freedRounded & " GB"
 	end if
 end run
+
+on readPatterns()
+	try
+		set v to system attribute "XCODE_CLEANUP_TMP_PATTERNS"
+		if v is not "" then return v
+	on error
+	end try
+	return kDefaultTmpPatterns
+end readPatterns
+
+on logRun(mode, freedOrMeasuredGB, beforeGB, afterGB)
+	try
+		set ts to do shell script "date '+%Y-%m-%d %H:%M:%S'"
+		set logLine to ts & " | mode: " & mode & " | freed: " & freedOrMeasuredGB & " GB | before: " & beforeGB & " GB | after: " & afterGB & " GB"
+		do shell script "mkdir -p \"$(dirname " & kHistoryLog & ")\" && echo " & quoted form of logLine & " >> " & kHistoryLog
+	on error
+	end try
+end logRun
 
 on isFlag(envName)
 	try

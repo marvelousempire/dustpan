@@ -2,7 +2,7 @@ SHORTCUT_NAME := Xcode Cleanup
 SCRIPT        := xcode-cleanup.applescript
 
 .DEFAULT_GOAL := help
-.PHONY: help run dry-run demo force install-shortcut uninstall-shortcut shortcut-run record-demo check size-report
+.PHONY: help run dry-run demo force install-shortcut uninstall-shortcut shortcut-run record-demo check size-report history
 
 help: ## Show this help
 	@echo "Xcode Cleanup Shortcut — Make targets"
@@ -51,6 +51,13 @@ check: ## Verify the AppleScript compiles
 	@osacompile -o /tmp/xcode-cleanup-check.scpt $(SCRIPT) \
 		&& rm /tmp/xcode-cleanup-check.scpt \
 		&& echo "✓ AppleScript syntax OK"
+
+history: ## Show the run history log
+	@if [ -f ~/Library/Logs/xcode-cleanup.log ]; then \
+		tail -20 ~/Library/Logs/xcode-cleanup.log; \
+	else \
+		echo "No runs logged yet. Run \`make run\` or \`make dry-run\` first."; \
+	fi
 
 size-report: ## Print current size of every directory the cleanup would touch
 	@echo "Current sizes (the targets the cleanup would shrink):"

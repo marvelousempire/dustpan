@@ -14,6 +14,7 @@
   <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="macOS 14+">
   <img src="https://img.shields.io/badge/Xcode-15%2B-blue" alt="Xcode 15+">
   <img src="https://img.shields.io/badge/built%20with-AppleScript-orange" alt="AppleScript">
+  <a href="https://github.com/marvelousempire/xcode-cleanup-shortcut/actions/workflows/check.yml"><img src="https://github.com/marvelousempire/xcode-cleanup-shortcut/actions/workflows/check.yml/badge.svg" alt="CI"></a>
 </p>
 
 ---
@@ -95,16 +96,45 @@ The AppleScript reads three optional env vars:
 | `XCODE_CLEANUP_DEMO=1` | Sleep instead of deleting. For screen recording. |
 | `XCODE_CLEANUP_FORCE=1` | Skip the 50 GB free threshold check. |
 | `XCODE_CLEANUP_AUTO_CONFIRM=1` | Skip the confirmation alert. For scripted recording only — leave off for normal use. |
+| `XCODE_CLEANUP_TMP_PATTERNS=...` | Override the `/private/tmp` orphan globs. Empty string skips phase 4 entirely. |
 
 Set them when invoking via `osascript` (the Makefile targets do this for you). They're not visible to the Shortcuts UI itself; the Shortcut always runs in normal mode.
 
 ## Customize
 
-The script is one self-contained AppleScript. Edit the `do shell script` paths to add or remove cleanup phases. Common additions:
+### `/tmp` orphan patterns (important for non-maintainer users)
+
+The shipped defaults are example patterns from the maintainer's project (Red-E Play): `redeplay-*`, `RedEPlay-*`, `sweep.mov.sb-*`, `keen-euclid-*`. They will never match anything for other users — phase 4 will safely no-op.
+
+To set patterns matching your own scratch dirs, either:
+
+```sh
+# One-off, per invocation:
+XCODE_CLEANUP_TMP_PATTERNS="/private/tmp/myproject-* /private/tmp/build-cache-*" make run
+
+# Skip phase 4 entirely:
+XCODE_CLEANUP_TMP_PATTERNS="" make run
+
+# Permanent: edit the kDefaultTmpPatterns property at the top of xcode-cleanup.applescript
+```
+
+### Add cleanup phases
+
+The script is one self-contained AppleScript. Common additions you can paste in:
 
 - Wipe simulator app/data state too (keeps device definitions): `xcrun simctl erase all`
 - Homebrew cleanup: `brew cleanup -s`
 - pnpm/npm/yarn caches: `pnpm store prune`, `npm cache clean --force`, `yarn cache clean`
+
+### History log
+
+Every run (real, dry-run, or demo) appends one line to `~/Library/Logs/xcode-cleanup.log`:
+
+```
+2026-05-08 12:13:57 | mode: dry-run | freed: 14.2 GB | before: 22.5 GB | after: 22.5 GB
+```
+
+`make history` prints the last 20 entries.
 
 ## Files
 

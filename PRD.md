@@ -1,6 +1,6 @@
 # Xcode Cleanup Shortcut — PRD
 
-**Status:** Live (v0.2 in PR)
+**Status:** Live (v0.3 shipped)
 **Owner:** marvelousempire
 **Last updated:** 2026-05-08
 
@@ -55,6 +55,11 @@ This is friction that should be a button.
 | F12 | Demo mode (`XCODE_CLEANUP_DEMO=1`) sleeps instead of deleting, for capturing the README progress-bar GIF. | ✅ v0.2 |
 | F13 | Force mode (`XCODE_CLEANUP_FORCE=1`) skips the threshold check. | ✅ v0.2 |
 | F14 | Makefile exposes `run`, `dry-run`, `demo`, `force`, `install-shortcut`, `uninstall-shortcut`, `shortcut-run`, `record-demo`, `check`, `size-report`. | ✅ v0.2 |
+| F15 | History log at `~/Library/Logs/xcode-cleanup.log` records every run (real / dry-run / demo) with timestamp, mode, freed GB, before/after. | ✅ v0.3 |
+| F16 | `XCODE_CLEANUP_TMP_PATTERNS` overrides the default `/tmp` orphan globs; empty string skips phase 4. | ✅ v0.3 |
+| F17 | `XCODE_CLEANUP_AUTO_CONFIRM=1` skips the confirmation alert (for scripted recording). | ✅ v0.2.1 |
+| F18 | CI runs `make check` on every push and PR via `.github/workflows/check.yml` (macos-latest). | ✅ v0.3 |
+| F19 | `make history` prints the last 20 entries from the run log. | ✅ v0.3 |
 
 ## Non-functional requirements
 
@@ -90,10 +95,11 @@ This is friction that should be a button.
 - Should the threshold be a percentage of disk size instead of absolute GB? Argument for: portable across drive sizes. Argument against: 50 GB is a reasonable absolute floor for an active dev machine regardless.
 - Should we ship a prebuilt `.shortcut` file? Argument for: zero-paste install. Argument against: `.shortcut` bundles are signed iCloud exports tied to the original creator; contributors can't easily edit them. Workaround: `make install-shortcut` puts the script on the clipboard and opens the editor.
 
-## Future work (v0.3+)
+## Future work (v0.4+)
 
 - **Per-phase opt-out toggles** as env vars (`XCODE_CLEANUP_SKIP_SIMS=1`, etc.).
-- **History log** — append each run's freed-GB to `~/Library/Logs/xcode-cleanup.log` for trend analysis.
 - **Homebrew/pnpm/npm cleanup phases** as optional extensions.
 - **SwiftBar plugin variant** for live menu-bar disk-free indicator.
-- **GitHub Actions workflow** to run `make check` on every PR.
+- **`launchd` agent** that triggers cleanup automatically when disk pressure crosses a threshold.
+- **`make report`** ASCII sparkline of freed-GB-over-time from the history log.
+- **`.shortcut` bundle** packaging in GitHub Releases (`shortcuts sign --mode anyone`).

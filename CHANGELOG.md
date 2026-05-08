@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.3 — 2026-05-08
+
+### Added
+- **`XCODE_CLEANUP_TMP_PATTERNS=...`** — override the default `/tmp` orphan globs. Empty string skips phase 4 entirely. Repo is now useful to non-maintainer users without editing source.
+- **History log** at `~/Library/Logs/xcode-cleanup.log` — every run (real, dry-run, or demo) appends one line: `timestamp | mode | freed GB | before GB | after GB`.
+- **`make history`** Makefile target — prints the last 20 log entries.
+- **CI workflow** `.github/workflows/check.yml` — runs `make check` on every push and PR (macos-latest runner). README has the badge.
+- **README hero** — centered Lucide `wand-sparkles` icon (Apple blue), title, tagline, 5 shields.io badges (MIT, macOS 14+, Xcode 15+, AppleScript, CI status).
+- **`assets/icon.svg` + `assets/icon-hero.svg` + `assets/ATTRIBUTION.md`** — ISC-licensed icon assets and Lucide attribution.
+
+### Changed
+- README "Customize" section explicitly flags the Red-E Play `/tmp` patterns as example-only and documents the env-var override.
+- Retroactive git tags + GitHub Releases for v0.1, v0.2, v0.2.1.
+
 ## v0.2.1 — 2026-05-08
 
 ### Added
