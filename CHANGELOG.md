@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.4.4 — 2026-05-08
+
+### Added
+- **`docs/Launch-Plan.md`** — full public-launch playbook generated via the `launch-strategy` skill from coreyhaines31/marketingskills, reading from `.agents/product-marketing-context.md` for positioning.
+  - Pre-launch checklist + launch-day timeline (T-1d through T+24h)
+  - Ready-to-paste copy for: **Show HN** (title + URL + anchor first-comment), **r/iOSProgramming**, **r/swift**, **iOS dev Mastodon** (3-post thread), **X/Twitter** (2-tweet sequence)
+  - Engagement playbook (what to do in the first 30min on every channel, what to absolutely not do, tone reminders)
+  - **Hit/Steady/Flop** scenario plans with what to do in each — including issue triage, PR review readiness, and how to diagnose a flop before re-launching
+  - **7-day follow-up plan** day by day
+  - Metrics tracking template
+  - Product Hunt deferred to v1.0 (low ROI for a dev utility at launch)
+  - Pointers into the next marketing-skill chain (`customer-research`, `page-cro`, `programmatic-seo`, `email-sequence`)
+
 ## v0.4.2 — 2026-05-08
 
 ### Changed

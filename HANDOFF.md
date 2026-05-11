@@ -4,13 +4,13 @@
 > Edit this in place. Don't append a new section per handoff — overwrite stale lines.
 
 **Last updated:** 2026-05-08
-**Updated by:** v0.4.2 ship (README hero rewrite via copywriting skill)
+**Updated by:** v0.4.4 ship (Launch-Plan.md via launch-strategy skill)
 
 ---
 
 ## TL;DR
 
-Repo is at v0.4.2. All 7 gaps + all 8 elevations from the prior audits are closed. v0.4 shipped: `xcc` CLI (bin/), launchd hourly agent, SwiftBar menu-bar plugin, daily update check via GitHub API (cached), CSV history + sparkline report, auto-release Actions workflow (`vX.Y.Z:` prefix → tag + release), retroactive tags for all historical versions, `make package-shortcut` infrastructure. v0.4.1 adds `scripts/remote-cleanup.sh` (pure-shell, no UI) and `docs/SHORTCUTS.md` (paste-ready blocks for Run Shell Script / Run AppleScript / Run Script Over SSH, validated against Shortcuts 12.4 / macOS 26). Issue #2 (progress-bar GIF) remains the only outstanding follow-up.
+Repo is at v0.4.4. Marketing-skill chain so far: copywriting (README hero rewrite, v0.4.2) → product-marketing-context (positioning doc, v0.4.3) → launch-strategy (Launch-Plan.md, v0.4.4). All 7 gaps + all 8 elevations from the prior audits are closed. v0.4 shipped: `xcc` CLI (bin/), launchd hourly agent, SwiftBar menu-bar plugin, daily update check via GitHub API (cached), CSV history + sparkline report, auto-release Actions workflow (`vX.Y.Z:` prefix → tag + release), retroactive tags for all historical versions, `make package-shortcut` infrastructure. v0.4.1 adds `scripts/remote-cleanup.sh` (pure-shell, no UI) and `docs/SHORTCUTS.md` (paste-ready blocks for Run Shell Script / Run AppleScript / Run Script Over SSH, validated against Shortcuts 12.4 / macOS 26). Issue #2 (progress-bar GIF) remains the only outstanding follow-up.
 
 ## Current status
 
@@ -60,10 +60,12 @@ None.
 
 ## Next steps (in priority order)
 
-1. **Capture progress-bar GIF** (issue #2) — only open task. Interactive ~5-minute screen-recording on a sanitized desktop.
-2. **(v0.5)** Event-driven disk-pressure trigger via `fs_usage` instead of interval-based launchd.
-3. **(v0.5)** `terminal-notifier` integration so the daily update banner can have a clickable "Open release" action button.
-4. **(v0.5)** `xcc completion` — bash/zsh/fish tab-completion generators.
+1. **Capture progress-bar GIF** (issue #2) — soft prerequisite for the public launch. Posts with visuals get 2–3× engagement.
+2. **Execute the public launch** per `docs/Launch-Plan.md`. Tue/Wed 8–9:30 AM ET window. Show HN → Mastodon → r/iOSProgramming → X → (r/swift) → DM influencers.
+3. **(post-launch)** Run `/customer-research` against the launch-day comments to validate the verbatim VoC in `.agents/product-marketing-context.md`.
+4. **(v0.5)** Event-driven disk-pressure trigger via `fs_usage` instead of interval-based launchd.
+5. **(v0.5)** `terminal-notifier` integration so the daily update banner can have a clickable "Open release" action button.
+6. **(v0.5)** `xcc completion` — bash/zsh/fish tab-completion generators.
 
 ## Key files
 
