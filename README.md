@@ -2,11 +2,10 @@
   <img src="assets/icon-hero.svg" width="96" height="96" alt="Xcode Cleanup">
 </p>
 
-<h1 align="center">Xcode Cleanup Shortcut</h1>
+<h1 align="center">Reclaim 10–25 GB Xcode is hoarding. One click.</h1>
 
 <p align="center">
-  A one-button macOS Shortcut that reclaims disk space Xcode silently hoards.<br>
-  <em>Typical reclaim on an active dev machine: <strong>10–25 GB</strong> per run.</em>
+  A free macOS Shortcut that wipes <code>DerivedData</code>, iOS/watchOS/tvOS <code>DeviceSupport</code>, SwiftPM caches, and dead simulators — safely. Skips your Archives so App Store crash symbolication keeps working. No subscription. No telemetry. One short AppleScript you can read in five minutes.
 </p>
 
 <p align="center">
@@ -19,25 +18,40 @@
 
 ---
 
-`DerivedData`, iOS/watchOS/tvOS `DeviceSupport`, SwiftPM caches, unavailable simulators, and `/tmp` orphans — gone in one click.
+> **The 30-second version.** Xcode's caches (`DerivedData`, `DeviceSupport`, SwiftPM, simulator caches) routinely grow to 20+ GB and stay there. Every iOS dev has Googled which paths are safe to `rm -rf`. This script settles it — wipes the ones that are, skips the ones that aren't, tells you how much it freed.
 
-## What it does
+**See what it'd free, without deleting anything:**
 
-1. Reads current free space.
-2. If you have plenty (>50 GB free), shows a "no action needed" notification and exits.
-3. Otherwise, asks you to confirm with a native modal.
-4. Cleans in 4 phases with a live menu-bar progress bar:
-   - DerivedData + DeviceSupport (iOS/watchOS/tvOS) + Xcode caches
-   - SwiftPM caches
-   - CoreSimulator caches + simulators for runtimes you no longer have
-   - `/private/tmp` orphans matching project scratch patterns
-5. Pings you with a banner + chime showing exact GB freed.
+```sh
+bash <(curl -fsSL https://raw.githubusercontent.com/marvelousempire/xcode-cleanup-shortcut/main/scripts/remote-cleanup.sh) --dry-run
+```
 
-## What it deliberately does NOT touch
+## Why bother
 
-- `~/Library/Developer/Xcode/Archives` — needed to symbolicate App Store crash reports.
-- Active simulator devices — only ones whose runtime is no longer installed are removed.
-- Any project files, source code, build configs, or git state.
+- **Safe by design.** Never touches `~/Library/Developer/Xcode/Archives` (App Store crash symbolication stays intact). Never wipes simulators you actively use — only ones whose runtime was uninstalled.
+- **Specific.** Five known-safe Xcode cache locations, plus simulator caches and configurable `/tmp` orphans. Everything else is left alone.
+- **Auditable.** [One short AppleScript](./xcode-cleanup.applescript). No binary blobs, no closed-source helper, no opaque CleanMyMac-style "let us decide."
+- **Quiet.** Threshold-gated: does nothing when your disk is healthy (>50 GB free). Run it hourly via launchd — it stays silent until you actually need cleanup.
+- **Reusable.** Run it from a Shortcut, a hotkey, the menu bar, the terminal (`xcc`), a `launchd` agent, or over SSH on a remote Mac. Pick one, stack them all.
+
+## Install (60 seconds — pick your path)
+
+```sh
+git clone https://github.com/marvelousempire/xcode-cleanup-shortcut.git
+cd xcode-cleanup-shortcut
+make help        # see every option
+```
+
+| If you want… | Run this | What you get |
+|---|---|---|
+| **Apple Shortcut** (menu bar, hotkey, schedulable) | `make install-shortcut` | Pastes the AppleScript into a new Shortcut for you |
+| **CLI** (`xcc --dry-run`, `xcc --force`) | `make install-cli` | Symlink at `~/.local/bin/xcc` |
+| **Hands-free hourly cleanup** | `make install-launchd` | LaunchAgent runs every hour, silent when disk is healthy |
+| **Live disk indicator in your menu bar** | `make install-swiftbar` | SwiftBar plugin — `🧹 12 GB`, click to clean |
+| **Remote Mac (build server)** over SSH | [`docs/SHORTCUTS.md`](./docs/SHORTCUTS.md) | Paste-ready Run Script Over SSH block |
+
+> [!TIP]
+> First time? Run `make dry-run` to see exactly how much you'd reclaim before committing to a delete.
 
 ## Install (the Shortcut way)
 

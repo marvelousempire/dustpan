@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.2 — 2026-05-08
+
+### Changed
+- **README hero rewritten** using the `copywriting` skill from coreyhaines31/marketingskills. New headline ("Reclaim 10–25 GB Xcode is hoarding. One click.") leads with the specific outcome and uses customer-language ("hoarding"). Subhead names what's wiped + the trust-anchor (skips Archives). "Why bother" section replaces the feature list with five benefits framed against alternatives (manual rm, CleanMyMac, dev guesswork). Install table moved above-the-fold so first-time visitors see the path-to-value in the first screen.
+
+### Why
+Before: engineering-voice spec sheet. After: conversion-shaped landing page. Same product, clearer story.
+
 ## v0.4.1 — 2026-05-08
 
 ### Added
