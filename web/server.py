@@ -26,6 +26,7 @@ import subprocess
 import sys
 import webbrowser
 import concurrent.futures
+import socket
 import time
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -36,8 +37,26 @@ import cleaners  # noqa: E402
 
 REPO_DIR = Path(__file__).resolve().parent.parent
 WEB_DIR  = REPO_DIR / "web"
-PORT     = int(os.environ.get("XCC_UI_PORT", "8765"))
-HOST     = "127.0.0.1"   # localhost only
+PREFERRED_PORT = int(os.environ.get("XCC_UI_PORT", "8765"))
+PORT_RANGE     = 20      # try preferred .. preferred + 19 before falling back
+HOST           = "127.0.0.1"   # localhost only
+
+
+def find_open_port(preferred: int, tries: int = PORT_RANGE) -> int:
+    """Try preferred + N consecutive ports. If all busy, let the OS assign one."""
+    for offset in range(tries):
+        port = preferred + offset
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                s.bind((HOST, port))
+            return port
+        except OSError:
+            continue
+    # Final fallback: OS-assigned ephemeral port
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((HOST, 0))
+        return s.getsockname()[1]
 
 
 def get_status() -> dict:
@@ -450,9 +469,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 
 def main():
-    httpd = socketserver.ThreadingTCPServer((HOST, PORT), Handler)
+    port = find_open_port(PREFERRED_PORT)
+    if port != PREFERRED_PORT:
+        print(f"⚠  Port {PREFERRED_PORT} is busy — using {port} instead.")
+    httpd = socketserver.ThreadingTCPServer((HOST, port), Handler)
     httpd.daemon_threads = True
-    url = f"http://{HOST}:{PORT}"
+    url = f"http://{HOST}:{port}"
     print(f"🧹  Cleanup Hub web UI → \033[1;36m{url}\033[0m")
     print(f"    {sum(len(c['actions']) for c in cleaners.CATEGORIES.values())} actions across {len([t for t in cleaners.TABS])} tabs")
     print("    Localhost only — never reachable from your network.")

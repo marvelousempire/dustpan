@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.8.4 — 2026-05-12
+
+### Added
+- **Automatic port discovery** — if the preferred port (default 8765, override with `XCC_UI_PORT`) is already in use, the server now tries the next 19 consecutive ports before falling back to an OS-assigned ephemeral port. The terminal prints which port it actually bound to:
+  ```
+  ⚠  Port 8765 is busy — using 8766 instead.
+  🧹  Cleanup Hub web UI → http://127.0.0.1:8766
+  ```
+  The browser auto-opens to the correct URL. No more "Address already in use" crashes when you forget to Ctrl-C the previous instance.
+
+### Why
+User: "can we make it so the port is dynamically assigned in case that port is busy already." Yes.
+
 ## v0.8.3 — 2026-05-12
 
 ### Performance
