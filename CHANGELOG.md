@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.5.0 — 2026-05-08
+
+### Added
+- **Web UI** (`make ui`) — a localhost-only browser dashboard at `http://127.0.0.1:8765`. Zero dependencies (pure Python stdlib `http.server` + a single HTML file with vanilla JS).
+  - Big live disk-free indicator (color-coded by pressure)
+  - Per-path size breakdown (bar chart) of every cleanup target
+  - Three one-click actions: Dry run / Clean now / Force clean
+  - Live output streaming via Server-Sent Events (real-time, no polling)
+  - Sparkline of cleanup history pulled from `~/Library/Logs/xcode-cleanup-history.csv`
+  - Apple-style design (SF font stack, system colors, frosted-glass cards, dark-mode auto)
+- **`web/server.py`** — ~150 LOC HTTP server with 4 endpoints: `/api/status`, `/api/sizes`, `/api/report`, `/api/stream` (SSE). Bound to `127.0.0.1` only — never network-reachable.
+- **`web/index.html`** — single-file UI, ~280 lines including CSS + JS. No build step, no framework, no npm.
+- **`make ui`** Makefile target — opens the browser automatically.
+
 ## v0.4.4 — 2026-05-08
 
 ### Added

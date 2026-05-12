@@ -2,7 +2,7 @@ SHORTCUT_NAME := Xcode Cleanup
 SCRIPT        := xcode-cleanup.applescript
 
 .DEFAULT_GOAL := help
-.PHONY: help run dry-run demo force install-shortcut uninstall-shortcut shortcut-run record-demo check size-report history install-cli uninstall-cli install-launchd uninstall-launchd install-swiftbar uninstall-swiftbar package-shortcut report
+.PHONY: help run dry-run demo force install-shortcut uninstall-shortcut shortcut-run record-demo check size-report history install-cli uninstall-cli install-launchd uninstall-launchd install-swiftbar uninstall-swiftbar package-shortcut report ui
 
 help: ## Show this help
 	@echo "Xcode Cleanup Shortcut — Make targets"
@@ -132,3 +132,6 @@ package-shortcut: ## Sign an exported .shortcut bundle as 'Anyone Mode' for shar
 
 report: ## Sparkline of freed-GB across recent real cleanup runs
 	@python3 scripts/report.py
+
+ui: ## Open the web UI at http://127.0.0.1:8765 (localhost only)
+	@python3 web/server.py

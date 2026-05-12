@@ -49,9 +49,21 @@ make help        # see every option
 | **Hands-free hourly cleanup** | `make install-launchd` | LaunchAgent runs every hour, silent when disk is healthy |
 | **Live disk indicator in your menu bar** | `make install-swiftbar` | SwiftBar plugin — `🧹 12 GB`, click to clean |
 | **Remote Mac (build server)** over SSH | [`docs/SHORTCUTS.md`](./docs/SHORTCUTS.md) | Paste-ready Run Script Over SSH block |
+| **Web UI in your browser** | `make ui` | Localhost-only Python server + HTML dashboard — live disk indicator, per-path sizes, sparkline history, one-click cleanup |
 
 > [!TIP]
 > First time? Run `make dry-run` to see exactly how much you'd reclaim before committing to a delete.
+
+### Web UI (`make ui`)
+
+If you want the most visual way to use it — type `make ui` and your browser opens to a localhost dashboard with:
+
+- **Live disk indicator** — big GB-free number, color-coded (red <20, orange <50, green ≥50), auto-refreshes every 15 seconds.
+- **Per-path size breakdown** — bar-chart of every cleanup target (DerivedData, DeviceSupport, simulator caches, …) showing exactly what you'd reclaim.
+- **Three one-click actions** — Dry run, Clean now, Force clean. Output streams live in a terminal-style pane (Server-Sent Events).
+- **History sparkline** — Unicode-block chart of your real cleanup runs over time, plus total GB freed all-time.
+
+Zero dependencies — pure Python stdlib (`http.server`), zero npm/pip installs. Localhost only (`127.0.0.1`) — never reachable from your network. Ctrl-C in the terminal to stop.
 
 ## Install (the Shortcut way)
 

@@ -4,13 +4,13 @@
 > Edit this in place. Don't append a new section per handoff — overwrite stale lines.
 
 **Last updated:** 2026-05-08
-**Updated by:** v0.4.4 ship (Launch-Plan.md via launch-strategy skill)
+**Updated by:** v0.5.0 ship (web UI dashboard)
 
 ---
 
 ## TL;DR
 
-Repo is at v0.4.4. Marketing-skill chain so far: copywriting (README hero rewrite, v0.4.2) → product-marketing-context (positioning doc, v0.4.3) → launch-strategy (Launch-Plan.md, v0.4.4). All 7 gaps + all 8 elevations from the prior audits are closed. v0.4 shipped: `xcc` CLI (bin/), launchd hourly agent, SwiftBar menu-bar plugin, daily update check via GitHub API (cached), CSV history + sparkline report, auto-release Actions workflow (`vX.Y.Z:` prefix → tag + release), retroactive tags for all historical versions, `make package-shortcut` infrastructure. v0.4.1 adds `scripts/remote-cleanup.sh` (pure-shell, no UI) and `docs/SHORTCUTS.md` (paste-ready blocks for Run Shell Script / Run AppleScript / Run Script Over SSH, validated against Shortcuts 12.4 / macOS 26). Issue #2 (progress-bar GIF) remains the only outstanding follow-up.
+Repo is at v0.5.0. The web UI dashboard (`make ui`) is a fifth install surface — joins Shortcut / CLI / launchd / SwiftBar / SSH. Marketing chain through v0.4.4 stands. All 7 gaps + all 8 elevations from the prior audits are closed. v0.4 shipped: `xcc` CLI (bin/), launchd hourly agent, SwiftBar menu-bar plugin, daily update check via GitHub API (cached), CSV history + sparkline report, auto-release Actions workflow (`vX.Y.Z:` prefix → tag + release), retroactive tags for all historical versions, `make package-shortcut` infrastructure. v0.4.1 adds `scripts/remote-cleanup.sh` (pure-shell, no UI) and `docs/SHORTCUTS.md` (paste-ready blocks for Run Shell Script / Run AppleScript / Run Script Over SSH, validated against Shortcuts 12.4 / macOS 26). Issue #2 (progress-bar GIF) remains the only outstanding follow-up.
 
 ## Current status
 
@@ -78,6 +78,8 @@ None.
 | `bin/xcc` | CLI wrapper exposing flags as `--dry-run` / `--force` / `--patterns` etc. |
 | `launchd/com.marvelousempire.xcode-cleanup.plist` | LaunchAgent template (path substituted at install time). |
 | `swiftbar/xcode-cleanup.30m.sh` | SwiftBar plugin — menu-bar disk indicator + actions. |
+| `web/server.py` | Localhost-only Python HTTP server (stdlib, no pip) — 4 endpoints + SSE. |
+| `web/index.html` | Single-file dashboard UI — live indicator, per-path sizes, sparkline, one-click actions. |
 | `scripts/report.py` | Reads CSV history, renders sparkline. |
 | `scripts/remote-cleanup.sh` | Pure-shell cleanup for SSH / headless / CI. |
 | `docs/SHORTCUTS.md` | Paste-ready Shortcuts blocks (Run Shell Script + Run Script Over SSH + Run AppleScript). |

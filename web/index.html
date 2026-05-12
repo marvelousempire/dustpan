@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Xcode Cleanup</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg-1: #f5f5f7;
+    --bg-2: rgba(255,255,255,0.72);
+    --border: rgba(0,0,0,0.08);
+    --text: #1d1d1f;
+    --text-dim: #6e6e73;
+    --accent: #0A84FF;
+    --green: #30D158;
+    --orange: #FF9F0A;
+    --red: #FF453A;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-1: #000;
+      --bg-2: rgba(28,28,30,0.72);
+      --border: rgba(255,255,255,0.08);
+      --text: #f5f5f7;
+      --text-dim: #98989d;
+      --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+    background: var(--bg-1);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    min-height: 100vh;
+    background-image:
+      radial-gradient(at 20% 0%, rgba(10,132,255,0.10) 0px, transparent 50%),
+      radial-gradient(at 80% 100%, rgba(48,209,88,0.08) 0px, transparent 50%);
+    padding: 48px 24px 96px;
+  }
+  .container { max-width: 720px; margin: 0 auto; }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 28px;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  header .badge {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .card {
+    background: var(--bg-2);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .hero {
+    padding: 40px 32px;
+    text-align: center;
+  }
+  .hero .free {
+    font-size: 80px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s ease;
+  }
+  .hero .free .unit { font-size: 32px; font-weight: 500; color: var(--text-dim); margin-left: 4px; }
+  .hero .free.good     { color: var(--green); }
+  .hero .free.warn     { color: var(--orange); }
+  .hero .free.danger   { color: var(--red); }
+  .hero .label {
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .hero .progress-track {
+    margin-top: 24px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .hero .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.5s ease, background 0.3s ease;
+  }
+  .hero .progress-fill.warn   { background: var(--orange); }
+  .hero .progress-fill.danger { background: var(--red); }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  button {
+    appearance: none;
+    border: none;
+    background: var(--bg-2);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: transform 0.06s ease, background 0.2s ease, border-color 0.2s ease;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  button:hover { border-color: rgba(10,132,255,0.4); }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.primary {
+    background: var(--accent);
+    color: white;
+    border-color: transparent;
+  }
+  button.primary:hover { background: #006FE6; border-color: transparent; }
+  button .sub {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  button.primary .sub { color: rgba(255,255,255,0.7); }
+
+  section { margin-top: 28px; }
+  section h2 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .sizes {
+    padding: 8px 0;
+  }
+  .size-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 20px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .size-row:last-child { border-bottom: none; }
+  .size-row .name { flex: 1; }
+  .size-row .bar {
+    width: 80px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;
+  }
+  .size-row .bar-fill {
+    height: 100%; background: var(--accent); transition: width 0.4s ease;
+  }
+  .size-row .value {
+    font-variant-numeric: tabular-nums;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    min-width: 56px;
+    text-align: right;
+  }
+
+  .output {
+    margin-top: 16px;
+    background: rgba(0,0,0,0.85);
+    color: #f5f5f7;
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    max-height: 240px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+    height: 0;
+    padding: 0 18px;
+  }
+  .output.visible {
+    opacity: 1;
+    height: auto;
+    padding: 16px 18px;
+    margin-top: 16px;
+  }
+  .output .ok    { color: #30D158; }
+  .output .warn  { color: #FF9F0A; }
+  .output .err   { color: #FF453A; }
+  .output .dim   { color: #98989d; }
+
+  .report {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    text-align: center;
+  }
+  .report .stat .num {
+    font-size: 28px; font-weight: 600;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .report .stat .lbl {
+    font-size: 11px; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin-top: 4px;
+  }
+  .sparkline {
+    font-family: var(--mono);
+    font-size: 24px;
+    letter-spacing: -2px;
+    color: var(--accent);
+    word-break: break-all;
+    line-height: 1;
+    margin: 4px 20px 20px;
+  }
+
+  footer {
+    margin-top: 48px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 540px) {
+    body { padding: 24px 16px 64px; }
+    .actions { grid-template-columns: 1fr; }
+    .report  { grid-template-columns: 1fr; }
+    .hero .free { font-size: 64px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/>
+      <path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/>
+      <path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>
+    </svg>
+    <h1>Xcode Cleanup</h1>
+    <span class="badge" id="version">localhost</span>
+  </header>
+
+  <div class="card hero">
+    <div class="free" id="free-gb">— <span class="unit">GB free</span></div>
+    <div class="label" id="free-label">Checking disk…</div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="actions">
+    <button id="btn-dry">
+      Dry run
+      <span class="sub">Measure, don't delete</span>
+    </button>
+    <button id="btn-real" class="primary">
+      Clean now
+      <span class="sub">Threshold-gated</span>
+    </button>
+    <button id="btn-force">
+      Force clean
+      <span class="sub">Skip the gate</span>
+    </button>
+  </div>
+
+  <div class="output" id="output"></div>
+
+  <section>
+    <h2>What would be cleaned</h2>
+    <div class="card sizes" id="sizes">
+      <div class="size-row dim"><div class="name">Loading…</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Your cleanup history</h2>
+    <div class="card">
+      <div class="sparkline" id="sparkline">▁</div>
+      <div class="report">
+        <div class="stat"><div class="num" id="rep-total">—</div><div class="lbl">GB freed total</div></div>
+        <div class="stat"><div class="num" id="rep-runs">—</div><div class="lbl">Real runs</div></div>
+        <div class="stat"><div class="num" id="rep-max">—</div><div class="lbl">Best single run</div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <a href="https://github.com/marvelousempire/xcode-cleanup-shortcut" target="_blank">marvelousempire/xcode-cleanup-shortcut</a> · MIT · localhost-only
+  </footer>
+
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+function fmt(n, d=1) { return Number(n).toFixed(d); }
+
+async function loadStatus() {
+  const r = await fetch("/api/status");
+  const d = await r.json();
+  const free = $("#free-gb");
+  const fill = $("#progress-fill");
+  free.firstChild.nodeValue = fmt(d.free_gb);
+  free.classList.toggle("good",   d.free_gb >= 50);
+  free.classList.toggle("warn",   d.free_gb >= 20 && d.free_gb < 50);
+  free.classList.toggle("danger", d.free_gb < 20);
+  fill.style.width = d.used_pct + "%";
+  fill.classList.toggle("warn",   d.used_pct >= 75 && d.used_pct < 90);
+  fill.classList.toggle("danger", d.used_pct >= 90);
+  $("#free-label").textContent = `${fmt(d.used_gb,0)} GB used of ${fmt(d.total_gb,0)} GB · ${fmt(d.used_pct,0)}%`;
+}
+
+async function loadSizes() {
+  const r = await fetch("/api/sizes");
+  const d = await r.json();
+  const max = Math.max(...d.paths.map(p => p.size_gb), 0.001);
+  const html = d.paths.map(p => `
+    <div class="size-row">
+      <div class="name">${p.label}</div>
+      <div class="bar"><div class="bar-fill" style="width:${(p.size_gb / max * 100)}%"></div></div>
+      <div class="value">${p.size_gb >= 1 ? fmt(p.size_gb) + " GB" : p.size_kb >= 1024 ? fmt(p.size_kb/1024,0) + " MB" : p.size_kb + " KB"}</div>
+    </div>
+  `).join("");
+  $("#sizes").innerHTML = html + `
+    <div class="size-row" style="border-top:1px solid var(--border);font-weight:600">
+      <div class="name">Total cleanable</div>
+      <div class="bar"></div>
+      <div class="value">${fmt(d.total_gb)} GB</div>
+    </div>`;
+}
+
+async function loadReport() {
+  const r = await fetch("/api/report");
+  const d = await r.json();
+  $("#rep-total").textContent = d.total_freed_gb ? fmt(d.total_freed_gb) : "—";
+  $("#rep-runs").textContent  = d.real_runs || "—";
+  $("#rep-max").textContent   = d.max_freed_gb ? fmt(d.max_freed_gb) : "—";
+
+  const realRuns = d.runs.filter(r => r.mode === "real").map(r => r.freed);
+  if (realRuns.length > 0) {
+    const blocks = "▁▂▃▄▅▆▇█";
+    const mn = Math.min(...realRuns), mx = Math.max(...realRuns), rng = mx - mn || 1;
+    $("#sparkline").textContent = realRuns.slice(-40).map(v => blocks[Math.floor((v-mn)/rng*(blocks.length-1))]).join("");
+  } else {
+    $("#sparkline").innerHTML = '<span style="font-size:13px;color:var(--text-dim);letter-spacing:0;font-family:inherit">No real cleanup runs yet. Run one to start tracking.</span>';
+  }
+}
+
+function setBusy(busy) {
+  $$("button").forEach(b => b.disabled = busy);
+}
+
+function appendLine(text, cls="") {
+  const out = $("#output");
+  if (!out.classList.contains("visible")) out.classList.add("visible");
+  const span = document.createElement("span");
+  if (cls) span.className = cls;
+  span.textContent = text + "\n";
+  out.appendChild(span);
+  out.scrollTop = out.scrollHeight;
+}
+
+async function runCleanup(mode) {
+  setBusy(true);
+  $("#output").innerHTML = "";
+  $("#output").classList.add("visible");
+  appendLine(`→ ${mode === "dry" ? "Dry run" : mode === "force" ? "Force clean" : "Cleaning"}…`, "dim");
+
+  const es = new EventSource(`/api/stream?mode=${mode}`);
+  es.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.event === "status") {
+      // initial
+    } else if (msg.event === "line") {
+      const line = msg.data;
+      let cls = "";
+      if (line.startsWith("[")) cls = "ok";
+      else if (line.includes("DRY RUN")) cls = "warn";
+      else if (line.includes("OK")) cls = "ok";
+      appendLine(line, cls);
+    } else if (msg.event === "done") {
+      es.close();
+      if (mode === "dry") {
+        appendLine(`✓ Dry run complete`, "ok");
+      } else {
+        const freed = msg.data.freed_gb;
+        appendLine(`✓ Done. Freed ${fmt(freed)} GB.`, "ok");
+      }
+      setBusy(false);
+      loadStatus();
+      loadSizes();
+      loadReport();
+    }
+  };
+  es.onerror = () => {
+    es.close();
+    appendLine("✗ Connection lost.", "err");
+    setBusy(false);
+  };
+}
+
+$("#btn-dry").addEventListener("click",   () => runCleanup("dry"));
+$("#btn-real").addEventListener("click",  () => runCleanup("real"));
+$("#btn-force").addEventListener("click", () => {
+  if (!confirm("Force clean now? This will delete cache files even if your disk is healthy.")) return;
+  runCleanup("force");
+});
+
+// Initial load + periodic status refresh
+loadStatus(); loadSizes(); loadReport();
+setInterval(loadStatus, 15000);
+</script>
+</body>
+</html>
