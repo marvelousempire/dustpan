@@ -175,6 +175,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             cid = query.get("category", [""])[0]
             tier = query.get("tier", ["safe"])[0]   # safe | probably_safe
             return self._stream_clean_all(cid, tier)
+        if path == "/api/clean-everything":
+            tier = query.get("tier", ["safe"])[0]
+            return self._stream_clean_everything(tier)
 
         self.send_error(404)
 
@@ -291,6 +294,53 @@ class Handler(http.server.BaseHTTPRequestHandler):
                      "after_gb": after["free_gb"], "freed_gb": freed},
         })
         self._log_run(category_id, f"clean-all-{tier}", freed, before["free_gb"], after["free_gb"])
+
+    def _stream_clean_everything(self, tier: str):
+        """Clean every <tier> path across every category in one streamed pass."""
+        if tier not in ("safe", "probably_safe"):
+            return self.send_error(400, "tier must be safe or probably_safe")
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+
+        before = get_status()
+        self._send_sse({"event": "status", "data": before})
+        self._send_sse({"event": "line", "data": f"▶ Clean ALL {tier} paths across every category"})
+
+        import shlex
+        total_paths = 0
+        for cat_id, cat in cleaners.CATEGORIES.items():
+            items = cat["groups"].get(tier, [])
+            if not items:
+                continue
+            self._send_sse({"event": "line", "data": f""})
+            self._send_sse({"event": "line", "data": f"[{cat['label']}]"})
+            for label, path in items:
+                expanded = os.path.expanduser(path)
+                self._send_sse({"event": "line", "data": f"  cleaning: {label}"})
+                try:
+                    subprocess.run(
+                        ["bash", "-c", f"rm -rf {shlex.quote(expanded)}/* 2>/dev/null; true"],
+                        timeout=60,
+                    )
+                    total_paths += 1
+                except subprocess.TimeoutExpired:
+                    self._send_sse({"event": "line", "data": f"    (timeout — skipped)"})
+
+        after = get_status()
+        freed = round(after["free_gb"] - before["free_gb"], 1)
+        self._send_sse({"event": "line", "data": ""})
+        self._send_sse({"event": "line", "data": f"✓ Done. Cleaned {total_paths} paths across {len(cleaners.CATEGORIES)} categories."})
+        self._send_sse({
+            "event": "done",
+            "data": {"code": 0, "before_gb": before["free_gb"],
+                     "after_gb": after["free_gb"], "freed_gb": freed},
+        })
+        self._log_run("ALL", f"clean-everything-{tier}", freed, before["free_gb"], after["free_gb"])
 
     def _stream_action(self, category_id: str, action_id: str):
         cat = cleaners.CATEGORIES.get(category_id)

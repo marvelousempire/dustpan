@@ -4,13 +4,13 @@
 > Edit this in place. Don't append a new section per handoff — overwrite stale lines.
 
 **Last updated:** 2026-05-08
-**Updated by:** v0.8.0 ship (per-path clean buttons + top action bar)
+**Updated by:** v0.8.1 ship (global Clean ALL safe mega-button) (per-path clean buttons + top action bar)
 
 ---
 
 ## TL;DR
 
-Repo is at v0.8.0. Web UI moved from one Xcode-only page to four tabs (Xcode / LLMs / Apps / System), with LLMs having sub-tabs for Claude, Cursor, ChatGPT. Total ~70 paths across 6 categories. Every action ships a cost annotation. README now positions the product as a broader cleanup hub, not Xcode-only. All 7 gaps + all 8 elevations from the prior audits are closed. v0.4 shipped: `xcc` CLI (bin/), launchd hourly agent, SwiftBar menu-bar plugin, daily update check via GitHub API (cached), CSV history + sparkline report, auto-release Actions workflow (`vX.Y.Z:` prefix → tag + release), retroactive tags for all historical versions, `make package-shortcut` infrastructure. v0.4.1 adds `scripts/remote-cleanup.sh` (pure-shell, no UI) and `docs/SHORTCUTS.md` (paste-ready blocks for Run Shell Script / Run AppleScript / Run Script Over SSH, validated against Shortcuts 12.4 / macOS 26). Issue #2 (progress-bar GIF) remains the only outstanding follow-up.
+Repo is at v0.8.1. Web UI moved from one Xcode-only page to four tabs (Xcode / LLMs / Apps / System), with LLMs having sub-tabs for Claude, Cursor, ChatGPT. Total ~70 paths across 6 categories. Every action ships a cost annotation. README now positions the product as a broader cleanup hub, not Xcode-only. All 7 gaps + all 8 elevations from the prior audits are closed. v0.4 shipped: `xcc` CLI (bin/), launchd hourly agent, SwiftBar menu-bar plugin, daily update check via GitHub API (cached), CSV history + sparkline report, auto-release Actions workflow (`vX.Y.Z:` prefix → tag + release), retroactive tags for all historical versions, `make package-shortcut` infrastructure. v0.4.1 adds `scripts/remote-cleanup.sh` (pure-shell, no UI) and `docs/SHORTCUTS.md` (paste-ready blocks for Run Shell Script / Run AppleScript / Run Script Over SSH, validated against Shortcuts 12.4 / macOS 26). Issue #2 (progress-bar GIF) remains the only outstanding follow-up.
 
 ## Current status
 

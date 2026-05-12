@@ -262,6 +262,39 @@
   .action-card.informational button { background: var(--text-dim); }
   .action-card.informational button:hover { background: var(--text); }
 
+  .global-actions {
+    padding: 18px 22px;
+    margin-bottom: 16px;
+  }
+  .ga-row {
+    display: flex; gap: 10px;
+    flex-wrap: wrap;
+  }
+  .ga-btn {
+    appearance: none; border: 1px solid var(--border);
+    background: var(--bg-3); color: var(--text);
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    padding: 11px 16px; border-radius: 10px;
+    cursor: pointer; transition: all 0.18s ease;
+    flex: 1; min-width: 0;
+  }
+  .ga-btn:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+  .ga-btn:active:not(:disabled) { transform: scale(0.98); }
+  .ga-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .ga-btn.primary {
+    background: linear-gradient(135deg, var(--accent), #006FE6);
+    color: white; border-color: transparent;
+    box-shadow: 0 4px 12px rgba(10,132,255,0.25);
+  }
+  .ga-btn.primary:hover:not(:disabled) { box-shadow: 0 6px 16px rgba(10,132,255,0.35); }
+  .ga-hint {
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+  .ga-hint strong { color: var(--text); }
+
   .top-actions {
     display: flex; gap: 8px;
     margin-top: 12px;
@@ -365,6 +398,15 @@
     <div class="free" id="free-gb">— <span class="unit">GB free</span></div>
     <div class="label" id="free-label">Checking disk…</div>
     <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="card global-actions" id="global-actions">
+    <div class="ga-row">
+      <button class="ga-btn" id="btn-scan-all">⚡ Scan everything</button>
+      <button class="ga-btn primary" id="btn-clean-all-safe" disabled>✨ Clean ALL safe · scan first</button>
+      <button class="ga-btn" id="btn-clean-all-optin" disabled>⚠ Clean ALL opt-in · scan first</button>
+    </div>
+    <div class="ga-hint" id="ga-hint">Scan every tab at once, then click Clean ALL safe to factory-fresh your Mac across Xcode, LLMs, Apps, and System — without touching anything in the caution tier.</div>
   </div>
 
   <nav class="tabs" id="tabs"></nav>
@@ -687,6 +729,82 @@ function appendLine(text, cls = "") {
   out.appendChild(span);
   out.scrollTop = out.scrollHeight;
 }
+
+async function scanEverything() {
+  const btn = $("#btn-scan-all");
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "Scanning every tab…";
+  $("#btn-clean-all-safe").disabled = true;
+  $("#btn-clean-all-optin").disabled = true;
+  $("#ga-hint").innerHTML = "Scanning all 6 categories in parallel…";
+
+  // Get list of categories from tabs structure (or hardcode for now since tabs are loaded)
+  const allCats = ["xcode", "llms-claude", "llms-cursor", "llms-chatgpt", "apps", "system"];
+  await Promise.all(allCats.map(c => scanAndRender(c).catch(e => null)));
+
+  // Sum safe + probably_safe totals across all
+  let totalSafe = 0, totalOptIn = 0;
+  for (const c of allCats) {
+    const s = tabsState.scans[c];
+    if (!s) continue;
+    totalSafe   += s.totals.safe || 0;
+    totalOptIn  += s.totals.probably_safe || 0;
+  }
+
+  $("#btn-clean-all-safe").textContent  = `✨ Clean ALL safe · ${fmt(totalSafe)} GB`;
+  $("#btn-clean-all-optin").textContent = `⚠ Clean ALL opt-in · ${fmt(totalOptIn)} GB`;
+  $("#btn-clean-all-safe").disabled  = totalSafe  < 0.001;
+  $("#btn-clean-all-optin").disabled = totalOptIn < 0.001;
+
+  // Per-tab breakdown
+  let breakdown = "<strong>Per tab:</strong> ";
+  for (const c of allCats) {
+    const s = tabsState.scans[c];
+    if (!s) continue;
+    const t = (s.totals.safe || 0) + (s.totals.probably_safe || 0);
+    breakdown += `<span style="margin-right:12px">${s.icon} ${s.label} <strong>${fmt(t)} GB</strong></span>`;
+  }
+  $("#ga-hint").innerHTML = breakdown;
+
+  btn.textContent = orig.replace("Scan everything", "Re-scan everything");
+  btn.disabled = false;
+}
+
+async function cleanEverything(tier) {
+  const label = tier === "safe" ? "ALL safe" : "ALL opt-in";
+  const totalBtn = tier === "safe" ? $("#btn-clean-all-safe") : $("#btn-clean-all-optin");
+  if (!confirm(`Clean ${label} paths across every category?\n\nThis runs the same rm -rf the per-tab buttons run, just in one pass. Caution-tier items are NOT touched. Cost notes from each category apply.`)) return;
+
+  disableAllButtons(true);
+  const out = $("#output");
+  out.innerHTML = ""; out.classList.add("visible");
+  appendLine(`→ Clean ${label} across every category`, "dim");
+
+  const es = new EventSource(`/api/clean-everything?tier=${encodeURIComponent(tier)}`);
+  es.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.event === "line") {
+      const line = msg.data;
+      let cls = "";
+      if (line.startsWith("▶") || line.startsWith("✓")) cls = "ok";
+      else if (line.startsWith("[")) cls = "warn";
+      else if (line.startsWith("  cleaning:")) cls = "dim";
+      appendLine(line, cls);
+    } else if (msg.event === "done") {
+      es.close();
+      appendLine(`✓ Done. Freed ${fmt(msg.data.freed_gb)} GB across all categories.`, "ok");
+      disableAllButtons(false);
+      loadStatus();
+      // Re-scan everything to refresh sizes
+      scanEverything();
+    }
+  };
+  es.onerror = () => { es.close(); appendLine("✗ Connection lost.", "err"); disableAllButtons(false); };
+}
+
+$("#btn-scan-all").addEventListener("click", scanEverything);
+$("#btn-clean-all-safe").addEventListener("click", () => cleanEverything("safe"));
+$("#btn-clean-all-optin").addEventListener("click", () => cleanEverything("probably_safe"));
 
 loadStatus(); loadTabs();
 setInterval(loadStatus, 15000);

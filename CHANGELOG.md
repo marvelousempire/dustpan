@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.8.1 — 2026-05-12
+
+### Added
+- **Mega action bar** above the tabs with three global buttons:
+  - **⚡ Scan everything** — fires scans for all 6 categories in parallel, populates every tab at once. Shows a per-tab breakdown in the hint line afterward (`🛠 Xcode 5.0 GB · 🤖 Claude 10.7 GB · …`).
+  - **✨ Clean ALL safe · X.X GB** — wipes every safe-tier path across every category in one pass. Disabled until "Scan everything" runs first; label always shows total reclaim potential.
+  - **⚠ Clean ALL opt-in · X.X GB** — same, for the probably-safe tier (Simulator app data, Claude Desktop state, browser-cache opt-ins, etc.).
+- **`/api/clean-everything?tier={safe,probably_safe}`** server endpoint — streams the cleanup of every path in the chosen tier across every category. Logs to CSV as `clean-everything-{tier}`.
+
+### Why
+User: "Want me to also add a 'Clean all safe across every tab' mega-button at the very top (above the tabs)?" → "yes please". One-click factory-fresh across Xcode/LLMs/Apps/System without touching anything in the caution tier.
+
 ## v0.8.0 — 2026-05-12
 
 ### Added
