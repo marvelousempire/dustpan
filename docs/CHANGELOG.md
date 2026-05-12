@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.12.0] — 2026-05-12 12:55:20 Eastern · *Docker, Adobe, DaVinci Resolve — three new categories*
+
+Three of the biggest disk hogs on a working Mac that v0.10 didn't cover.
+
+### Added
+- **Docker tab** — own top-level category. The Docker.raw VM disk routinely sits at 30–60 GB on dev machines.
+  - **Safe:** Docker Desktop logs · buildx build cache · CLI plugins cache · diagnostics · telemetry queue.
+  - **Caution (surface only):** the Docker.raw file itself in both new and legacy locations, plus the Group Containers state directory.
+  - **Actions:**
+    - *Prune Docker — safe.* `docker container prune` + `image prune` (dangling only) + `network prune` + `buildx prune -af`. Volumes left alone — DB data stays safe.
+    - *Nuke ALL unused Docker.* `docker system prune -a --volumes -f`. Cost annotation makes the volume-wipe risk unmissable.
+    - *How to actually shrink Docker.raw* (informational). Pruning shrinks the contents, not the .raw file — surfaces the Docker Desktop reset path + a CLI alternative.
+    - *Clear Docker Desktop logs + diagnostics.*
+- **Creative tab** — stacked-card panel containing Adobe + DaVinci Resolve (same pattern as LLMs).
+  - **Adobe sub-card.** Targets the biggest reclaim on a video editor's Mac: the shared Premiere/AE Media Cache. Plus per-app disk caches (Premiere · AE · Photoshop · Bridge · Acrobat · Creative Cloud), Camera Raw cache, and a deliberately *non-deleting* Lightroom info action so the catalog is never at risk.
+  - **DaVinci Resolve sub-card.** Render Cache · Optimized Media · CacheClip proxies as the safe trio. Gallery Stills + Fusion disk cache as opt-in. Projects + disk database in caution (surfaced for review only).
+
+### Changed
+- `cleaners.py` `TABS` array now has six entries: `xcode · llms · docker · apps · creative · system`. The redesigned UI absorbs them automatically — no server.py changes needed.
+- New Lucide tab icons for Docker (container glyph) and Creative (palette glyph), matching the v0.11 icon system.
+- `LLM_PROVIDER_LABELS` renamed to `SUB_LABELS` since it now also holds the Adobe / DaVinci pre-scan display names.
+
+### Preserved
+- Cost annotation on every new action — including the explicit volume-wipe warning on `docker system prune -a --volumes` and the explicit catalog-protection note on the Lightroom action.
+- Three-tier safety taxonomy applied to every new path. No new tier semantics; the new categories slot into the existing model.
+- The redesigned UI (v0.11.0 in this PR) renders the new tabs with zero structural change.
+
+### Why
+Maintainer follow-up to v0.11.0: "we need to add a Docker Section in there too. I forgot Docker was another Huge one, and Adobe too. and DaVinci Resolve too." Three of the most common 10+ GB hogs on a working Mac that weren't in v0.10's surface.
+
 ## [0.11.0] — 2026-05-12 12:45:29 Eastern · *v1 redesign — design system, restructure, Motion polish, README rewrite*
 
 The redesign called for in `docs/Redesign-Brief.md`. One feature branch, four phases, every preserve-list item intact.

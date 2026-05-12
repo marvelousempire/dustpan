@@ -223,6 +223,197 @@ CATEGORIES = {
         },
     },
 
+    # ─── Docker ────────────────────────────────────────────────────────
+    "docker": {
+        "label": "Docker",
+        "icon":  "🐳",
+        "tagline": "Reclaim 5–60 GB. Docker.raw is the usual culprit.",
+        "groups": {
+            "safe": [
+                ("Docker Desktop logs",                "~/Library/Containers/com.docker.docker/Data/log"),
+                ("Docker buildx build cache",          "~/.docker/buildx"),
+                ("Docker CLI plugins cache",           "~/.docker/cli-plugins-cache"),
+                ("Docker Desktop diagnostics",         "~/Library/Group Containers/group.com.docker/diagnostics"),
+                ("Docker Desktop telemetry queue",     "~/Library/Group Containers/group.com.docker/telemetry"),
+            ],
+            "probably_safe": [
+                # Images / containers / volumes live INSIDE Docker.raw — not measurable
+                # by `du` on the host. Reclaim them via the prune actions below.
+            ],
+            "caution": [
+                ("Docker VM disk (Docker.raw — new location)",      "~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw"),
+                ("Docker VM disk (Docker.raw — legacy location)",   "~/Library/Containers/com.docker.docker/Data/vms/0/Docker.raw"),
+                ("Docker Desktop group container state",            "~/Library/Group Containers/group.com.docker"),
+            ],
+        },
+        "actions": {
+            "docker-prune-safe": {
+                "label": "Prune Docker — safe (stopped containers + dangling images + buildx)",
+                "desc":  "Runs `docker container prune`, `image prune` (dangling only), `network prune`, and `buildx prune -af`. Skips volumes.",
+                "cost":  "Stopped containers gone (start them again to recreate). Untagged/dangling images gone (re-pull on demand). Unused networks gone (`docker compose up` recreates). Build cache wiped — next build runs from scratch once. Volumes are NOT touched, so any DB data is safe.",
+                "shell": "if command -v docker >/dev/null 2>&1; then "
+                         "echo '▶ container prune'; docker container prune -f 2>&1; "
+                         "echo '▶ image prune (dangling)'; docker image prune -f 2>&1; "
+                         "echo '▶ network prune'; docker network prune -f 2>&1; "
+                         "echo '▶ buildx prune'; docker buildx prune -af 2>&1; "
+                         "echo '▶ disk usage now:'; docker system df 2>&1; "
+                         "else echo 'Docker CLI not found — install Docker Desktop or skip.'; fi",
+            },
+            "docker-prune-everything": {
+                "label": "Nuke ALL unused Docker (system prune --volumes)",
+                "desc":  "Aggressive: `docker system prune -a --volumes -f`. Removes everything not currently in use, including volumes.",
+                "cost":  "ALL stopped containers gone. ALL unused images gone (re-pull on next `docker compose up`, often 5+ GB). **ALL unused volumes gone** — this is the dangerous one: any DB/postgres/redis volume not attached to a RUNNING container is wiped. Confirm your important containers are running before clicking.",
+                "shell": "if command -v docker >/dev/null 2>&1; then "
+                         "docker system prune -a --volumes -f 2>&1; "
+                         "echo ''; echo '▶ disk usage now:'; docker system df 2>&1; "
+                         "else echo 'Docker CLI not found.'; fi",
+            },
+            "docker-vm-reset-info": {
+                "label": "How to actually shrink Docker.raw (informational)",
+                "desc":  "Pruning shrinks what's INSIDE the VM, not the .raw file on host disk. This shows how to reset the VM image.",
+                "cost":  "Resetting Docker Desktop's VM wipes ALL images, containers, volumes, and Kubernetes state. Surfaces the manual command rather than running it for you.",
+                "shell": "echo 'Docker.raw is the VM disk that holds your images/containers/volumes.'; "
+                         "echo 'Pruning shrinks WHAT IS INSIDE the VM, not the .raw file on host disk.'; "
+                         "echo ''; echo 'Current Docker.raw size:'; "
+                         "ls -lh ~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw 2>/dev/null || "
+                         "ls -lh ~/Library/Containers/com.docker.docker/Data/vms/0/Docker.raw 2>/dev/null || "
+                         "echo '  (Docker.raw not found — Docker Desktop may not be installed.)'; "
+                         "echo ''; echo 'To shrink it (in Docker Desktop):'; "
+                         "echo '  Settings → Troubleshoot → Clean / Purge data → Reset disk image'; "
+                         "echo ''; echo 'Or from Terminal (nukes everything, then rebuilds the VM):'; "
+                         "echo '  docker system prune -a --volumes -f'; "
+                         "echo '  killall Docker'; "
+                         "echo '  rm -f ~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw'; "
+                         "echo '  open -a Docker'",
+                "informational": True,
+            },
+            "docker-clear-logs": {
+                "label": "Clear Docker Desktop logs + diagnostics",
+                "desc":  "Removes ~/Library/Containers/com.docker.docker/Data/log + Group Containers diagnostics.",
+                "cost":  "Past Docker Desktop logs + diagnostics gone. Containers, images, and volumes are untouched.",
+                "shell": "rm -rf ~/Library/Containers/com.docker.docker/Data/log/* "
+                         "~/Library/Group\\ Containers/group.com.docker/diagnostics/* "
+                         "~/Library/Group\\ Containers/group.com.docker/telemetry/* 2>/dev/null; true",
+            },
+        },
+    },
+
+    # ─── Adobe (Creative sub-tab) ──────────────────────────────────────
+    "creative-adobe": {
+        "label": "Adobe",
+        "parent": "creative",
+        "icon":   "🎨",
+        "tagline": "Premiere · After Effects · Photoshop · Lightroom caches.",
+        "groups": {
+            "safe": [
+                ("Adobe Media Cache (Premiere/AE shared)",       "~/Library/Application Support/Adobe/Common/Media Cache Files"),
+                ("Adobe Media Cache index",                       "~/Library/Application Support/Adobe/Common/Media Cache"),
+                ("Premiere Pro disk cache",                       "~/Library/Application Support/Adobe/Premiere Pro"),
+                ("After Effects disk cache",                      "~/Library/Application Support/Adobe/After Effects"),
+                ("Photoshop disk cache",                          "~/Library/Application Support/Adobe/Adobe Photoshop"),
+                ("Adobe general cache",                           "~/Library/Caches/Adobe"),
+                ("Adobe Creative Cloud cache",                    "~/Library/Caches/com.adobe.acc.AdobeCreativeCloud"),
+                ("Adobe Acrobat cache",                           "~/Library/Caches/com.adobe.Acrobat.Pro"),
+            ],
+            "probably_safe": [
+                ("Camera Raw cache",                              "~/Library/Caches/Adobe Camera Raw"),
+                ("Adobe Bridge cache",                            "~/Library/Caches/Adobe/Bridge"),
+            ],
+            "caution": [
+                ("Lightroom folder (CATALOG + previews together)",  "~/Pictures/Lightroom"),
+            ],
+        },
+        "actions": {
+            "clear-adobe-media-cache": {
+                "label": "Clear Adobe Media Cache (Premiere + AE shared)",
+                "desc":  "Removes the shared Media Cache Files + index that Premiere Pro and After Effects both use. Often the single biggest reclaim on a video editor's Mac.",
+                "cost":  "Premiere / After Effects re-conform audio and rebuild peaks the next time you open each project (one-time cost per project, can take minutes on long timelines). Project files, sequences, edits — all untouched.",
+                "shell": "rm -rf "
+                         "~/Library/Application\\ Support/Adobe/Common/Media\\ Cache\\ Files/* "
+                         "~/Library/Application\\ Support/Adobe/Common/Media\\ Cache/* 2>/dev/null; true",
+            },
+            "clear-adobe-app-caches": {
+                "label": "Clear Adobe app caches (Premiere / AE / Photoshop)",
+                "desc":  "Per-app disk caches for Premiere Pro, After Effects, Photoshop. Doesn't touch the shared Media Cache (that has its own action).",
+                "cost":  "Each app rebuilds its disk cache on next launch / next preview render. Preference settings, presets, and project files are NOT affected.",
+                "shell": "rm -rf "
+                         "~/Library/Application\\ Support/Adobe/Premiere\\ Pro/*/Common/Media\\ Cache* "
+                         "~/Library/Application\\ Support/Adobe/After\\ Effects/*/Adobe\\ After\\ Effects\\ Disk\\ Cache* "
+                         "~/Library/Application\\ Support/Adobe/Adobe\\ Photoshop\\ */Cache* "
+                         "~/Library/Caches/Adobe/Bridge/* "
+                         "~/Library/Caches/Adobe/* 2>/dev/null; true",
+            },
+            "clear-camera-raw-cache": {
+                "label": "Clear Camera Raw cache",
+                "desc":  "Removes Camera Raw's previews + ACR cache (~/Library/Caches/Adobe Camera Raw).",
+                "cost":  "Lightroom / Photoshop rebuilds raw previews on next view (slower per-image first-time). Edits are stored in catalogs / sidecar XMP files and are unaffected.",
+                "shell": "rm -rf ~/Library/Caches/Adobe\\ Camera\\ Raw/* 2>/dev/null; true",
+            },
+            "lightroom-preview-info": {
+                "label": "How to clear Lightroom previews (without touching your catalog)",
+                "desc":  "Lightroom previews live next to the catalog inside `~/Pictures/Lightroom`. We deliberately don't auto-delete in that folder — your `.lrcat` catalog is irreplaceable.",
+                "cost":  "Informational. Shows the size of your Lightroom folder and the in-app step to clear previews safely.",
+                "shell": "echo 'Lightroom catalog + previews live in:'; "
+                         "du -sh ~/Pictures/Lightroom/* 2>/dev/null || echo '  (no ~/Pictures/Lightroom found)'; "
+                         "echo ''; echo 'To clear 1:1 previews safely (won\\'t touch your catalog):'; "
+                         "echo '  Lightroom Classic → Library menu → Previews → Discard 1:1 Previews'; "
+                         "echo '  They rebuild on demand as you view photos.'; "
+                         "echo ''; echo 'Never delete the .lrcat file from this UI — that is your catalog.'",
+                "informational": True,
+            },
+        },
+    },
+
+    # ─── DaVinci Resolve (Creative sub-tab) ────────────────────────────
+    "creative-davinci": {
+        "label": "DaVinci Resolve",
+        "parent": "creative",
+        "icon":   "🎬",
+        "tagline": "Render cache, proxies, optimized media.",
+        "groups": {
+            "safe": [
+                ("Render Cache",                          "~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Render Cache"),
+                ("Optimized Media",                       "~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Optimized Media"),
+                ("CacheClip (proxies)",                   "~/Movies/CacheClip"),
+                ("DaVinci Resolve logs",                  "~/Library/Logs/Blackmagic Design/DaVinci Resolve"),
+                ("DaVinci general cache",                 "~/Library/Caches/com.blackmagic-design.DaVinciResolve"),
+            ],
+            "probably_safe": [
+                ("Gallery Stills (per-project color refs)",   "~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Gallery Stills"),
+                ("Fusion Disk Cache",                          "~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Disk Cache"),
+            ],
+            "caution": [
+                ("Resolve Projects",                           "~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Resolve Projects"),
+                ("Resolve Disk Database",                      "~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Resolve Disk Database"),
+                ("~/Movies/DaVinci Resolve (may contain exports)",  "~/Movies/DaVinci Resolve"),
+            ],
+        },
+        "actions": {
+            "clear-davinci-cache": {
+                "label": "Clear Render Cache + Optimized Media + CacheClip",
+                "desc":  "Removes the three big regenerable buckets: Render Cache, Optimized Media, and CacheClip (proxies).",
+                "cost":  "Resolve re-renders cached / optimized clips on next playback (slower scrubbing until the cache rebuilds — usually within a session). Anything you've EXPORTED is untouched; projects and color grades are untouched.",
+                "shell": "rm -rf "
+                         "~/Library/Application\\ Support/Blackmagic\\ Design/DaVinci\\ Resolve/Render\\ Cache/* "
+                         "~/Library/Application\\ Support/Blackmagic\\ Design/DaVinci\\ Resolve/Optimized\\ Media/* "
+                         "~/Movies/CacheClip/* 2>/dev/null; true",
+            },
+            "clear-davinci-logs": {
+                "label": "Clear DaVinci logs + general cache",
+                "desc":  "Removes ~/Library/Logs/Blackmagic Design + ~/Library/Caches/com.blackmagic-design.*",
+                "cost":  "Past crash logs gone. Projects, render cache, and color databases untouched.",
+                "shell": "rm -rf ~/Library/Logs/Blackmagic\\ Design/* "
+                         "~/Library/Caches/com.blackmagic-design.*/* 2>/dev/null; true",
+            },
+            "clear-fusion-cache": {
+                "label": "Clear Fusion disk cache",
+                "desc":  "Removes Fusion's disk cache (used for VFX node previews).",
+                "cost":  "Fusion comp nodes recompute on next preview (slower the first time per comp). Final flows / saved comps are stored in projects and unaffected.",
+                "shell": "rm -rf ~/Library/Application\\ Support/Blackmagic\\ Design/DaVinci\\ Resolve/Fusion/Disk\\ Cache/* 2>/dev/null; true",
+            },
+        },
+    },
+
     # ─── Apps (browsers, communicators, downloads) ────────────────────
     "apps": {
         "label": "Apps",
@@ -373,8 +564,10 @@ CATEGORIES = {
 
 # Tab structure — top-level navigation
 TABS = [
-    {"id": "xcode",    "label": "Xcode",  "category": "xcode"},
-    {"id": "llms",     "label": "LLMs",   "subcategories": ["llms-claude", "llms-cursor", "llms-chatgpt"]},
-    {"id": "apps",     "label": "Apps",   "category": "apps"},
-    {"id": "system",   "label": "System", "category": "system"},
+    {"id": "xcode",    "label": "Xcode",    "category": "xcode"},
+    {"id": "llms",     "label": "LLMs",     "subcategories": ["llms-claude", "llms-cursor", "llms-chatgpt"]},
+    {"id": "docker",   "label": "Docker",   "category": "docker"},
+    {"id": "apps",     "label": "Apps",     "category": "apps"},
+    {"id": "creative", "label": "Creative", "subcategories": ["creative-adobe", "creative-davinci"]},
+    {"id": "system",   "label": "System",   "category": "system"},
 ]
