@@ -659,7 +659,7 @@ async function scanAndRender(catId) {
     optInBtn.disabled = (scan.totals.probably_safe || 0) < 0.001;
   }
   // Update Scan button to "Re-scan"
-  const scanBtn = document.querySelector(`button[data-scan="${catId}"]`);
+  // scanBtn already declared above; just update its text after first scan
   if (scanBtn) { scanBtn.textContent = "Re-scan"; scanBtn.disabled = false; }
 
   let actionsHtml = "";
@@ -740,7 +740,14 @@ async function scanEverything() {
 
   // Get list of categories from tabs structure (or hardcode for now since tabs are loaded)
   const allCats = ["xcode", "llms-claude", "llms-cursor", "llms-chatgpt", "apps", "system"];
-  await Promise.all(allCats.map(c => scanAndRender(c).catch(e => null)));
+  let completed = 0;
+  const progressLine = () => `Scanning all ${allCats.length} categories… <strong>${completed}/${allCats.length}</strong>`;
+  $("#ga-hint").innerHTML = progressLine();
+  await Promise.all(allCats.map(c =>
+    scanAndRender(c)
+      .catch(e => null)
+      .finally(() => { completed++; $("#ga-hint").innerHTML = progressLine(); })
+  ));
 
   // Sum safe + probably_safe totals across all
   let totalSafe = 0, totalOptIn = 0;
