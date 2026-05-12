@@ -105,6 +105,27 @@
   }
 }
 
+/* Spinner keyframes for the v0.15.0 RunningWidget + various loading rings. */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ANSI color classes — used by OutputConsole's parseAnsi() to render piped
+   CLI output that emits \e[3xm/\e[9xm color codes. Match the vanilla palette. */
+.ansi-fg-red    { color: #EF4444; }
+.ansi-fg-green  { color: #22C55E; }
+.ansi-fg-yellow { color: #FBBF24; }
+.ansi-fg-blue   { color: #60A5FA; }
+.ansi-fg-magenta{ color: #C084FC; }
+.ansi-fg-cyan   { color: #22D3EE; }
+.ansi-fg-gray   { color: #9B9BA3; }
+.ansi-bold      { font-weight: 700; }
+.hl             { background: hsl(45 100% 50% / 0.32); color: #F4F4F2; padding: 0 1px; border-radius: 2px; }
+
+/* Pulsing ring used by the OnboardingCoachmark to draw the eye to the pie pane. */
+@keyframes coach-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px hsl(var(--accent) / 0.18); }
+  50%      { box-shadow: 0 0 0 10px hsl(var(--accent) / 0.08); }
+}
+
 /* Overview 3-pane top — hero · pie · terminal. Tailwind can express grid-cols
    via arbitrary values, but the responsive breakpoints below are simpler in
    plain CSS (and match the vanilla v0.14.2 implementation 1:1). */

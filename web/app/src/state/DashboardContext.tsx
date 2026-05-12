@@ -33,12 +33,20 @@ export interface ScanCache {
   actions: Action[];
 }
 
+export interface RunningClean {
+  token: string;
+  category: string;
+  kind: string;
+  started_at: number;
+}
+
 interface DashboardState {
   status: DiskStatus | null;
   history: HistoryReport | null;
   tabs: TopLevelTab[];
   allCategories: string[];
   scans: Record<string, ScanCache>;
+  runningCleans: RunningClean[];
   activeTab: string;
   activeSub: Record<string, string>;
   output: OutputLine[];
@@ -77,6 +85,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [history, setHistory] = useState<HistoryReport | null>(null);
   const [tabs, setTabs] = useState<TopLevelTab[]>([]);
   const [scans, setScans] = useState<Record<string, ScanCache>>({});
+  // Live running-cleans (v0.15.0). Server pushes via /api/live; UI renders a
+  // header chip + the heavier elevations down the road key off this state.
+  const [runningCleans, setRunningCleans] = useState<RunningClean[]>([]);
   const [activeTab, _setActiveTab] = useState<string>("overview");
   const [activeSub, setActiveSubState] = useState<Record<string, string>>({});
   const [output, setOutput] = useState<OutputLine[]>([]);
@@ -89,14 +100,43 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const confirmResolverRef = useRef<((result: boolean) => void) | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
-  // Initial loads + 15s status poll (live SSE comes in Phase 3).
+  // Replaces the 15s status poll with the v0.15.0 /api/live SSE channel —
+  // status deltas + running-cleans events arrive in real time. Initial fetch
+  // still runs once so the hero doesn't sit blank waiting for the first delta.
   useEffect(() => {
-    const refresh = async () => {
-      try { setStatus(await api.status()); } catch {}
+    let liveES: EventSource | null = null;
+    let backoffMs = 1000;
+    let cancelled = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const connect = () => {
+      if (cancelled) return;
+      try { liveES?.close(); } catch { /* ignore */ }
+      liveES = new EventSource("/api/live");
+      liveES.onopen = () => { backoffMs = 1000; };
+      liveES.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.event === "status") setStatus(msg.data);
+          else if (msg.event === "running") setRunningCleans(msg.data || []);
+        } catch { /* ignore malformed frames */ }
+      };
+      liveES.onerror = () => {
+        try { liveES?.close(); } catch { /* ignore */ }
+        if (cancelled) return;
+        reconnectTimer = setTimeout(connect, backoffMs);
+        backoffMs = Math.min(backoffMs * 1.6, 15000);
+      };
     };
-    refresh();
-    const id = setInterval(refresh, 15000);
-    return () => clearInterval(id);
+
+    // One-shot fetch primes the hero immediately; live channel handles deltas after.
+    api.status().then(setStatus).catch(() => { /* ignore */ });
+    connect();
+    return () => {
+      cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      try { liveES?.close(); } catch { /* ignore */ }
+    };
   }, []);
 
   useEffect(() => {
@@ -332,6 +372,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       tabs,
       allCategories,
       scans,
+      runningCleans,
       activeTab,
       activeSub,
       output,
@@ -354,7 +395,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       closeChangelog: () => setShowChangelog(false),
     }),
     [
-      status, history, tabs, allCategories, scans, activeTab, activeSub,
+      status, history, tabs, allCategories, scans, runningCleans, activeTab, activeSub,
       output, outputVisible, busy, overviewAutoScanned, showChangelog, confirm,
       setActiveTab, setActiveSub, scanCategory, scanEverything, cleanPath,
       cleanAllTier, cleanEverywhere, runAction, openConfirm, closeOutput,

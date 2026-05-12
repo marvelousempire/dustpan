@@ -45,7 +45,7 @@ export function OverviewPanel() {
             Activity
           </div>
           <div className="flex flex-1 flex-col px-3 pb-3">
-            <OutputConsole embedded fillHeight />
+            <OutputConsole embedded fillHeight withToolbar />
           </div>
         </div>
       </div>

@@ -6,6 +6,8 @@ import { OverviewPanel } from "./components/OverviewPanel";
 import { CategoryPanel } from "./components/CategoryPanel";
 import { OutputConsole } from "./components/OutputConsole";
 import { ChangelogModal } from "./components/ChangelogModal";
+import { RunningWidget } from "./components/RunningWidget";
+import { OnboardingCoachmark } from "./components/OnboardingCoachmark";
 import { SUB_LABELS } from "./components/SidebarRight";
 import { cn } from "./lib/utils";
 import { motion, AnimatePresence } from "motion/react";
@@ -35,7 +37,13 @@ function AppBody() {
 
   return (
     <div className="mx-auto max-w-[1280px] px-6 pt-7 pb-24">
-      <AppHeader status={status} onOpenChangelog={openChangelog} />
+      <div className="flex items-center">
+        <div className="flex-1 min-w-0">
+          <AppHeader status={status} onOpenChangelog={openChangelog} />
+        </div>
+        <RunningWidget />
+      </div>
+      <OnboardingCoachmark />
 
       <div
         className={cn("grid items-start gap-4.5", hasSub ? "lg:grid-cols-[220px_1fr_220px]" : "lg:grid-cols-[220px_1fr]")}
