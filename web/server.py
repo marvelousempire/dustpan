@@ -24,6 +24,7 @@ WEB_DIR  = REPO_DIR / "web"
 PORT     = int(os.environ.get("XCC_UI_PORT", "8765"))
 HOST     = "127.0.0.1"   # localhost only — never bind 0.0.0.0
 
+# Basic scan: same set the AppleScript cleans in normal mode
 CLEANUP_PATHS = [
     ("DerivedData",            "~/Library/Developer/Xcode/DerivedData"),
     ("iOS DeviceSupport",      "~/Library/Developer/Xcode/iOS DeviceSupport"),
@@ -33,6 +34,63 @@ CLEANUP_PATHS = [
     ("SwiftPM cache",          "~/Library/Caches/org.swift.swiftpm"),
     ("Simulator caches",       "~/Library/Developer/CoreSimulator/Caches"),
 ]
+
+# Deep scan: an exhaustive list of Xcode-adjacent locations, grouped by safety.
+# "safe"          → cleanable by normal mode + the script
+# "probably_safe" → user must opt-in; bigger reclaim but loses simulator app data, etc.
+# "caution"       → never auto-delete; surface size only so user can review manually
+DEEP_PATHS = {
+    "safe": [
+        ("DerivedData",                 "~/Library/Developer/Xcode/DerivedData"),
+        ("iOS DeviceSupport",           "~/Library/Developer/Xcode/iOS DeviceSupport"),
+        ("watchOS DeviceSupport",       "~/Library/Developer/Xcode/watchOS DeviceSupport"),
+        ("tvOS DeviceSupport",          "~/Library/Developer/Xcode/tvOS DeviceSupport"),
+        ("visionOS DeviceSupport",      "~/Library/Developer/Xcode/visionOS DeviceSupport"),
+        ("Xcode caches",                "~/Library/Caches/com.apple.dt.Xcode"),
+        ("SwiftPM cache",               "~/Library/Caches/org.swift.swiftpm"),
+        ("Simulator caches",            "~/Library/Developer/CoreSimulator/Caches"),
+        ("CoreSimulator Cryptex",       "~/Library/Developer/CoreSimulator/Cryptex"),
+        ("iOS Device Logs",             "~/Library/Developer/Xcode/iOS Device Logs"),
+        ("Xcode Snapshots",             "~/Library/Developer/Xcode/Snapshots"),
+        ("Interface Builder caches",    "~/Library/Developer/Xcode/UserData/IB Support"),
+        ("Xcode Products",              "~/Library/Developer/Xcode/Products"),
+    ],
+    "probably_safe": [
+        ("Simulator app data (all)",    "~/Library/Developer/CoreSimulator/Devices"),
+        ("Instruments traces",          "~/Library/Application Support/Instruments"),
+        ("CocoaPods cache",             "~/Library/Caches/CocoaPods"),
+        ("CocoaPods specs",             "~/.cocoapods/repos"),
+    ],
+    "caution": [
+        ("iOS device backups (Finder/iTunes)",  "~/Library/Application Support/MobileSync/Backup"),
+        ("Xcode Archives (NEEDED for crash symbolication)", "~/Library/Developer/Xcode/Archives"),
+        ("Provisioning Profiles",                "~/Library/MobileDevice/Provisioning Profiles"),
+    ],
+}
+
+# Deep-action recipes — what each opt-in deep cleanup does
+DEEP_ACTIONS = {
+    "erase-simulators": {
+        "label": "Erase all simulator app data",
+        "desc":  "Runs `xcrun simctl erase all`. Keeps simulator devices, wipes installed apps + their data.",
+        "cmd":   ["xcrun", "simctl", "erase", "all"],
+    },
+    "clear-instruments": {
+        "label": "Clear Instruments traces",
+        "desc":  "Removes all saved .trace files.",
+        "shell": "rm -rf ~/Library/Application\ Support/Instruments/*",
+    },
+    "clear-cocoapods": {
+        "label": "Clear CocoaPods caches",
+        "desc":  "Removes ~/Library/Caches/CocoaPods + ~/.cocoapods/repos. Re-fetched on next `pod install`.",
+        "shell": "rm -rf ~/Library/Caches/CocoaPods/* ~/.cocoapods/repos/*",
+    },
+    "clear-extras": {
+        "label": "Clear Xcode extras",
+        "desc":  "Wipes Snapshots, IB caches, iOS Device Logs, Products — all regenerable.",
+        "shell": "rm -rf ~/Library/Developer/Xcode/Snapshots/* ~/Library/Developer/Xcode/UserData/IB\ Support/* ~/Library/Developer/Xcode/iOS\ Device\ Logs/* ~/Library/Developer/Xcode/Products/*",
+    },
+}
 
 
 def get_status() -> dict:
@@ -108,6 +166,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif url.path == "/api/stream":
             mode = parse_qs(url.query).get("mode", ["dry"])[0]
             self._stream_cleanup(mode)
+        elif url.path == "/api/deep-scan":
+            self._serve_json(self._deep_scan())
+        elif url.path == "/api/deep-actions":
+            self._serve_json({"actions": [
+                {"id": k, "label": v["label"], "desc": v["desc"]}
+                for k, v in DEEP_ACTIONS.items()
+            ]})
+        elif url.path == "/api/deep-action":
+            action = parse_qs(url.query).get("id", [""])[0]
+            self._stream_deep_action(action)
         else:
             self.send_error(404)
 
@@ -131,6 +199,76 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
+
+    def _deep_scan(self):
+        result = {"categories": [], "total_safe_gb": 0, "total_probably_gb": 0, "total_caution_gb": 0}
+        for category, items in DEEP_PATHS.items():
+            paths = []
+            for label, path in items:
+                expanded = os.path.expanduser(path)
+                size_kb = 0
+                try:
+                    out = subprocess.check_output(
+                        ["du", "-sk", expanded], stderr=subprocess.DEVNULL, timeout=30,
+                    )
+                    size_kb = int(out.split()[0])
+                except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError, FileNotFoundError):
+                    pass
+                size_gb = round(size_kb / 1024 / 1024, 2)
+                paths.append({
+                    "label": label, "path": path,
+                    "size_kb": size_kb, "size_gb": size_gb,
+                })
+            cat_total = round(sum(p["size_gb"] for p in paths), 2)
+            result["categories"].append({"name": category, "paths": paths, "total_gb": cat_total})
+            if category == "safe":         result["total_safe_gb"]     = cat_total
+            elif category == "probably_safe": result["total_probably_gb"] = cat_total
+            elif category == "caution":    result["total_caution_gb"]  = cat_total
+        return result
+
+    def _stream_deep_action(self, action_id: str):
+        if action_id not in DEEP_ACTIONS:
+            return self.send_error(400, f"unknown action: {action_id}")
+
+        action = DEEP_ACTIONS[action_id]
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+
+        before = get_status()
+        self._send_sse({"event": "status", "data": before})
+        self._send_sse({"event": "line", "data": f"→ {action['label']}"})
+        self._send_sse({"event": "line", "data": f"  {action['desc']}"})
+
+        if "shell" in action:
+            cmd = ["bash", "-c", action["shell"] + " 2>&1"]
+        else:
+            cmd = action["cmd"]
+
+        try:
+            proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                bufsize=1, text=True,
+            )
+            for line in proc.stdout:
+                self._send_sse({"event": "line", "data": line.rstrip()})
+            proc.wait()
+            after = get_status()
+            self._send_sse({
+                "event": "done",
+                "data": {
+                    "code": proc.returncode,
+                    "before_gb": before["free_gb"],
+                    "after_gb":  after["free_gb"],
+                    "freed_gb":  round(after["free_gb"] - before["free_gb"], 1),
+                },
+            })
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def _stream_cleanup(self, mode: str):
         """SSE stream of cleanup output. Modes: dry / real / force."""

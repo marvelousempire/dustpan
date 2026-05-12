@@ -4,13 +4,13 @@
 > Edit this in place. Don't append a new section per handoff — overwrite stale lines.
 
 **Last updated:** 2026-05-08
-**Updated by:** v0.5.0 ship (web UI dashboard)
+**Updated by:** v0.6.0 ship (deep scan + README quickstart)
 
 ---
 
 ## TL;DR
 
-Repo is at v0.5.0. The web UI dashboard (`make ui`) is a fifth install surface — joins Shortcut / CLI / launchd / SwiftBar / SSH. Marketing chain through v0.4.4 stands. All 7 gaps + all 8 elevations from the prior audits are closed. v0.4 shipped: `xcc` CLI (bin/), launchd hourly agent, SwiftBar menu-bar plugin, daily update check via GitHub API (cached), CSV history + sparkline report, auto-release Actions workflow (`vX.Y.Z:` prefix → tag + release), retroactive tags for all historical versions, `make package-shortcut` infrastructure. v0.4.1 adds `scripts/remote-cleanup.sh` (pure-shell, no UI) and `docs/SHORTCUTS.md` (paste-ready blocks for Run Shell Script / Run AppleScript / Run Script Over SSH, validated against Shortcuts 12.4 / macOS 26). Issue #2 (progress-bar GIF) remains the only outstanding follow-up.
+Repo is at v0.6.0. Web UI grew a deep scan section that covers ~20 Xcode-adjacent locations beyond the basic 7 (simulator app data is the biggest single opt-in win, typically 3–8 GB). README rewritten to put `make ui` front and center as the recommended install path. All 7 gaps + all 8 elevations from the prior audits are closed. v0.4 shipped: `xcc` CLI (bin/), launchd hourly agent, SwiftBar menu-bar plugin, daily update check via GitHub API (cached), CSV history + sparkline report, auto-release Actions workflow (`vX.Y.Z:` prefix → tag + release), retroactive tags for all historical versions, `make package-shortcut` infrastructure. v0.4.1 adds `scripts/remote-cleanup.sh` (pure-shell, no UI) and `docs/SHORTCUTS.md` (paste-ready blocks for Run Shell Script / Run AppleScript / Run Script Over SSH, validated against Shortcuts 12.4 / macOS 26). Issue #2 (progress-bar GIF) remains the only outstanding follow-up.
 
 ## Current status
 
@@ -48,6 +48,9 @@ Nothing.
 | 2026-05-08 | Ship `remote-cleanup.sh` as a sibling, not a replacement | AppleScript version stays the rich UX (progress bar, alert, notifications). Shell version is the SSH-safe headless variant. Both kept in sync. |
 | 2026-05-08 | Shortcuts SSH blocks default to `bash <(curl …)` against `main` | Self-updating; one set of blocks works forever even as the script evolves. Inline fallback documented for air-gapped remotes. |
 | 2026-05-08 | README rewritten via copywriting skill | Headline now specifies outcome ("Reclaim 10–25 GB"), uses customer-language ("hoarding"), and install matrix is above-the-fold. Spec-sheet → landing page. |
+| 2026-05-12 | Deep scan splits paths into safe / probably_safe / caution | Basic mode stays narrow + reliable; opt-in actions surface real reclaim potential without surprising the user. Caution category never auto-deletes — only surfaces size. |
+| 2026-05-12 | Simulator app data not in basic mode | Wiping `xcrun simctl erase all` removes installed simulator apps + their saved data; some users want that preserved. Opt-in only. |
+| 2026-05-12 | README quickstart leads with `make ui`, not `make install-shortcut` | User feedback: easiest path wins. Web UI is zero-config, browser opens automatically, 3 buttons visible. Shortcut path is for people who want a permanent hotkey. |
 
 ## Blockers
 

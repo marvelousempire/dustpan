@@ -18,9 +18,27 @@
 
 ---
 
+## 60-second quickstart
+
+```sh
+git clone https://github.com/marvelousempire/xcode-cleanup-shortcut.git
+cd xcode-cleanup-shortcut
+make ui
+```
+
+Your browser opens a localhost dashboard. **Click "Dry run"** to see exactly what would be freed (no deletion). **Click "Clean now"** to actually clean. **Click "Run deep scan"** to find ~5–10 GB more that basic mode doesn't touch (simulator app data, Instruments traces, CocoaPods caches).
+
+That's it. Three buttons. No CLI, no AppleScript editing, nothing else to learn.
+
+![preview of the dashboard](https://img.shields.io/badge/dashboard-localhost%3A8765-0A84FF?style=for-the-badge)
+
+> Don't want a browser? See [other install paths](#install-60-seconds--pick-your-path) — Apple Shortcut, CLI, launchd background agent, SwiftBar menu-bar plugin, SSH for remote Macs. All five share one source script.
+
+---
+
 > **The 30-second version.** Xcode's caches (`DerivedData`, `DeviceSupport`, SwiftPM, simulator caches) routinely grow to 20+ GB and stay there. Every iOS dev has Googled which paths are safe to `rm -rf`. This script settles it — wipes the ones that are, skips the ones that aren't, tells you how much it freed.
 
-**See what it'd free, without deleting anything:**
+**No-clone version (just measure, deletes nothing):**
 
 ```sh
 bash <(curl -fsSL https://raw.githubusercontent.com/marvelousempire/xcode-cleanup-shortcut/main/scripts/remote-cleanup.sh) --dry-run
@@ -44,26 +62,41 @@ make help        # see every option
 
 | If you want… | Run this | What you get |
 |---|---|---|
+| **Web UI in your browser** ⭐ | `make ui` | Localhost dashboard with deep-scan, live indicator, one-click cleanup. No deps, pure Python stdlib. |
 | **Apple Shortcut** (menu bar, hotkey, schedulable) | `make install-shortcut` | Pastes the AppleScript into a new Shortcut for you |
 | **CLI** (`xcc --dry-run`, `xcc --force`) | `make install-cli` | Symlink at `~/.local/bin/xcc` |
 | **Hands-free hourly cleanup** | `make install-launchd` | LaunchAgent runs every hour, silent when disk is healthy |
 | **Live disk indicator in your menu bar** | `make install-swiftbar` | SwiftBar plugin — `🧹 12 GB`, click to clean |
 | **Remote Mac (build server)** over SSH | [`docs/SHORTCUTS.md`](./docs/SHORTCUTS.md) | Paste-ready Run Script Over SSH block |
-| **Web UI in your browser** | `make ui` | Localhost-only Python server + HTML dashboard — live disk indicator, per-path sizes, sparkline history, one-click cleanup |
 
 > [!TIP]
 > First time? Run `make dry-run` to see exactly how much you'd reclaim before committing to a delete.
 
-### Web UI (`make ui`)
+### Web UI (`make ui`) — recommended
 
-If you want the most visual way to use it — type `make ui` and your browser opens to a localhost dashboard with:
+Type `make ui` and your browser opens a localhost dashboard. Three things visible immediately:
 
-- **Live disk indicator** — big GB-free number, color-coded (red <20, orange <50, green ≥50), auto-refreshes every 15 seconds.
-- **Per-path size breakdown** — bar-chart of every cleanup target (DerivedData, DeviceSupport, simulator caches, …) showing exactly what you'd reclaim.
-- **Three one-click actions** — Dry run, Clean now, Force clean. Output streams live in a terminal-style pane (Server-Sent Events).
-- **History sparkline** — Unicode-block chart of your real cleanup runs over time, plus total GB freed all-time.
+- **Live disk indicator** — big GB-free number, color-coded (red <20, orange <50, green ≥50), auto-refreshes every 15s.
+- **Per-path size breakdown** — bar-chart of every cleanup target showing exactly what you'd reclaim.
+- **Three one-click actions** — Dry run · Clean now · Force clean. Output streams live in a terminal-style pane (Server-Sent Events).
 
-Zero dependencies — pure Python stdlib (`http.server`), zero npm/pip installs. Localhost only (`127.0.0.1`) — never reachable from your network. Ctrl-C in the terminal to stop.
+#### Deep scan — find ~5–10 GB more that basic mode misses
+
+The basic "Clean now" button handles the 7 known-safe Xcode caches (DerivedData, DeviceSupport, SwiftPM, simulator caches, Xcode caches). That's typically 10–25 GB per run on an active dev machine.
+
+But Xcode also accumulates **more** stuff that basic mode deliberately doesn't touch — because it requires you to opt in. Click **"Run deep scan"** in the UI and you'll see three categorized sections:
+
+| Category | What it contains | Example reclaim |
+|---|---|---|
+| **✓ Safe to delete** | Same set basic mode handles, plus iOS Device Logs, Xcode Snapshots, Interface Builder caches, Xcode Products | Already cleaned if you ran basic mode |
+| **⚠ Probably safe (opt in)** | Simulator **app data** (`xcrun simctl erase all` — keeps device definitions, wipes installed apps + their data), Instruments traces, CocoaPods cache, CocoaPods specs | Usually 3–8 GB — biggest single win is simulator app data |
+| **⛔ Caution (review manually)** | Xcode Archives (needed for App Store crash symbolication), iOS device backups from Finder/iTunes (often 10–50 GB and irreplaceable), Provisioning Profiles | Surfaces sizes only — never auto-deletes |
+
+Each "Probably safe" group has its own button. Click **"Erase all simulator app data"** to reclaim that bucket without affecting your other caches or installed simulators themselves — just the apps and data installed inside them.
+
+#### Zero dependencies, localhost-only
+
+Pure Python stdlib (`http.server`), zero npm/pip installs. Bound to `127.0.0.1` only — never reachable from your network. Ctrl-C in the terminal to stop the server.
 
 ## Install (the Shortcut way)
 

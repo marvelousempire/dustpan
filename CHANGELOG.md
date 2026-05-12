@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.6.0 — 2026-05-12
+
+### Added
+- **Deep scan** in the web UI — exhaustive scan of ~20 Xcode-adjacent locations, grouped into three categories with safety semantics:
+  - **Safe** (13 paths) — same caches basic mode cleans + iOS Device Logs, Snapshots, IB caches, Xcode Products, visionOS DeviceSupport, CoreSimulator Cryptex. Cleanable by the basic "Clean now" button or a dedicated "Clear Xcode extras" deep action.
+  - **Probably safe — opt in** (4 paths) — Simulator app data (5+ GB typical), Instruments traces, CocoaPods cache + specs. Each gets its own action button: "Erase all simulator app data" (`xcrun simctl erase all`), "Clear Instruments traces", "Clear CocoaPods caches".
+  - **Caution — review manually** (3 paths) — Xcode Archives, iOS device backups, Provisioning Profiles. Size only, never auto-deleted.
+- **`/api/deep-scan`** + **`/api/deep-action`** + **`/api/deep-actions`** server endpoints
+- **"Run deep scan" button** in the UI between "What would be cleaned" and "Your cleanup history"; each category renders with its own color, a one-line note explaining the safety semantics, the path list with sizes, and (where applicable) opt-in action buttons that stream output via SSE just like basic mode.
+
+### Changed
+- **README rewritten** with `make ui` as the **recommended** install path (⭐) at the top of the install matrix.
+- New **"60-second quickstart"** section right under the badges — just three commands (`git clone`, `cd`, `make ui`) plus a one-paragraph explanation of which buttons to press. No prerequisites, no AppleScript paste, no CLI install needed for first run.
+- Web UI section now documents the deep scan with a category-by-category breakdown of what each finds.
+
+### Why
+User feedback: "I ran it and only 4 things were checked... nothing came back as being deleted so we want a deep dive because I know there's more space Xcode is just taking." Basic mode handles 7 known-safe caches; deep mode covers 13+ safe + 4 opt-in + 3 caution paths.
+
 ## v0.5.0 — 2026-05-08
 
 ### Added

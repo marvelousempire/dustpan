@@ -231,6 +231,81 @@
     text-transform: uppercase; letter-spacing: 0.04em;
     margin-top: 4px;
   }
+  .deep-category {
+    margin-bottom: 20px;
+  }
+  .deep-category:last-child { margin-bottom: 0; }
+  .deep-category-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .deep-category.safe          .deep-category-header { color: var(--green); }
+  .deep-category.probably_safe .deep-category-header { color: var(--orange); }
+  .deep-category.caution       .deep-category-header { color: var(--red); }
+  .deep-category-total {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .deep-paths { margin-bottom: 10px; }
+  .deep-path {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px;
+    font-size: 13px;
+    background: rgba(0,0,0,0.025);
+    border-radius: 8px;
+    margin-bottom: 4px;
+  }
+  @media (prefers-color-scheme: dark) {
+    .deep-path { background: rgba(255,255,255,0.03); }
+  }
+  .deep-path:last-child { margin-bottom: 0; }
+  .deep-path .name { flex: 1; }
+  .deep-path .path-detail {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    display: block;
+    margin-top: 2px;
+  }
+  .deep-path .value {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    min-width: 56px;
+    text-align: right;
+  }
+  .deep-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .deep-actions button {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .deep-actions button .sub {
+    font-size: 10px;
+    margin-top: 2px;
+  }
+  .deep-note {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    padding: 8px 12px;
+    margin-top: 6px;
+    border-left: 2px solid var(--border);
+  }
+
   .sparkline {
     font-family: var(--mono);
     font-size: 24px;
@@ -298,6 +373,14 @@
     <h2>What would be cleaned</h2>
     <div class="card sizes" id="sizes">
       <div class="size-row dim"><div class="name">Loading…</div></div>
+    </div>
+  </section>
+
+  <section id="deep-section">
+    <h2>Deep scan — find what basic mode misses</h2>
+    <div class="card" style="padding: 20px">
+      <button id="btn-deep-scan" style="width:100%; padding: 14px">Run deep scan</button>
+      <div id="deep-results" style="margin-top: 16px; display:none"></div>
     </div>
   </section>
 
@@ -435,6 +518,138 @@ $("#btn-force").addEventListener("click", () => {
   if (!confirm("Force clean now? This will delete cache files even if your disk is healthy.")) return;
   runCleanup("force");
 });
+
+// Deep-scan
+let deepActionsCache = null;
+async function loadDeepActions() {
+  if (deepActionsCache) return deepActionsCache;
+  const r = await fetch("/api/deep-actions");
+  deepActionsCache = (await r.json()).actions;
+  return deepActionsCache;
+}
+
+async function runDeepScan() {
+  setBusy(true);
+  $("#deep-results").style.display = "block";
+  $("#deep-results").innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:8px">Scanning ~15 Xcode-adjacent locations…</div>';
+  $("#btn-deep-scan").textContent = "Scanning…";
+
+  const [d, actions] = await Promise.all([
+    fetch("/api/deep-scan").then(r => r.json()),
+    loadDeepActions(),
+  ]);
+
+  const categoryMeta = {
+    safe: {
+      label: "✓ Safe to delete",
+      note: "These are the same caches the basic 'Clean now' button handles. Listed here for completeness.",
+    },
+    probably_safe: {
+      label: "⚠ Probably safe — opt in",
+      note: "Bigger reclaim, but you'll lose installed simulator apps + their data, CocoaPods caches, etc. Pick which to clean.",
+    },
+    caution: {
+      label: "⛔ Caution — review manually",
+      note: "Never auto-deleted. Archives are needed for App Store crash symbolication. Device backups are irreplaceable. Provisioning profiles can be re-downloaded but are fiddly.",
+    },
+  };
+
+  // Map each "probably_safe" path to its deep-action id (label-matched, simple heuristic)
+  const actionByLabel = {
+    "Simulator app data (all)":  "erase-simulators",
+    "Instruments traces":        "clear-instruments",
+    "CocoaPods cache":           "clear-cocoapods",
+    "CocoaPods specs":           "clear-cocoapods",
+  };
+  // Also: a single "Clear Xcode extras" button at the bottom of "safe" group
+  const safeExtrasAction = "clear-extras";
+
+  let html = "";
+  for (const cat of d.categories) {
+    const meta = categoryMeta[cat.name];
+    if (!meta) continue;
+    html += `<div class="deep-category ${cat.name}">
+      <div class="deep-category-header">
+        <span>${meta.label}</span>
+        <span class="deep-category-total">${fmt(cat.total_gb)} GB total</span>
+      </div>
+      <div class="deep-note">${meta.note}</div>
+      <div class="deep-paths">`;
+    for (const p of cat.paths.slice().sort((a,b) => b.size_gb - a.size_gb)) {
+      const sizeLabel = p.size_gb >= 0.1 ? `${fmt(p.size_gb)} GB`
+                       : p.size_kb >= 1024 ? `${fmt(p.size_kb/1024, 0)} MB`
+                       : `${p.size_kb} KB`;
+      html += `<div class="deep-path">
+        <div class="name">${p.label}<span class="path-detail">${p.path}</span></div>
+        <div class="value">${sizeLabel}</div>
+      </div>`;
+    }
+    html += `</div>`;
+    // Action buttons per category
+    if (cat.name === "safe" && cat.total_gb > 0.01) {
+      html += `<div class="deep-actions">
+        <button data-action="${safeExtrasAction}">Clear Xcode extras<span class="sub">Snapshots · IB · Logs · Products</span></button>
+      </div>`;
+    }
+    if (cat.name === "probably_safe") {
+      html += `<div class="deep-actions">`;
+      const seen = new Set();
+      for (const p of cat.paths) {
+        const aid = actionByLabel[p.label];
+        if (aid && !seen.has(aid) && p.size_gb > 0.001) {
+          const action = actions.find(a => a.id === aid);
+          if (action) {
+            html += `<button data-action="${aid}">${action.label}<span class="sub">${action.desc.length > 60 ? action.desc.slice(0,60) + '…' : action.desc}</span></button>`;
+            seen.add(aid);
+          }
+        }
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+
+  $("#deep-results").innerHTML = html;
+  $("#btn-deep-scan").textContent = "Re-run deep scan";
+
+  // Wire up action buttons
+  $$('#deep-results button[data-action]').forEach(btn => {
+    btn.addEventListener("click", () => runDeepAction(btn.dataset.action, btn.textContent.trim()));
+  });
+
+  setBusy(false);
+}
+
+async function runDeepAction(actionId, label) {
+  if (!confirm(`Run "${label}"?
+
+This is irreversible. Sure?`)) return;
+  setBusy(true);
+  $("#output").innerHTML = "";
+  $("#output").classList.add("visible");
+  appendLine(`→ ${label}`, "dim");
+  const es = new EventSource(`/api/deep-action?id=${encodeURIComponent(actionId)}`);
+  es.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.event === "line") {
+      appendLine(msg.data);
+    } else if (msg.event === "done") {
+      es.close();
+      const freed = msg.data.freed_gb;
+      appendLine(`✓ Done. Freed ${fmt(freed)} GB.`, "ok");
+      setBusy(false);
+      loadStatus(); loadSizes(); loadReport();
+      runDeepScan();   // refresh the deep view too
+    }
+  };
+  es.onerror = () => {
+    es.close();
+    appendLine("✗ Connection lost.", "err");
+    setBusy(false);
+  };
+}
+
+$("#btn-deep-scan").addEventListener("click", runDeepScan);
 
 // Initial load + periodic status refresh
 loadStatus(); loadSizes(); loadReport();
