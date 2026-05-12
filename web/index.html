@@ -363,6 +363,28 @@
   .panel-header .totals .pill.accent::before { background: var(--accent); opacity: 1; }
   .panel-header .totals strong { font-weight: 600; color: var(--text); }
 
+  /* Category callout — surfaces a single high-signal stat in the panel header.
+     Currently used by Docker to highlight Docker.raw size; future categories can opt in. */
+  .panel-header .callout {
+    margin-top: 12px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--warn-soft);
+    border-left: 3px solid var(--warn);
+    border-radius: var(--r-sm);
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text);
+  }
+  .panel-header .callout svg { width: 14px; height: 14px; color: var(--warn); flex-shrink: 0; }
+  .panel-header .callout strong { color: var(--text); font-weight: 600; }
+  .panel-header .callout code {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .panel-header .callout[hidden] { display: none !important; }
+
   /* ── Scan section ───────────────────────────────────────── */
   .scan-section { padding: 14px 24px 4px; }
   .scan-section h3 {
@@ -966,11 +988,15 @@ const TAB_ICONS = {
 };
 // Display names for sub-categories before their scan resolves the canonical label.
 const SUB_LABELS = {
-  "llms-claude":      "Claude",
-  "llms-cursor":      "Cursor",
-  "llms-chatgpt":     "ChatGPT",
-  "creative-adobe":   "Adobe",
-  "creative-davinci": "DaVinci Resolve",
+  "llms-claude":       "Claude",
+  "llms-cursor":       "Cursor",
+  "llms-chatgpt":      "ChatGPT",
+  "creative-adobe":    "Adobe",
+  "creative-davinci":  "DaVinci Resolve",
+  "creative-finalcut": "Final Cut Pro",
+  "creative-logic":    "Logic Pro",
+  "creative-blender":  "Blender",
+  "creative-obs":      "OBS Studio",
 };
 function iconFor(tabId) { return TAB_ICONS[tabId] || ""; }
 // Strip leading non-word/space characters (emoji, etc.) from a server-supplied label.
@@ -1100,6 +1126,7 @@ async function renderCategoryInto(catId, container, opts = {}) {
         <button class="top-btn" data-clean-all="${catId}" data-tier="probably_safe" disabled>Clean opt-in</button>
       </div>
       <div class="totals" id="totals-${catId}"></div>
+      <div class="callout" id="callout-${catId}" hidden></div>
     </div>
     <div class="scan-section" id="scan-${catId}"></div>
     <div class="actions-section" id="actions-${catId}" hidden>
@@ -1235,6 +1262,7 @@ async function scanAndRender(catId) {
     }
   }
   $(`#scan-${catId}`).innerHTML = scanHtml;
+  applyCategoryCallouts(catId, scan);
   // Stagger row entrance
   const rows = $(`#scan-${catId}`).querySelectorAll(".path-row");
   if (rows.length && M && !PRM) {
@@ -1342,6 +1370,31 @@ function appendLine(text, cls = "") {
   out.appendChild(span);
   safeAnimate(span, { opacity: [0, 1], y: [-3, 0] }, { duration: 0.18, easing: [0.22, 1, 0.36, 1] });
   out.scrollTop = out.scrollHeight;
+}
+
+// Category-specific post-scan augmentation. Surfaces a single high-signal stat in the
+// panel header when one is worth calling out — currently Docker.raw for the docker tab.
+function applyCategoryCallouts(catId, scan) {
+  const el = $(`#callout-${catId}`);
+  if (!el) return;
+  el.hidden = true;
+  el.innerHTML = "";
+
+  if (catId === "docker") {
+    // Find the biggest Docker.raw row in the caution group.
+    const cautionPaths = (scan.groups?.caution?.paths || [])
+      .filter(p => p.path.includes("Docker.raw") && p.exists && p.size_kb > 0)
+      .sort((a, b) => b.size_kb - a.size_kb);
+    if (cautionPaths.length) {
+      const top = cautionPaths[0];
+      const sizeLabel = top.size_gb >= 0.01 ? `${fmt(top.size_gb)} GB`
+                       : top.size_kb >= 1024 ? `${Math.round(top.size_kb / 1024)} MB`
+                       : `${top.size_kb} KB`;
+      el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>` +
+        `<div><strong>Docker.raw is ${sizeLabel}.</strong> Pruning shrinks what's INSIDE the VM, not the .raw file on disk. See <em>How to actually shrink Docker.raw</em> below for the reset path. <code>${top.path}</code></div>`;
+      el.hidden = false;
+    }
+  }
 }
 
 // Brief green pulse on the hero number after a successful clean — Emil-tier subtle.

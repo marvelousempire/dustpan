@@ -5,7 +5,7 @@
 <h1 align="center">Reclaim 10–25 GB Xcode is hoarding. One click.</h1>
 
 <p align="center">
-  <em>Plus your LLM tool caches, browser caches, system junk — anything macOS quietly fills with.<br>
+  <em>Plus Docker, Adobe, DaVinci Resolve, Final Cut, Logic, LLM tool caches, browser caches, system junk — anything macOS quietly fills with. On a working creative-pro Mac the across-all-categories reclaim usually lands at 50–150 GB.<br>
   Every action tells you the cost before you click. No subscription. No telemetry. <a href="./xcode-cleanup.applescript">~250 readable lines</a>.</em>
 </p>
 
@@ -35,18 +35,18 @@ Nothing is deleted until you say so. Nothing is sent to a server. The cleanup lo
 
 ## What it finds
 
-Six categories. Every path tagged with a safety tier (✓ safe · ⚠ opt-in · ⛔ caution). Every action carries a cost annotation — *exactly* what you lose when you click.
+Six tabs. Every path tagged with a safety tier (✓ safe · ⚠ opt-in · ⛔ caution). Every action carries a cost annotation — *exactly* what you lose when you click.
 
-| Category | What it finds | Typical reclaim |
+| Tab | What it finds | Typical reclaim |
 |---|---|---|
 | **Xcode** | DerivedData, DeviceSupport (iOS/watchOS/tvOS/visionOS), SwiftPM caches, simulator app data, IB caches, Instruments traces, CocoaPods | **10–25 GB** |
 | **LLM tools** | Claude Desktop updater, Claude Code session transcripts, Cursor extension/GPU caches, ChatGPT cache + logs | 1–15 GB |
-| **Docker** | Build cache, dangling images, stopped containers, unused volumes, buildx cache. Surfaces Docker.raw size + shows how to actually shrink it. | **5–60 GB** |
+| **Docker** | Build cache (`buildx prune`), dangling images, stopped containers, unused volumes (with pre-flight check), `docker system df` widget. Surfaces Docker.raw size + shows how to actually shrink the VM disk. | **5–60 GB** |
 | **Everyday apps** | Chrome/Safari/Firefox/Brave/Arc caches, Slack/Discord/Zoom/Teams/Spotify, `~/Downloads/*.dmg`, Trash, Homebrew | 0.5–5 GB |
-| **Creative** | Adobe Media Cache (Premiere + After Effects shared), Photoshop disk cache, Camera Raw cache · DaVinci Render Cache + Optimized Media + CacheClip | **5–50 GB** for video editors |
+| **Creative** *(6 sub-cards)* | **Adobe** (Premiere + AE Media Cache, Photoshop, Camera Raw, per-catalog Lightroom previews) · **DaVinci Resolve** (Render Cache + Optimized Media + CacheClip) · **Final Cut Pro** (per-library render + transcoded media + backups) · **Logic Pro** (caches, Apple Loops info) · **Blender** (per-version Cycles cache + autosave) · **OBS Studio** (logs, crashes, browser-source cache) | **5–80 GB** for working video editors / photographers |
 | **macOS system** | Icon cache, Spotlight parser, Time Machine local snapshots, diagnostic reports, old installers | 0.1–20 GB |
 
-**Never auto-deletes:** Xcode Archives (App Store crash symbolication), iOS device backups, provisioning profiles, active simulators, Docker.raw, Lightroom catalogs, DaVinci project databases. Surfaced for review only.
+**Never auto-deletes:** Xcode Archives (App Store crash symbolication), iOS device backups, provisioning profiles, active simulators, Docker.raw + unattached volumes (unless you explicitly run the aggressive prune after the pre-flight), Lightroom catalogs, DaVinci project databases, Final Cut library structure, Logic projects, OBS scenes. Surfaced for review only.
 
 ---
 

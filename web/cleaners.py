@@ -247,22 +247,58 @@ CATEGORIES = {
             ],
         },
         "actions": {
+            "docker-system-df": {
+                "label": "Show Docker disk usage (`docker system df -v`)",
+                "desc":  "Summarizes what Docker is using on disk — images, containers, local volumes, build cache. Verbose mode breaks it down per item.",
+                "cost":  "Informational only. Nothing is changed.",
+                "shell": "if command -v docker >/dev/null 2>&1; then "
+                         "echo '▶ Summary:'; docker system df 2>&1; "
+                         "echo ''; echo '▶ Per-item breakdown:'; "
+                         "docker system df -v 2>&1 | head -80; "
+                         "else echo 'Docker CLI not found — install Docker Desktop or skip.'; fi",
+                "informational": True,
+            },
             "docker-prune-safe": {
-                "label": "Prune Docker — safe (stopped containers + dangling images + buildx)",
-                "desc":  "Runs `docker container prune`, `image prune` (dangling only), `network prune`, and `buildx prune -af`. Skips volumes.",
-                "cost":  "Stopped containers gone (start them again to recreate). Untagged/dangling images gone (re-pull on demand). Unused networks gone (`docker compose up` recreates). Build cache wiped — next build runs from scratch once. Volumes are NOT touched, so any DB data is safe.",
+                "label": "Prune Docker — safe (stopped containers + dangling images + networks)",
+                "desc":  "Runs `docker container prune`, `image prune` (dangling only), and `network prune`. Build cache + volumes are NOT touched (each has its own action).",
+                "cost":  "Stopped containers gone (start them again to recreate). Untagged/dangling images gone (re-pull on demand). Unused networks gone (`docker compose up` recreates them). Build cache + volumes are NOT touched in this action — your DB data and your iterative build caches both stay.",
                 "shell": "if command -v docker >/dev/null 2>&1; then "
                          "echo '▶ container prune'; docker container prune -f 2>&1; "
                          "echo '▶ image prune (dangling)'; docker image prune -f 2>&1; "
                          "echo '▶ network prune'; docker network prune -f 2>&1; "
-                         "echo '▶ buildx prune'; docker buildx prune -af 2>&1; "
-                         "echo '▶ disk usage now:'; docker system df 2>&1; "
+                         "echo ''; echo '▶ disk usage now:'; docker system df 2>&1; "
                          "else echo 'Docker CLI not found — install Docker Desktop or skip.'; fi",
+            },
+            "docker-buildx-prune": {
+                "label": "Wipe Docker build cache (`docker buildx prune -af`)",
+                "desc":  "Removes every cached buildx layer. Separate from the safe-prune action because the next build runs from scratch (one-time slowdown) — that's why it's opt-in.",
+                "cost":  "The next `docker build` / `docker buildx build` / `docker compose build` will run from scratch — no layer reuse. After it completes once, the cache repopulates and future builds are fast again. No image / container / volume affected.",
+                "shell": "if command -v docker >/dev/null 2>&1; then "
+                         "docker buildx prune -af 2>&1; "
+                         "echo ''; echo '▶ disk usage now:'; docker system df 2>&1; "
+                         "else echo 'Docker CLI not found.'; fi",
+            },
+            "docker-volume-preflight": {
+                "label": "Pre-flight: list what `--volumes` prune would delete",
+                "desc":  "Before clicking the aggressive prune below, see exactly which volumes would be wiped. Shows volumes that aren't currently attached to any container.",
+                "cost":  "Informational only. Nothing is deleted — this just tells you what's at stake.",
+                "shell": "if command -v docker >/dev/null 2>&1; then "
+                         "echo '▶ All volumes:'; "
+                         "docker volume ls 2>&1; "
+                         "echo ''; echo '▶ Volumes not attached to any container (would be deleted by --volumes prune):'; "
+                         "DANGLING=$(docker volume ls -qf dangling=true 2>/dev/null); "
+                         "if [ -z \"$DANGLING\" ]; then echo '  (none — your volumes are all attached to containers, safe to prune.)'; "
+                         "else echo \"$DANGLING\" | while read v; do "
+                         "size=$(docker run --rm -v \"$v\":/data alpine du -sh /data 2>/dev/null | cut -f1); "
+                         "echo \"  $v  ($size)\"; done; fi; "
+                         "echo ''; echo 'If any of these are important (DB data, persistent state), STOP — start the container that should be using them before pruning.'; "
+                         "else echo 'Docker CLI not found.'; fi",
+                "informational": True,
             },
             "docker-prune-everything": {
                 "label": "Nuke ALL unused Docker (system prune --volumes)",
-                "desc":  "Aggressive: `docker system prune -a --volumes -f`. Removes everything not currently in use, including volumes.",
-                "cost":  "ALL stopped containers gone. ALL unused images gone (re-pull on next `docker compose up`, often 5+ GB). **ALL unused volumes gone** — this is the dangerous one: any DB/postgres/redis volume not attached to a RUNNING container is wiped. Confirm your important containers are running before clicking.",
+                "desc":  "Aggressive: `docker system prune -a --volumes -f`. Removes everything not currently in use, INCLUDING volumes. Run the pre-flight first.",
+                "cost":  "ALL stopped containers gone. ALL unused images gone (re-pull on next `docker compose up`, often 5+ GB). **ALL unused volumes gone** — this is the dangerous one: any DB/postgres/redis volume not attached to a RUNNING container is wiped. Run the pre-flight action above first to see exactly what would be deleted.",
                 "shell": "if command -v docker >/dev/null 2>&1; then "
                          "docker system prune -a --volumes -f 2>&1; "
                          "echo ''; echo '▶ disk usage now:'; docker system df 2>&1; "
@@ -333,9 +369,9 @@ CATEGORIES = {
                          "~/Library/Application\\ Support/Adobe/Common/Media\\ Cache/* 2>/dev/null; true",
             },
             "clear-adobe-app-caches": {
-                "label": "Clear Adobe app caches (Premiere / AE / Photoshop)",
-                "desc":  "Per-app disk caches for Premiere Pro, After Effects, Photoshop. Doesn't touch the shared Media Cache (that has its own action).",
-                "cost":  "Each app rebuilds its disk cache on next launch / next preview render. Preference settings, presets, and project files are NOT affected.",
+                "label": "Clear Adobe app caches (Premiere / AE / Photoshop / Bridge)",
+                "desc":  "Per-app disk caches for Premiere Pro, After Effects, Photoshop, plus Bridge previews. Doesn't touch the shared Media Cache (that has its own action). **Note:** ~/Library/Caches/Adobe is also where Lightroom's *non-catalog* caches live; the catalog itself in ~/Pictures/Lightroom is never touched by this action.",
+                "cost":  "Each app rebuilds its disk cache on next launch / next preview render. Preference settings, presets, project files, and your Lightroom catalog are NOT affected.",
                 "shell": "rm -rf "
                          "~/Library/Application\\ Support/Adobe/Premiere\\ Pro/*/Common/Media\\ Cache* "
                          "~/Library/Application\\ Support/Adobe/After\\ Effects/*/Adobe\\ After\\ Effects\\ Disk\\ Cache* "
@@ -349,16 +385,29 @@ CATEGORIES = {
                 "cost":  "Lightroom / Photoshop rebuilds raw previews on next view (slower per-image first-time). Edits are stored in catalogs / sidecar XMP files and are unaffected.",
                 "shell": "rm -rf ~/Library/Caches/Adobe\\ Camera\\ Raw/* 2>/dev/null; true",
             },
-            "lightroom-preview-info": {
-                "label": "How to clear Lightroom previews (without touching your catalog)",
-                "desc":  "Lightroom previews live next to the catalog inside `~/Pictures/Lightroom`. We deliberately don't auto-delete in that folder — your `.lrcat` catalog is irreplaceable.",
-                "cost":  "Informational. Shows the size of your Lightroom folder and the in-app step to clear previews safely.",
-                "shell": "echo 'Lightroom catalog + previews live in:'; "
-                         "du -sh ~/Pictures/Lightroom/* 2>/dev/null || echo '  (no ~/Pictures/Lightroom found)'; "
-                         "echo ''; echo 'To clear 1:1 previews safely (won\\'t touch your catalog):'; "
-                         "echo '  Lightroom Classic → Library menu → Previews → Discard 1:1 Previews'; "
-                         "echo '  They rebuild on demand as you view photos.'; "
-                         "echo ''; echo 'Never delete the .lrcat file from this UI — that is your catalog.'",
+            "lightroom-preview-cleanup": {
+                "label": "Clear Lightroom previews (only previews — catalog stays)",
+                "desc":  "Per-catalog: removes the `*.lrdata` and `*.lrpreviewstore` preview pyramids next to each `.lrcat`. The catalog itself is never touched.",
+                "cost":  "Lightroom rebuilds previews on demand as you view photos (slower scroll on first browse per folder, one-time per photo). Your **catalog (`.lrcat`), edits, develop history, virtual copies, and ratings are all preserved** — they live in the catalog, not in the previews.",
+                "shell": "ROOT=~/Pictures/Lightroom; "
+                         "[ -d \"$ROOT\" ] || { echo 'No ~/Pictures/Lightroom folder found.'; exit 0; }; "
+                         "echo '▶ Catalogs found:'; "
+                         "find \"$ROOT\" -maxdepth 3 -name '*.lrcat' 2>/dev/null | while read c; do echo \"  $(basename \"$c\")\"; done; "
+                         "echo ''; echo '▶ Removing previews (NOT touching .lrcat):'; "
+                         "find \"$ROOT\" -maxdepth 3 \\( -name 'Previews.lrdata' -o -name '*.lrpreviewstore' -o -name 'Helper.lrdata' \\) -type d 2>/dev/null | while read p; do "
+                         "size=$(du -sh \"$p\" 2>/dev/null | cut -f1); "
+                         "echo \"  removing $p ($size)\"; rm -rf \"$p\"; done; "
+                         "echo ''; echo '▶ Done. Lightroom will rebuild previews on demand.'",
+            },
+            "lightroom-folder-stats": {
+                "label": "Show Lightroom folder sizes (informational)",
+                "desc":  "Surfaces the size of each catalog + previews pair without touching anything. Faster than browsing in Finder.",
+                "cost":  "Informational only. Nothing changes.",
+                "shell": "ROOT=~/Pictures/Lightroom; "
+                         "[ -d \"$ROOT\" ] || { echo 'No ~/Pictures/Lightroom folder found.'; exit 0; }; "
+                         "echo '▶ Top-level entries:'; "
+                         "du -sh -d 0 \"$ROOT\"/* 2>/dev/null | sort -hr | head -20; "
+                         "echo ''; echo 'Tip: previews live in *.lrdata / *.lrpreviewstore — safe to delete via the action above. The .lrcat next to them is your catalog.'",
                 "informational": True,
             },
         },
@@ -374,7 +423,8 @@ CATEGORIES = {
             "safe": [
                 ("Render Cache",                          "~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Render Cache"),
                 ("Optimized Media",                       "~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Optimized Media"),
-                ("CacheClip (proxies)",                   "~/Movies/CacheClip"),
+                ("CacheClip (proxies, legacy location)",  "~/Movies/CacheClip"),
+                ("CacheClip (proxies, 18+ location)",     "~/Movies/Blackmagic Design/DaVinci Resolve/CacheClip"),
                 ("DaVinci Resolve logs",                  "~/Library/Logs/Blackmagic Design/DaVinci Resolve"),
                 ("DaVinci general cache",                 "~/Library/Caches/com.blackmagic-design.DaVinciResolve"),
             ],
@@ -391,12 +441,13 @@ CATEGORIES = {
         "actions": {
             "clear-davinci-cache": {
                 "label": "Clear Render Cache + Optimized Media + CacheClip",
-                "desc":  "Removes the three big regenerable buckets: Render Cache, Optimized Media, and CacheClip (proxies).",
+                "desc":  "Removes the three big regenerable buckets: Render Cache, Optimized Media, and CacheClip proxies (both the legacy `~/Movies/CacheClip` location and the Resolve-18+ `~/Movies/Blackmagic Design/...` location).",
                 "cost":  "Resolve re-renders cached / optimized clips on next playback (slower scrubbing until the cache rebuilds — usually within a session). Anything you've EXPORTED is untouched; projects and color grades are untouched.",
                 "shell": "rm -rf "
                          "~/Library/Application\\ Support/Blackmagic\\ Design/DaVinci\\ Resolve/Render\\ Cache/* "
                          "~/Library/Application\\ Support/Blackmagic\\ Design/DaVinci\\ Resolve/Optimized\\ Media/* "
-                         "~/Movies/CacheClip/* 2>/dev/null; true",
+                         "~/Movies/CacheClip/* "
+                         "~/Movies/Blackmagic\\ Design/DaVinci\\ Resolve/CacheClip/* 2>/dev/null; true",
             },
             "clear-davinci-logs": {
                 "label": "Clear DaVinci logs + general cache",
@@ -410,6 +461,199 @@ CATEGORIES = {
                 "desc":  "Removes Fusion's disk cache (used for VFX node previews).",
                 "cost":  "Fusion comp nodes recompute on next preview (slower the first time per comp). Final flows / saved comps are stored in projects and unaffected.",
                 "shell": "rm -rf ~/Library/Application\\ Support/Blackmagic\\ Design/DaVinci\\ Resolve/Fusion/Disk\\ Cache/* 2>/dev/null; true",
+            },
+        },
+    },
+
+    # ─── Final Cut Pro (Creative sub-tab) ──────────────────────────────
+    "creative-finalcut": {
+        "label": "Final Cut Pro",
+        "parent": "creative",
+        "icon":   "🎞",
+        "tagline": "Render files, optimized media, backups.",
+        "groups": {
+            "safe": [
+                ("Final Cut Pro caches",                   "~/Library/Caches/com.apple.FinalCut"),
+                ("Final Cut Pro app state",                "~/Library/Application Support/Final Cut Pro"),
+                ("Motion templates cache",                 "~/Library/Caches/com.apple.motion"),
+                ("Compressor caches",                      "~/Library/Caches/com.apple.compressor"),
+            ],
+            "probably_safe": [
+                # Final Cut renders + optimized media live INSIDE the .fcpbundle library,
+                # which is a user-managed file (could be on external storage). Per-library
+                # cleanup happens via the action below.
+                ("Final Cut Backups (~/Movies/Final Cut Backups)", "~/Movies/Final Cut Backups"),
+            ],
+            "caution": [
+                # Library bundles are user content — surfaced for review only.
+            ],
+        },
+        "actions": {
+            "clear-finalcut-renders": {
+                "label": "Clear render files in every Final Cut library (~/Movies/*.fcpbundle)",
+                "desc":  "For each `.fcpbundle` in ~/Movies, removes the Render Files subfolders. Library structure + your edits + your imported media are NOT touched.",
+                "cost":  "Final Cut re-renders timelines on next preview / export (one-time cost per project, can take minutes on long timelines). Edits, audio sync, color grades — all preserved. **Important:** this only scans `~/Movies/*.fcpbundle`. Libraries on external drives or other folders are not affected.",
+                "shell": "BUNDLES=(~/Movies/*.fcpbundle); "
+                         "if [ ! -e \"${BUNDLES[0]}\" ]; then echo 'No .fcpbundle libraries found in ~/Movies.'; exit 0; fi; "
+                         "for B in \"${BUNDLES[@]}\"; do "
+                         "echo \"▶ $(basename \"$B\")\"; "
+                         "find \"$B\" -type d -name 'Render Files' -exec rm -rf {}/* \\; 2>/dev/null; "
+                         "echo '  ✓ render files cleared'; done; "
+                         "echo ''; echo '▶ Done. Next preview/export will re-render.'",
+            },
+            "clear-finalcut-optimized": {
+                "label": "Clear optimized + proxy media in every Final Cut library",
+                "desc":  "For each `.fcpbundle` in ~/Movies, removes the Transcoded Media subfolders (optimized .mov + proxy .mov). Originals are untouched.",
+                "cost":  "Final Cut falls back to using ORIGINAL media for playback (potentially less responsive scrubbing on big files until you re-transcode). Source clips, edits, and exports are unaffected.",
+                "shell": "BUNDLES=(~/Movies/*.fcpbundle); "
+                         "if [ ! -e \"${BUNDLES[0]}\" ]; then echo 'No .fcpbundle libraries found in ~/Movies.'; exit 0; fi; "
+                         "for B in \"${BUNDLES[@]}\"; do "
+                         "echo \"▶ $(basename \"$B\")\"; "
+                         "find \"$B\" -type d -name 'Transcoded Media' -exec rm -rf {}/* \\; 2>/dev/null; "
+                         "echo '  ✓ transcoded media cleared'; done",
+            },
+            "clear-finalcut-backups": {
+                "label": "Clear Final Cut auto-backups (~/Movies/Final Cut Backups)",
+                "desc":  "Removes the 15-minute auto-snapshots Final Cut keeps in ~/Movies/Final Cut Backups. These are project-edit snapshots, not your media.",
+                "cost":  "You lose the ability to roll back to an auto-snapshot from before this point. Your current library state stays exactly as it is.",
+                "shell": "rm -rf ~/Movies/Final\\ Cut\\ Backups/* 2>/dev/null; "
+                         "echo '✓ Final Cut auto-backups cleared.'",
+            },
+        },
+    },
+
+    # ─── Logic Pro (Creative sub-tab) ──────────────────────────────────
+    "creative-logic": {
+        "label": "Logic Pro",
+        "parent": "creative",
+        "icon":   "🎹",
+        "tagline": "Logic + GarageBand caches. Apple Loops can be 5–20 GB.",
+        "groups": {
+            "safe": [
+                ("Logic Pro caches",                       "~/Library/Caches/com.apple.logic10"),
+                ("Logic Pro waveform cache",               "~/Library/Application Support/Logic/Cache"),
+                ("GarageBand caches",                      "~/Library/Caches/com.apple.garageband10"),
+                ("Plug-In Settings cache",                 "~/Music/Audio Music Apps/Plug-In Settings/Cache"),
+            ],
+            "probably_safe": [
+                # Apple Loops are reinstallable but can be 20+ GB. Bouncing them as
+                # opt-in lets the user reclaim aggressively if they're disk-pressed.
+                ("Apple Loops (re-downloadable, 5–20 GB typical)",  "~/Library/Audio/Apple Loops"),
+                ("Logic Pro Sound Library (re-downloadable)",       "~/Library/Application Support/Logic/Sounds"),
+            ],
+            "caution": [
+                # User projects + plugin presets — surfaced for review only.
+                ("Logic Pro user content (templates, projects)",     "~/Music/Audio Music Apps"),
+                ("Plug-In Settings (your presets)",                  "~/Music/Audio Music Apps/Plug-In Settings"),
+            ],
+        },
+        "actions": {
+            "clear-logic-caches": {
+                "label": "Clear Logic + GarageBand caches",
+                "desc":  "Removes per-app caches and waveform caches. Doesn't touch your projects, presets, or sound libraries.",
+                "cost":  "Logic / GarageBand recalculates waveform displays on next project open (slower first-load per project). Settings, projects, plugins — all preserved.",
+                "shell": "rm -rf ~/Library/Caches/com.apple.logic10/* "
+                         "~/Library/Caches/com.apple.garageband10/* "
+                         "~/Library/Application\\ Support/Logic/Cache/* "
+                         "~/Music/Audio\\ Music\\ Apps/Plug-In\\ Settings/Cache/* 2>/dev/null; true",
+            },
+            "remove-apple-loops-info": {
+                "label": "Apple Loops cleanup (how to do it without breaking your projects)",
+                "desc":  "Apple Loops can be 5–20 GB. The safe way to clear them is via Logic itself — File → Project Settings → Audio → Delete unused content. Deleting from Finder breaks Logic's loop browser until re-downloaded.",
+                "cost":  "Informational only. Surfaces the current loop folder size and the in-app reclaim path.",
+                "shell": "echo '▶ Apple Loops folder sizes:'; "
+                         "du -sh -d 0 ~/Library/Audio/Apple\\ Loops 2>/dev/null || echo '  (no Apple Loops folder)'; "
+                         "du -sh -d 0 ~/Library/Application\\ Support/Logic/Sounds 2>/dev/null || echo '  (no Logic Sounds folder)'; "
+                         "echo ''; echo 'To reclaim safely:'; "
+                         "echo '  Logic Pro → Logic Pro menu → Sound Library → Reinstall Sound Library (lets you uncheck packs you don\\'t use)'; "
+                         "echo '  Or: in any open project: File → Project Settings → Assets → Save / Delete unused'; "
+                         "echo ''; echo 'Re-download anytime from the Sound Library window.'",
+                "informational": True,
+            },
+        },
+    },
+
+    # ─── Blender (Creative sub-tab) ────────────────────────────────────
+    "creative-blender": {
+        "label": "Blender",
+        "parent": "creative",
+        "icon":   "🌀",
+        "tagline": "Cycles cache, render output, autosaves.",
+        "groups": {
+            "safe": [
+                ("Blender autosave temp files (in /tmp)",  "/tmp/blender_autosave"),
+                ("Blender app caches",                     "~/Library/Caches/org.blenderfoundation.blender"),
+                ("Blender crash dumps",                    "~/Library/Logs/Blender"),
+            ],
+            "probably_safe": [
+                # Blender stores Cycles bakes + render caches in per-version dirs.
+                # Wildcard at scan time so 4.0 / 4.1 / etc. all get measured together.
+                ("Blender per-version caches",             "~/Library/Application Support/Blender"),
+            ],
+            "caution": [
+                # User scripts + addons in the same Application Support tree.
+            ],
+        },
+        "actions": {
+            "clear-blender-cycles-cache": {
+                "label": "Clear Blender Cycles cache (per-version)",
+                "desc":  "Removes the `cache/` subfolders under every Blender version directory in ~/Library/Application Support/Blender/*. Leaves your scripts, addons, and preferences alone.",
+                "cost":  "Cycles re-bakes denoiser data + GPU shader caches on next render (slower first frame after this; subsequent frames are normal speed). Your .blend files, addons, and user prefs are untouched.",
+                "shell": "ROOT=~/Library/Application\\ Support/Blender; "
+                         "[ -d \"$ROOT\" ] || { echo 'No Blender app-support folder found.'; exit 0; }; "
+                         "echo '▶ Found versions:'; "
+                         "ls -d \"$ROOT\"/*/ 2>/dev/null | while read v; do echo \"  $(basename \"$v\")\"; done; "
+                         "find \"$ROOT\" -maxdepth 2 -type d -name cache -exec rm -rf {}/* \\; 2>/dev/null; "
+                         "echo '▶ Cycles caches cleared.'",
+            },
+            "clear-blender-temp": {
+                "label": "Clear Blender autosave + temp files in /tmp",
+                "desc":  "Removes /tmp/blender_autosave (where Blender drops auto-recovery .blend files). Useful after Blender crashes left orphans behind.",
+                "cost":  "You lose auto-recovery snapshots from past sessions. Your saved .blend files (anywhere you've explicitly saved them) are untouched.",
+                "shell": "rm -rf /tmp/blender_autosave 2>/dev/null; "
+                         "rm -rf /tmp/quit.blend* 2>/dev/null; "
+                         "echo '✓ Blender autosave temp cleared.'",
+            },
+        },
+    },
+
+    # ─── OBS Studio (Creative sub-tab) ─────────────────────────────────
+    "creative-obs": {
+        "label": "OBS Studio",
+        "parent": "creative",
+        "icon":   "🎙",
+        "tagline": "Logs, crash dumps, browser-source cache.",
+        "groups": {
+            "safe": [
+                ("OBS logs",                       "~/Library/Application Support/obs-studio/logs"),
+                ("OBS crash dumps",                "~/Library/Application Support/obs-studio/crashes"),
+                ("OBS browser-source cache",       "~/Library/Application Support/obs-studio/plugin_config/obs-browser/Cache"),
+                ("OBS Service Worker cache",       "~/Library/Application Support/obs-studio/plugin_config/obs-browser/Service Worker"),
+            ],
+            "probably_safe": [],
+            "caution": [
+                # OBS stores recordings/replay buffer wherever the user configured —
+                # never in app-support by default. We don't surface that path because
+                # it's user-configurable and not something we should ever auto-touch.
+                ("OBS user config (scenes, profiles)",        "~/Library/Application Support/obs-studio/basic"),
+            ],
+        },
+        "actions": {
+            "clear-obs-logs": {
+                "label": "Clear OBS logs + crash dumps",
+                "desc":  "Removes ~/Library/Application Support/obs-studio/logs and /crashes.",
+                "cost":  "Past stream/recording logs gone (rarely useful unless debugging). Crash dumps gone. Scenes, profiles, recordings — all untouched.",
+                "shell": "rm -rf ~/Library/Application\\ Support/obs-studio/logs/* "
+                         "~/Library/Application\\ Support/obs-studio/crashes/* 2>/dev/null; "
+                         "echo '✓ OBS logs + crash dumps cleared.'",
+            },
+            "clear-obs-browser-cache": {
+                "label": "Clear OBS browser-source cache",
+                "desc":  "Removes the Chromium cache that browser-source overlays use.",
+                "cost":  "Browser-source overlays (chat widgets, alerts, etc.) reload from origin on next stream. Saved login state for those overlays may be lost — re-login if a widget asks for it.",
+                "shell": "rm -rf ~/Library/Application\\ Support/obs-studio/plugin_config/obs-browser/Cache/* "
+                         "~/Library/Application\\ Support/obs-studio/plugin_config/obs-browser/Service\\ Worker/* 2>/dev/null; "
+                         "echo '✓ OBS browser-source cache cleared.'",
             },
         },
     },
@@ -568,6 +812,13 @@ TABS = [
     {"id": "llms",     "label": "LLMs",     "subcategories": ["llms-claude", "llms-cursor", "llms-chatgpt"]},
     {"id": "docker",   "label": "Docker",   "category": "docker"},
     {"id": "apps",     "label": "Apps",     "category": "apps"},
-    {"id": "creative", "label": "Creative", "subcategories": ["creative-adobe", "creative-davinci"]},
+    {"id": "creative", "label": "Creative", "subcategories": [
+        "creative-adobe",
+        "creative-davinci",
+        "creative-finalcut",
+        "creative-logic",
+        "creative-blender",
+        "creative-obs",
+    ]},
     {"id": "system",   "label": "System",   "category": "system"},
 ]
