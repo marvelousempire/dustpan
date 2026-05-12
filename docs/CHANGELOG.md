@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.11.0] — 2026-05-12 12:45:29 Eastern · *v1 redesign — design system, restructure, Motion polish, README rewrite*
+
+The redesign called for in `docs/Redesign-Brief.md`. One feature branch, four phases, every preserve-list item intact.
+
+### Added
+- **`docs/Design-System.md`** — canonical token reference (colors, type, spacing, radii, elevation, motion). Captures the decisions so future contributors don't re-derive them.
+- **Teal accent** (`#0F766E` light / `#2DD4BF` dark) replaces Apple blue. Distinct from every other Apple-blue dev tool on a Show-HN thumbnail; calm precision-instrument family (Linear, Things, Tot share it). Semantic tier colors retuned for confidence over neon.
+- **Cumulative-freed history strip** below the hero — surfaces "you've freed N GB across M runs" on every visit, sourced live from `/api/report`. Promoted from the buried footer.
+- **"Factory-fresh without losing your stuff" promise lockup** with a shield icon, visible on the hero card every session. The safety claim now lives in the UI, not just the README.
+- **First-run progressive disclosure flow.** A new visitor sees a single "Scan every category" CTA instead of the three-button mega-bar. Once they scan or click "Skip the tour," the returning-user state activates and persists (localStorage `cleanupHub.hasVisited`). Power users get zero regression.
+- **Custom confirm modal** replacing every `window.confirm()` call. The cost annotation is now the visual centerpiece of the confirm — the distinctive UX feature finally earns its moment. Backdrop blur + spring scale-in (220ms).
+- **Motion (motion.dev) loaded via CDN** as a single ES-module import, pinned to `motion@11.18.0`. Zero-deps server-side promise preserved. Graceful degradation: every animation call is wrapped; CDN failure leaves the UI fully functional with instant state changes.
+- **Motion micro-interactions** per the brief's animation table: hero number count-up tween (600ms ease-out), progress-bar spring fill, tab fade+slide, success pulse on successful clean, staggered path-row entrance after scan, line-by-line SSE console reveal, cost-banner translate on hover.
+- **`prefers-reduced-motion` honoured globally** — all animations collapse to instant state changes for users who've opted out.
+- **Lucide tab icons** (Xcode hammer-down, LLMs bot, Apps app-window, System hard-drive) replacing the emoji glyphs. One icon system, no font-renderer drift.
+
+### Changed
+- **Cost annotation lifted** to the top of every action card (was buried below the description). Now the first thing the eye lands on — with a left-border in `--warn`, an info-icon, and a small `COST OF DOING THIS` uppercase label.
+- **LLM tab pattern** — Claude/Cursor/ChatGPT now render as three stacked cards in a single panel. Sub-tab navigation removed. One click per provider instead of two.
+- **Hero number** sized up from 72px to 80px with tighter `-0.04em` tracking. `font-variant-numeric: tabular-nums` applied globally so the tween doesn't jiggle.
+- **Caution-tier note style** — the informational red-tier note now uses a `--danger-soft` background instead of a flat grey, visually distinguishing "review manually" sections at a glance.
+- **README rewritten** — tighter hero ("Reclaim 10–25 GB Xcode is hoarding. One click.") with a subtitle that surfaces the cost-annotation + no-telemetry promises. Install matrix collapsed into two `<details>` groups ("I want a GUI" / "I want a CLI"). Comparison table vs CleanMyMac / DevCleaner / `rm -rf` surfaced from the internal positioning doc — the competitive moat made tangible.
+- **Hardcoded category list deleted** at the JS layer — was duplicating `/api/tabs`. Now derived from the server response (`tabsState.allCategories`). Flagged in `docs/Redesign-Brief.md` as brittleness; fixed in this pass.
+
+### Fixed
+- JS module syntax-checked with `node --check` before commit — the v0.8.2 ghost (Issue-Log 2026-05-12 11:17 ET) doesn't reach `main` again.
+
+### Preserved (the moats — non-negotiable)
+- All 6 install surfaces (Web UI · Shortcut · CLI · launchd · SwiftBar · SSH) still work; `cleaners.py` and `xcode-cleanup.applescript` are unchanged.
+- Three safety tiers (`safe`/`probably_safe`/`caution`) — taxonomy and behavior identical.
+- `127.0.0.1` localhost binding, zero pip/npm server-side deps.
+- Real-time SSE console — now with subtle line-by-line fade, no behavioral change.
+- Live CHANGELOG version badge + in-app changelog modal.
+
+### Why
+The maintainer authored `docs/Redesign-Brief.md` explicitly for this moment ("redesign this entire app based on the knowledge, skills, and tools available"). Four-phase plan ratified in plan mode; this PR is the merge.
+
 ## [0.10.1] — 2026-05-12 12:20:57 Eastern · *expressed intent on Motion (motion.dev) + 21st.dev hero patterns*
 
 ### Added
