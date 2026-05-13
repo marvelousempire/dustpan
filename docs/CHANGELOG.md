@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.18.2] — 2026-05-13 07:36:37 Eastern · *layout: don't hide the main panel below 1024px*
+
+### Fixed
+- **The main viewport no longer renders below the sidebar on medium-width windows.** Before this, anything narrower than `lg:` (1024px) — a normal 13" laptop, a half-screen window, a smaller monitor — fell back to the Tailwind default (1 column) and stacked the sidebar full-width on top with the main panel below it. Visually that looked like *"the full page is missing except sidebar"* because the actual app content was off-screen, reachable only by scrolling. Added a `md:grid-cols-[220px_1fr]` rule so the 2-column layout kicks in at 768px instead of waiting until 1024px.
+
+### Layout ladder now
+- **`< md` (< 768px)**: 1 column — sidebar full width on top, panels scroll below. Mobile/very-narrow stack.
+- **`md` to `lg` (768–1024px)**: 2 columns — sidebar + main side-by-side. *(This was the missing case.)*
+- **`lg+` (≥ 1024px)**: 2 columns by default, 3 columns when the active tab has subcategories (Sidebar · Main · SidebarRight).
+
+Verified in preview at 600px (stacks correctly), 900px (sidebar + main side-by-side — the broken case is now correct), and 1280px (3-column with right sidebar — no regression).
+
+### Why
+Maintainer: *"the app interface is missing the full page except sidebar."* The page wasn't missing — the layout was stacking vertically below 1024px and the user couldn't see that scrolling revealed the rest. Now the 2-column layout starts at 768px, which is what the v0.14 vanilla breakpoint ladder always did. The React port had quietly dropped that intermediate breakpoint when it scaffolded.
+
 ## [0.18.1] — 2026-05-12 19:11:26 Eastern · *Changelog modal — centered + typography*
 
 ### Fixed
