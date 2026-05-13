@@ -1,5 +1,6 @@
 import type {
   DiskStatus,
+  DoctorReport,
   HistoryReport,
   CategoryScan,
   Action,
@@ -25,6 +26,9 @@ export const api = {
   scan:      (catId: string) => jsonFetch<CategoryScan>(`/api/category/${catId}/scan`),
   actions:   (catId: string) => jsonFetch<{ actions: Action[] }>(`/api/category/${catId}/actions`),
   changelog: () => fetch(API_BASE + "/api/changelog").then((r) => r.text()),
+
+  // ── Plan 0009: Disk Doctor ────────────────────────────────────────────────
+  doctor: () => jsonFetch<DoctorReport>("/api/doctor"),
 
   // ── Plan 0006: AI + DB endpoints ──────────────────────────────────────────
   aiStatus: () => jsonFetch<AIStatus>("/api/ai/status"),

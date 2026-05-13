@@ -31,19 +31,33 @@ CATEGORIES = {
         "tagline": "Reclaim 10–25 GB Xcode is hoarding.",
         "groups": {
             "safe": [
-                ("DerivedData",              "~/Library/Developer/Xcode/DerivedData"),
-                ("iOS DeviceSupport",        "~/Library/Developer/Xcode/iOS DeviceSupport"),
-                ("watchOS DeviceSupport",    "~/Library/Developer/Xcode/watchOS DeviceSupport"),
-                ("tvOS DeviceSupport",       "~/Library/Developer/Xcode/tvOS DeviceSupport"),
-                ("visionOS DeviceSupport",   "~/Library/Developer/Xcode/visionOS DeviceSupport"),
-                ("Xcode caches",             "~/Library/Caches/com.apple.dt.Xcode"),
-                ("SwiftPM cache",            "~/Library/Caches/org.swift.swiftpm"),
-                ("Simulator caches",         "~/Library/Developer/CoreSimulator/Caches"),
-                ("CoreSimulator Cryptex",    "~/Library/Developer/CoreSimulator/Cryptex"),
-                ("iOS Device Logs",          "~/Library/Developer/Xcode/iOS Device Logs"),
-                ("Xcode Snapshots",          "~/Library/Developer/Xcode/Snapshots"),
-                ("Interface Builder caches", "~/Library/Developer/Xcode/UserData/IB Support"),
-                ("Xcode Products",           "~/Library/Developer/Xcode/Products"),
+                # DerivedData is the single biggest item on most dev Macs — 5–20 GB.
+                # Xcode rebuilds it on the next build (takes ~30s extra).
+                ("DerivedData",                 "~/Library/Developer/Xcode/DerivedData"),
+                # DeviceSupport files grow every time you connect a device running a
+                # new iOS/watchOS/tvOS version. Old versions accumulate for years.
+                ("iOS DeviceSupport",           "~/Library/Developer/Xcode/iOS DeviceSupport"),
+                ("watchOS DeviceSupport",       "~/Library/Developer/Xcode/watchOS DeviceSupport"),
+                ("tvOS DeviceSupport",          "~/Library/Developer/Xcode/tvOS DeviceSupport"),
+                ("visionOS DeviceSupport",      "~/Library/Developer/Xcode/visionOS DeviceSupport"),
+                # DocumentationIndex: Xcode's searchable documentation cache.
+                # Can reach 1–5 GB. Rebuilt next time you open the documentation viewer.
+                ("Xcode DocumentationIndex",    "~/Library/Developer/Xcode/DocumentationIndex"),
+                # DeviceLogs: crash logs + console output from connected devices.
+                # Safe to clear — new logs appear when you connect next time.
+                ("Xcode DeviceLogs",            "~/Library/Developer/Xcode/DeviceLogs"),
+                # Xcode compiler + build system caches.
+                ("Xcode caches",                "~/Library/Caches/com.apple.dt.Xcode"),
+                ("SwiftPM cache",               "~/Library/Caches/org.swift.swiftpm"),
+                ("SwiftPM global store",        "~/Library/org.swift.swiftpm"),
+                # Simulator caches (not the device data — that's in probably_safe).
+                ("Simulator caches",            "~/Library/Developer/CoreSimulator/Caches"),
+                ("CoreSimulator Cryptex",       "~/Library/Developer/CoreSimulator/Cryptex"),
+                # Misc Xcode work-in-progress caches.
+                ("iOS Device Logs (old)",       "~/Library/Developer/Xcode/iOS Device Logs"),
+                ("Xcode Snapshots",             "~/Library/Developer/Xcode/Snapshots"),
+                ("Interface Builder caches",    "~/Library/Developer/Xcode/UserData/IB Support"),
+                ("Xcode Products",              "~/Library/Developer/Xcode/Products"),
             ],
             "probably_safe": [
                 ("Simulator app data (all devices)",  "~/Library/Developer/CoreSimulator/Devices"),
@@ -69,10 +83,13 @@ CATEGORIES = {
                          "~/Library/Developer/Xcode/visionOS\\ DeviceSupport/* "
                          "~/Library/Caches/com.apple.dt.Xcode/* "
                          "~/Library/Caches/org.swift.swiftpm/* "
+                         "~/Library/org.swift.swiftpm/* "
                          "~/Library/Developer/CoreSimulator/Caches/* "
                          "~/Library/Developer/Xcode/Snapshots/* "
                          "~/Library/Developer/Xcode/UserData/IB\\ Support/* "
                          "~/Library/Developer/Xcode/iOS\\ Device\\ Logs/* "
+                         "~/Library/Developer/Xcode/DeviceLogs/* "
+                         "~/Library/Developer/Xcode/DocumentationIndex/* "
                          "~/Library/Developer/Xcode/Products/* 2>/dev/null; "
                          "xcrun simctl delete unavailable 2>/dev/null; true",
             },

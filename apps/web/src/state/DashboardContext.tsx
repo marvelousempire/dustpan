@@ -14,6 +14,7 @@ import type {
   AIStatus,
   CategoryScan,
   DiskStatus,
+  DoctorReport,
   Habit,
   HistoryReport,
   TopLevelTab,
@@ -64,6 +65,8 @@ interface DashboardState {
   aiStatus: AIStatus | null;
   /** Plan 0006: habit records for each category. Empty when DB not available. */
   habits: Habit[];
+  /** Plan 0009: doctor report — ranked safe items across all scanned categories. */
+  doctorReport: DoctorReport | null;
 
   setActiveTab: (tabId: string) => void;
   setActiveSub: (tabId: string, subId: string) => void;
@@ -106,6 +109,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [overviewAutoScanned, setOverviewAutoScanned] = useState(false);
   const [aiStatus, setAiStatus] = useState<AIStatus | null>(null);
   const [habits, setHabits] = useState<Habit[]>([]);
+  const [doctorReport, setDoctorReport] = useState<DoctorReport | null>(null);
   const [showChangelog, setShowChangelog] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmOptions | null>(null);
 
@@ -160,6 +164,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     api.aiStatus().then(setAiStatus).catch(() => {});
     api.habits().then((d) => setHabits(d.habits ?? [])).catch(() => {});
   }, []);
+
+  // Plan 0009: load doctor report on mount (empty until first scan).
+  // Refreshed after every scan so QuickWins + RescueBanner stay current.
+  const refreshDoctor = () => {
+    api.doctor().then(setDoctorReport).catch(() => {});
+  };
+  useEffect(() => { refreshDoctor(); }, []);
 
   useEffect(() => {
     api.tabs().then((d) => {
@@ -238,8 +249,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setScanning(true);
     try {
       await Promise.all(allCategories.map((c) => scanCategory(c)));
-      // Refresh habits after a full re-scan (DB may have new snapshots).
+      // Refresh habits + doctor report after full re-scan.
       api.habits().then((d) => setHabits(d.habits ?? [])).catch(() => {});
+      refreshDoctor();
     } finally {
       setScanning(false);
     }
@@ -424,6 +436,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       confirm,
       aiStatus,
       habits,
+      doctorReport,
       setActiveTab,
       setActiveSub,
       scanCategory,
@@ -440,7 +453,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     [
       status, history, tabs, allCategories, scans, runningCleans, activeTab, activeSub,
       output, outputVisible, busy, scanning, overviewAutoScanned, showChangelog, confirm,
-      aiStatus, habits,
+      aiStatus, habits, doctorReport,
       setActiveTab, setActiveSub, scanCategory, scanEverything, cleanPath,
       cleanAllTier, cleanEverywhere, runAction, openConfirm, closeOutput,
     ],

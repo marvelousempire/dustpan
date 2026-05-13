@@ -156,6 +156,20 @@ def _guess_ctype(name: str) -> str:
 # a lock because ThreadingTCPServer dispatches each request to its own thread.
 _RUNNING_LOCK = threading.Lock()
 _RUNNING_CLEANS: dict = {}  # token -> {"category", "kind", "started_at"}
+
+# ── Scan result cache (plan 0009) ─────────────────────────────────────────────
+# Every successful scan_category() call writes its result here so /api/doctor
+# can aggregate across all scanned categories without re-scanning.
+_SCAN_CACHE_LOCK = threading.Lock()
+_SCAN_CACHE: dict = {}  # category_id -> scan_result dict
+
+def _cache_scan(category_id: str, result: dict) -> None:
+    with _SCAN_CACHE_LOCK:
+        _SCAN_CACHE[category_id] = result
+
+def _get_scan_cache() -> dict:
+    with _SCAN_CACHE_LOCK:
+        return dict(_SCAN_CACHE)
 _token_counter = itertools.count(1)
 
 def _next_token() -> str:
@@ -465,11 +479,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 cid, sub = parts
                 if sub == "scan":
                     result = scan_category(cid)
-                    if result and _db_available():
-                        try:
-                            _store.record_snapshot(cid, result)
-                        except Exception:
-                            pass  # never fail a scan because of DB write
+                    if result:
+                        _cache_scan(cid, result)   # plan 0009: power /api/doctor
+                        if _db_available():
+                            try:
+                                _store.record_snapshot(cid, result)
+                            except Exception:
+                                pass  # never fail a scan because of DB write
                     return self._serve_json(result) if result else self.send_error(404)
                 if sub == "actions":
                     actions = list_actions(cid)
@@ -494,6 +510,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._stream_live()
 
         # ── Plan 0006: AI + DB endpoints ──────────────────────────────────
+        # ── /api/doctor — active disk diagnosis (plan 0009) ──────────────────
+        # Returns the top safe-tier paths ranked by size across ALL categories
+        # that have been scanned this session, plus disk health thresholds.
+        # Works without any AI key — pure rule-based, no extra scanning.
+        if path == "/api/doctor":
+            return self._serve_json(self._build_doctor_report())
+
         if path == "/api/ai/status":
             providers = _store.list_key_providers() if _db_available() else []
             return self._serve_json({
@@ -739,6 +762,51 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
+
+    def _build_doctor_report(self) -> dict:
+        """
+        Aggregate all safe-tier scan results and rank by size.
+        Returns a DoctorReport consumed by the frontend's QuickWins + RescueBanner.
+        No extra scanning — reads from the in-memory scan cache only.
+        """
+        status = get_status()
+        free_gb   = status.get("free_gb", 0)
+        total_gb  = status.get("total_gb", 1)
+        free_pct  = round(free_gb / total_gb * 100, 1) if total_gb > 0 else 100
+
+        # Collect every safe-tier path entry across all scanned categories.
+        quick_wins = []
+        cache = _get_scan_cache()
+        for cat_id, scan in cache.items():
+            safe_group = scan.get("groups", {}).get("safe", {})
+            for path_entry in safe_group.get("paths", []):
+                size_gb = path_entry.get("size_gb", 0) or 0
+                if size_gb < 0.01:
+                    continue  # skip empty / permission-denied paths
+                if path_entry.get("permission_denied"):
+                    continue
+                quick_wins.append({
+                    "category":  cat_id,
+                    "label":     path_entry["label"],
+                    "path":      path_entry["path"],
+                    "size_gb":   size_gb,
+                    "size_kb":   path_entry.get("size_kb", 0),
+                    "tier":      "safe",
+                })
+
+        # Sort by size descending — biggest wins first.
+        quick_wins.sort(key=lambda x: x["size_gb"], reverse=True)
+
+        return {
+            "free_gb":     round(free_gb, 1),
+            "total_gb":    round(total_gb, 1),
+            "free_pct":    free_pct,
+            "rescue_mode": free_pct < 5 or free_gb < 10,
+            "warning_mode": free_pct < 15 or free_gb < 20,
+            "quick_wins":  quick_wins[:20],   # top 20 items
+            "total_cleanable_gb": round(sum(w["size_gb"] for w in quick_wins), 1),
+            "categories_scanned": len(cache),
+        }
 
     def _serve_json_status(self, status: int, data: dict):
         body = json.dumps(data, default=str).encode("utf-8")
