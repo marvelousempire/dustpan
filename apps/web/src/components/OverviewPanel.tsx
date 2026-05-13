@@ -5,6 +5,7 @@ import { PieChart } from "./PieChart";
 import { OutputConsole } from "./OutputConsole";
 import { SpaceBarChart } from "./SpaceBarChart";
 import { HabitBanner } from "./HabitBanner";
+import { PermissionBanner } from "./PermissionBanner";
 import { History, RefreshCw, CheckCheck, AlertTriangle, ChevronRight, TabIcon } from "./icons";
 import { cn, fmt } from "../lib/utils";
 
@@ -30,7 +31,10 @@ export function OverviewPanel() {
 
   return (
     <div>
-      {/* ── 0. Habit alerts (only in Docker mode when categories near threshold) */}
+      {/* ── 0a. Permission banner — shown when macOS TCC blocks du on protected dirs */}
+      <PermissionBanner />
+
+      {/* ── 0b. Habit alerts (only in Docker mode when categories near threshold) */}
       <HabitBanner />
 
       {/* ── 1. Action buttons (top) ───────────────────────────────────────── */}
@@ -52,7 +56,9 @@ export function OverviewPanel() {
             className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent bg-accent px-4 py-2.5 text-[13px] font-semibold text-white shadow-[0_2px_8px_hsl(var(--accent)/0.20)] transition-all hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
           >
             <CheckCheck className="h-3.5 w-3.5" />
-            Clean ALL safe {totals.safe >= 0.01 ? `· ${fmt(totals.safe)} GB` : "· scan first"}
+            Clean ALL safe {totals.safe >= 0.01
+              ? `· ${fmt(totals.safe)} GB`
+              : totals.scanned > 0 ? "· all clean ✓" : "· scan first"}
           </button>
           <button
             type="button"
@@ -61,7 +67,9 @@ export function OverviewPanel() {
             className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-md border border-border/20 bg-[hsl(var(--bg-2)/0.55)] px-4 py-2.5 text-[13px] font-semibold tabular transition-colors hover:border-accent disabled:opacity-45 disabled:cursor-not-allowed"
           >
             <AlertTriangle className="h-3.5 w-3.5" />
-            Clean ALL opt-in {totals.optin >= 0.01 ? `· ${fmt(totals.optin)} GB` : "· scan first"}
+            Clean ALL opt-in {totals.optin >= 0.01
+              ? `· ${fmt(totals.optin)} GB`
+              : totals.scanned > 0 ? "· all clean ✓" : "· scan first"}
           </button>
         </div>
         <div className="mt-2.5 text-[12px] leading-[1.55] tabular text-fg-dim">

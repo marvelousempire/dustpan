@@ -825,7 +825,7 @@ CATEGORIES = {
             "caution": [
                 ("System Updates (needs sudo)",         "/Library/Updates"),
                 ("System Caches (needs sudo)",          "/Library/Caches"),
-                ("Time Machine local snapshots",        "tm-snapshots"),
+                ("Application logs (~/Library/Logs)",   "~/Library/Logs"),
             ],
         },
         "actions": {
@@ -1133,7 +1133,14 @@ CATEGORIES = {
         "groups": {
             "safe": [],
             "probably_safe": [],
-            "caution": [],
+            # Archives can't filter by extension via du, so these show total
+            # folder sizes — use the actions below to find specific archive types.
+            # Requires Full Disk Access to measure accurately on macOS Ventura+.
+            "caution": [
+                ("~/Downloads folder (total — check actions for archive breakdown)", "~/Downloads"),
+                ("~/Desktop  (large files + exports accumulate here)",                "~/Desktop"),
+                ("~/Documents (project exports + archives)",                           "~/Documents"),
+            ],
         },
         "actions": {
             "list-archives-everywhere": {
@@ -1305,17 +1312,36 @@ CATEGORIES = {
         "tagline": "Local iCloud Drive cache. Files stay on iCloud — only your local copy is removed.",
         "groups": {
             "safe": [
-                # ~/Library/Mobile Documents is the iCloud Drive root.
-                # ALL content synced by iCloud Drive lives here (Pages, Numbers,
-                # Keynote, third-party apps that use iCloud). Even with
-                # "Optimize Mac Storage" off this can be 5–50+ GB.
-                ("iCloud Drive local cache (Mobile Documents)", "~/Library/Mobile Documents"),
-                # CloudStorage appears on Monterey+ for iCloud Drive and is
-                # also used by some third-party cloud providers.
-                ("iCloud CloudStorage cache",                   "~/Library/CloudStorage"),
+                # ~/Library/Mobile Documents is the iCloud Drive root for
+                # Apple and third-party apps that use iCloud Documents. The
+                # per-app entries below are subsets of this — don't sum them.
+                ("iCloud Drive (Mobile Documents total)",        "~/Library/Mobile Documents"),
+                # CloudStorage: Monterey+ format, also used by third-party providers.
+                ("iCloud CloudStorage",                          "~/Library/CloudStorage"),
             ],
             "probably_safe": [],
-            "caution": [],
+            # Caution: these are real user data (not caches). Sizes are shown
+            # so you can see which app is using the most local iCloud space.
+            # Use `brctl evict` (action below) to reclaim local space safely —
+            # files stay on iCloud and re-download when opened.
+            "caution": [
+                # Notes keeps ALL note data + attachments in a Group Container.
+                # Receipt photos, scanned documents, images embedded in notes —
+                # all live here. This is often 5–30 GB for heavy Notes users.
+                # This is NOT inside ~/Library/Mobile Documents — it is a
+                # separate per-app container.
+                ("Notes app data + attachments (Group Container)", "~/Library/Group Containers/group.com.apple.notes"),
+                # Notes also has a Mobile Documents entry if iCloud sync is on.
+                ("Notes iCloud sync folder",                        "~/Library/Mobile Documents/iCloud~com~apple~Notes"),
+                # iWork documents synced via iCloud Drive.
+                ("Pages documents (iCloud)",                        "~/Library/Mobile Documents/com~apple~Pages"),
+                ("Numbers documents (iCloud)",                      "~/Library/Mobile Documents/com~apple~Numbers"),
+                ("Keynote documents (iCloud)",                      "~/Library/Mobile Documents/com~apple~Keynote"),
+                # Other common iCloud app containers.
+                ("Reminders local data",                            "~/Library/Group Containers/group.com.apple.reminders"),
+                ("Mail local cache + attachments",                  "~/Library/Containers/com.apple.mail"),
+                ("Safari local data",                               "~/Library/Containers/com.apple.Safari"),
+            ],
         },
         "actions": {
             "show-icloud-breakdown": {
@@ -1372,6 +1398,59 @@ CATEGORIES = {
                     "echo \'Tip: To download all stubs: open iCloud Drive in Finder and select all.\'"
                 ),
                 "informational": True,
+            },
+            "show-notes-footprint": {
+                "label": "Show Notes storage breakdown",
+                "desc":  (
+                    "Measures Notes Group Container (attachments, thumbnails, database) and "
+                    "the iCloud Notes sync folder separately so you can see exactly how much "
+                    "Notes is using locally."
+                ),
+                "cost":  "Read-only. Requires Full Disk Access for accurate results.",
+                "shell": (
+                    "echo \'=== Notes Group Container (local database + attachments) ===\'; "
+                    "du -sh \'$HOME/Library/Group Containers/group.com.apple.notes/\' 2>/dev/null "
+                    "  || echo \'  (permission denied — grant Full Disk Access to Terminal)\'; "
+                    "echo \'\'; "
+                    "echo \'=== Notes attachments subfolder ===\'; "
+                    "du -sh \'$HOME/Library/Group Containers/group.com.apple.notes/Media/\' 2>/dev/null "
+                    "  || echo \'  (not found)\'; "
+                    "echo \'\'; "
+                    "echo \'=== Notes iCloud sync folder ===\'; "
+                    "du -sh \'$HOME/Library/Mobile Documents/iCloud~com~apple~Notes/\' 2>/dev/null "
+                    "  || echo \'  (not found)\'; "
+                    "echo \'\'; "
+                    "echo \'To stop Notes syncing to this Mac locally:\'; "
+                    "echo \'  1. System Settings → [your name] → iCloud → iCloud Drive → Apps Using iCloud Drive\'; "
+                    "echo \'  2. Toggle off Notes\'; "
+                    "echo \'  3. macOS will remove the local Note data while keeping everything on iCloud.\'"
+                ),
+                "informational": True,
+            },
+            "evict-icloud-app-docs": {
+                "label": "Evict iCloud Pages/Numbers/Keynote local copies",
+                "desc":  (
+                    "Runs brctl evict on all locally-present Pages, Numbers, and Keynote files "
+                    "in ~/Library/Mobile Documents. Files stay on iCloud and re-download when "
+                    "you open them. Does NOT touch Notes (separate container)."
+                ),
+                "cost":  (
+                    "iWork documents become cloud-only stubs. Opening them triggers a re-download "
+                    "(speed depends on your internet connection). Files remain on iCloud."
+                ),
+                "shell": (
+                    "count=0; "
+                    "for app_dir in "
+                    "\'$HOME/Library/Mobile Documents/com~apple~Pages/Documents\' "
+                    "\'$HOME/Library/Mobile Documents/com~apple~Numbers/Documents\' "
+                    "\'$HOME/Library/Mobile Documents/com~apple~Keynote/Documents\'; do "
+                    "  [ -d \"$app_dir\" ] && "
+                    "  find \"$app_dir\" -not -name \'*.icloud\' -type f 2>/dev/null | "
+                    "  while read f; do brctl evict \"$f\" 2>/dev/null && count=$((count+1)) "
+                    "    && echo \"  Evicted: $f\"; done; "
+                    "done; "
+                    "echo \'\u2713 Done. iWork files are now cloud-only.\'"
+                ),
             },
         },
     },

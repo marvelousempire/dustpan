@@ -3,6 +3,7 @@ import { useDashboard } from "../state/DashboardContext";
 import type { Tier } from "../lib/types";
 import { PathRow } from "./PathRow";
 import { ActionCard } from "./ActionCard";
+import { PermissionBanner } from "./PermissionBanner";
 import { TabIcon, Info, ArrowUp, ArrowDown, RefreshCw } from "./icons";
 import { cn, fmt } from "../lib/utils";
 
@@ -88,7 +89,12 @@ export function CategoryPanel({ catId, displayLabel }: Props) {
     return { sizeLbl, path: raw.path };
   }, [catId, scan]);
 
+  // Show permission banner if this specific category had denied paths.
+  const hasDenied = (scan?.permission_denied_count ?? 0) > 0;
+
   return (
+    <div>
+      {hasDenied && <PermissionBanner />}
     <div className="glass rounded-lg border border-border/20 shadow-sm overflow-hidden">
       <header className="border-b border-border/10 px-6 py-5">
         <h2 className="m-0 inline-flex items-center gap-2 text-[17px] font-semibold tracking-[-0.01em]">
@@ -265,6 +271,7 @@ export function CategoryPanel({ catId, displayLabel }: Props) {
         </div>
       )}
     </div>
+    </div>
   );
 }
 
@@ -280,7 +287,12 @@ function TierButton({ catId, tier }: { catId: string; tier: "safe" | "probably_s
       onClick={() => cleanAllTier(catId, tier)}
       className="flex-1 min-w-0 rounded-md border border-border/20 bg-[hsl(var(--bg-2)/0.55)] px-3.5 py-2 text-[12px] font-semibold text-fg tabular transition-colors hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
     >
-      {label}{scan ? ` · ${fmt(total)} GB` : ""}
+      {label}
+      {scan
+        ? total >= 0.001
+          ? ` · ${fmt(total)} GB`
+          : " · all clean ✓"
+        : ""}
     </button>
   );
 }

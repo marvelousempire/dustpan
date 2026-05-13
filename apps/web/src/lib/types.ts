@@ -38,6 +38,10 @@ export interface CategoryScan {
   totals: Record<Tier, number>;
   total_cleanable_gb: number;
   scan_ms: number;
+  /** v0.20.3: how many paths returned "Operation not permitted" from macOS TCC */
+  permission_denied_count?: number;
+  /** v0.20.3: human-readable labels of the denied paths */
+  permission_denied_paths?: string[];
 }
 
 export interface Action {
