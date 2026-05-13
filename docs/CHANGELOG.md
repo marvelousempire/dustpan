@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.20.6] — 2026-05-13 18:00:00 Eastern · *Plan 0009: Disk Doctor — Quick Wins, Rescue Mode, Xcode DocumentationIndex, active diagnosis*
+
+### The problem this solves
+
+The app was passive. When the disk ran out of space, there was nothing visible telling the user what to clean. An engineer had to manually run `du` surveys, discover `DocumentationIndex` was eating 5 GB, and execute cleanup commands by hand. The app should do this automatically.
+
+### Added — 🚨 Rescue Banner (`RescueBanner`)
+
+Fires when free disk falls below 10 GB (or 5% of total). Two modes:
+
+**Before scan:** shows hard-coded "best bet" items — the 5 paths most likely to be large on any Mac (DerivedData, iOS DeviceSupport, DocumentationIndex, browser caches, npm). Each is a button that navigates to the right category. No scan needed to get these suggestions.
+
+**After scan:** shows the actual top 5 items from the doctor report with real measured sizes.
+
+### Added — ✨ Quick Wins panel (`QuickWins`)
+
+After any scan, aggregates **every safe-tier path from every category**, sorts by size descending, and shows the top 10 in a single panel — right below the action buttons in Overview. One-click `↓ Clean` button per item. Done state tracks actual `busy` transition.
+
+This is "what would an expert tell me to delete first?" without navigating any tabs.
+
+### Added — `GET /api/doctor` endpoint
+
+Returns `quick_wins` (all safe paths sorted by size), `rescue_mode` flag, `free_gb`, `free_pct`, `total_cleanable_gb`, `categories_scanned`. Computed from the in-memory scan cache — zero extra scanning. Powers both `RescueBanner` and `QuickWins`.
+
+### Changed — Xcode scanner: `DocumentationIndex` and `DeviceLogs` added
+
+`~/Library/Developer/Xcode/DocumentationIndex` — Xcode's searchable docs cache. **Was not in the scanner at all.** Can be 1–5 GB on any active dev Mac. Xcode rebuilds it the next time you open the documentation viewer.
+
+`~/Library/Developer/Xcode/DeviceLogs` — crash logs from connected devices. Safe to clear; new logs appear when you reconnect.
+
+Both added to Xcode `safe` tier and the `clean-safe` action shell command.
+
+### kVersion
+`0.20.5` → `0.20.6`
+
+---
+
 ## [0.20.5] — 2026-05-13 17:00:00 Eastern · *HabitBanner for all users, AI Settings copy fixed, SpaceBarChart real Done state, README updated*
 
 ### Fixed (gap 1) — HabitBanner hidden behind Docker gate; SQLite users never saw it

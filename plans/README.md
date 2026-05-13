@@ -49,6 +49,8 @@ writing them into the repo we get:
 | [0007](0007-space-eaters-scanner-expansion.md) | Space Eaters — fix stale browser paths, add Telegram/WhatsApp/Signal, iOS backups, dev caches, iCloud Drive eviction | shipped | v0.20.1 |
 | [0008](0008-permission-detection-zeros-fix.md) | Fix zeros: FDA permission detection, Archives/System/iCloud path fixes, clean-button UX | shipped | v0.20.3 |
 
+| [0009](0009-disk-doctor-active-diagnosis.md) | Disk Doctor — QuickWins, RescueBanner, /api/doctor, Xcode DocumentationIndex, active diagnosis without AI | in progress | v0.20.6 |
+
 ## When to add a plan
 
 Every PR that touches **substantive logic** (new feature, restructure, schema

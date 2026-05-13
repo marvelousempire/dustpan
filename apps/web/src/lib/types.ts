@@ -61,6 +61,28 @@ export interface TopLevelTab {
   meta?: boolean;
 }
 
+// Plan 0009 — Disk Doctor types ───────────────────────────────────────────────
+
+export interface DoctorWin {
+  category: string;
+  label: string;
+  path: string;
+  size_gb: number;
+  size_kb: number;
+  tier: "safe";
+}
+
+export interface DoctorReport {
+  free_gb: number;
+  total_gb: number;
+  free_pct: number;
+  rescue_mode: boolean;
+  warning_mode: boolean;
+  quick_wins: DoctorWin[];
+  total_cleanable_gb: number;
+  categories_scanned: number;
+}
+
 // Plan 0006 — AI + habits types ──────────────────────────────────────────────
 
 /** AI mode state: whether the backend has Docker + DB configured. */

@@ -6,6 +6,8 @@ import { OutputConsole } from "./OutputConsole";
 import { SpaceBarChart } from "./SpaceBarChart";
 import { HabitBanner } from "./HabitBanner";
 import { PermissionBanner } from "./PermissionBanner";
+import { QuickWins } from "./QuickWins";
+import { RescueBanner } from "./RescueBanner";
 import { History, RefreshCw, CheckCheck, AlertTriangle, ChevronRight, TabIcon } from "./icons";
 import { cn, fmt } from "../lib/utils";
 
@@ -31,13 +33,16 @@ export function OverviewPanel() {
 
   return (
     <div>
-      {/* ── 0a. Permission banner — shown when macOS TCC blocks du on protected dirs */}
+      {/* ── 0a. Rescue banner — disk critically/dangerously low; fires without scan */}
+      <RescueBanner />
+
+      {/* ── 0b. Permission banner — macOS TCC blocking du */}
       <PermissionBanner />
 
-      {/* ── 0b. Habit alerts (only in Docker mode when categories near threshold) */}
+      {/* ── 0c. Habit alerts — categories near growth threshold */}
       <HabitBanner />
 
-      {/* ── 1. Action buttons (top) ───────────────────────────────────────── */}
+      {/* ── 1. Action buttons (top) + Quick Wins below them ─────────────── */}
       <section className="glass mb-4 rounded-lg border border-border/20 p-4 shadow-sm">
         <div className="flex flex-wrap gap-2.5">
           <button
@@ -86,6 +91,9 @@ export function OverviewPanel() {
           )}
         </div>
       </section>
+
+      {/* ── 1b. Quick Wins — top safe items ranked by size across all categories */}
+      <QuickWins />
 
       {/* ── 2. 3-pane: hero · pie · terminal ─────────────────────────────── */}
       <div className="mb-3.5 grid gap-3.5 overview-top">
