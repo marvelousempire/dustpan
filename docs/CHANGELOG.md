@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.18.6] — 2026-05-13 08:34:10 Eastern · *fix: Confirm modal centered (same flex-overlay pattern as ChangelogModal)*
+
+### Fixed
+- **The "Confirm cleanup" modal (triggered by Clean all safe / Clean opt-in / Clean path / Clean everything buttons) was not centered.** It used `fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2` on `Dialog.Content` directly — the same off-center pattern the ChangelogModal had before v0.18.1. Applied the same fix: `Dialog.Overlay` is now a flex container (`flex items-center justify-center`) and `Dialog.Content` auto-centers inside it. Verified: `hCenter: 0px off · vCenter: 0px off` at 1280×900.
+- This is the last modal that used the old pattern. **All modals now use flex-centered overlays.**
+
+### Why
+Maintainer: *"when i clicked the Clean all button — the modal is not centered in view. all of them should be like that — fix them."*
+
 ## [0.18.5] — 2026-05-13 08:24:19 Eastern · *`make ui` now builds only the Vite app (~6s) — no more stale build risk*
 
 ### Fixed
