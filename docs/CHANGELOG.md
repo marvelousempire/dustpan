@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.19.3] — 2026-05-13 10:44:31 Eastern · *README: new "🛠️ Under the hood" section — full per-surface tech stack inventory*
+
+### Added
+- **New `🛠️ Under the hood` section in the README**, positioned between `📦 What's in the box` (features) and `🧹 What Dustpan actually cleans` (categories). Mirrors the per-surface tech-stack pattern that `marvelousempire/red-e-play-app/docs/Stack.md` uses — TL;DR summary table at the top, then per-surface deep dives.
+- **Six per-surface sections**, each with a `Layer · Tool · What it handles` table + a "Why this stack" paragraph:
+  - 🐍 **Backend** (`web/server.py` + `web/cleaners.py`) — Python 3 stdlib, ThreadingTCPServer, SSE, LAN IP discovery via UDP socket trick, subprocess
+  - ⚡ **Main dashboard** (`apps/web/`) — React 18.3 + TypeScript 5.7 + Vite 6 + Tailwind 3.4 + Motion 11 + Radix UI 1.x + Lucide 0.469 + Apple SF Pro
+  - 📰 **Fallback dashboard** (`web/index.html`) — vanilla HTML + Motion via CDN
+  - 🧪 **Experimental dashboard** (`apps/web-next/`) — Next.js 14.2 App Router with static export
+  - 🎭 **Cleanup engine** (`xcode-cleanup.applescript`) — native AppleScript with display alerts + progress bars + system notifications
+  - 🚀 **Install surfaces** — `xcc` CLI · Apple Shortcut · launchd · SwiftBar · Remote SSH runner
+  - 🧰 **Build & tooling** — pnpm 9 workspace, Turbo 2, TypeScript strict, Autoprefixer 10, GitHub Actions CI, auto-release on `main` merge
+- **TL;DR table at the top** of the section maps each surface to its stack + a one-line "why" so a contributor can see the whole inventory in 30 seconds without reading every deep-dive.
+- **Trailing "When this section changes" callout** establishing the discipline: update inline versions whenever a major dep version changes; the README is now the prototype template for every future app shipped from this org.
+
+### Why
+Maintainer: *"We need a 'what's under the hood' section too — and that will give the entire stack we're using. Take a look at the Red-E Play admin dashboard tech stack and see how we want it done here."*
+
+Done. Pattern matches Red-E Play's `docs/Stack.md` 1:1 in structure (TL;DR table → per-surface deep-dives with `Layer · Tool · What it handles` tables → "Why this stack" prose → status discipline at the end). Adapted for Dustpan's six surfaces. Every version number inline matches `apps/web/package.json` and `apps/web-next/package.json` exactly.
+
+This section is the new prototype contract for every future app's tech-stack inventory.
+
 ## [0.19.2] — 2026-05-13 10:30:16 Eastern · *README rewritten at 12-year-old reading level + claude-chat-reader presentation wins*
 
 ### Changed
