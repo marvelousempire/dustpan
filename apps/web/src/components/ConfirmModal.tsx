@@ -28,24 +28,27 @@ export function ConfirmModal({ title, what, detail, costText, danger, okLabel, o
     <Dialog.Root open onOpenChange={(o) => { if (!o) onResult(false); }}>
       <Dialog.Portal>
         <AnimatePresence>
+          {/* v0.18.6 — same flex-centering pattern as ChangelogModal (v0.18.1).
+              The Overlay is the flex container; Content auto-centers inside it.
+              Avoids the translate(-50%,-50%) drift that appeared under Radix's
+              own transform stack. */}
           <Dialog.Overlay asChild>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              className="fixed inset-0 z-50 backdrop-blur-md"
+              className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8 backdrop-blur-md"
               style={{ background: "hsl(240 5% 4% / 0.55)" }}
-            />
-          </Dialog.Overlay>
-          <Dialog.Content asChild>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.22, ease: [0.34, 1.56, 0.64, 1] }}
-              className="fixed left-1/2 top-1/2 z-50 w-[min(460px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border/20 bg-bg-1 shadow-lg overflow-hidden"
             >
+              <Dialog.Content asChild>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.96, y: 6 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96, y: 6 }}
+                  transition={{ duration: 0.22, ease: [0.34, 1.56, 0.64, 1] }}
+                  className="w-full max-w-[460px] rounded-xl border border-border/20 bg-bg-1 shadow-lg overflow-hidden"
+                >
               <header className="flex items-center justify-between border-b border-border/20 px-5 py-4">
                 <Dialog.Title className="m-0 text-[16px] font-semibold">
                   {title || "Confirm"}
@@ -94,8 +97,10 @@ export function ConfirmModal({ title, what, detail, costText, danger, okLabel, o
                   </button>
                 </div>
               </div>
+                </motion.div>
+              </Dialog.Content>
             </motion.div>
-          </Dialog.Content>
+          </Dialog.Overlay>
         </AnimatePresence>
       </Dialog.Portal>
     </Dialog.Root>
