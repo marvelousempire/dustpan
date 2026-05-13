@@ -1,5 +1,79 @@
 # Changelog
 
+## [0.20.3] — 2026-05-13 15:00:00 Eastern · *Plan 0008 — Fix zeros: Full Disk Access detection, Archives/System/iCloud path fixes, clean-button UX*
+
+### Fixed — Root cause of most sections reporting 0 GB
+
+**macOS TCC (`du` permission denial)** was the primary cause.
+`_measure_path` previously used `subprocess.check_output(..., stderr=DEVNULL)`.
+For any directory protected by macOS Full Disk Access rules — `~/Downloads`,
+`~/Library/Containers/*`, `~/Library/Group Containers/*`, Notes, Safari,
+device backups, iCloud Drive — `du` exits non-zero with "Operation not permitted".
+`DEVNULL` threw that away silently; `CalledProcessError` was caught; `size_kb`
+stayed 0. The path existed, the data existed, Dustpan saw 0.
+
+**Fix:** replaced with `subprocess.run(..., capture_output=True)`. Now checks
+`returncode` and `stderr` for "Operation not permitted" / "Permission denied".
+Each path gets a new `permission_denied: bool` field. `scan_category` returns
+`permission_denied_count` and `permission_denied_paths` in every scan response.
+
+### Added — 🔐 Full Disk Access banner (`PermissionBanner`)
+
+When any scanned category has `permission_denied_count > 0`, a banner appears at
+the top of the Overview page (and on individual category pages) with:
+- List of the specific path labels that were denied (as chips)
+- Step-by-step instructions: System Settings → Privacy & Security → Full Disk
+  Access → add Terminal/iTerm2/Warp/etc. → quit+reopen → re-scan
+- Dismissable via "Got it" (stored in localStorage so it doesn't reappear)
+
+Once Full Disk Access is granted and the app is restarted, affected sections
+(Safari, Notes, Downloads, iCloud, backups) will show real sizes.
+
+### Fixed — Archives always reported 0 (no measurement paths)
+
+Archives had `safe=[], probably_safe=[], caution=[]` — zero paths, always 0.
+Added `~/Downloads`, `~/Desktop`, `~/Documents` to the `caution` group so users
+can see total folder sizes (use the find-based actions for per-extension breakdown).
+
+### Fixed — System had a permanently-0 fake path
+
+`"tm-snapshots"` is not a real filesystem path. `os.path.expanduser("tm-snapshots")`
+returns `"tm-snapshots"` unchanged; `os.path.exists` returns False; size stays 0.
+Removed from groups; the Time Machine action handles this correctly. Replaced with
+`~/Library/Logs` (app logs, 50–200 MB typical).
+
+### Changed — iCloud Drive: Notes + per-app breakdown
+
+Added to iCloud `caution` tier (shows sizes, never auto-deleted):
+- **Notes Group Container** — `~/Library/Group Containers/group.com.apple.notes`
+  — contains ALL note data including embedded photos and receipt scans. Often 5–30 GB
+  for heavy Notes users. This is **separate from Mobile Documents**.
+- Notes iCloud sync folder
+- Pages / Numbers / Keynote documents (iCloud)
+- Reminders local data
+- Mail local cache + attachments
+- Safari local data
+
+New **actions**: "Show Notes storage breakdown" (measures Group Container + Media
+subfolder separately, explains how to turn off Notes local sync) and "Evict iCloud
+Pages/Numbers/Keynote local copies" (`brctl evict`, files stay on iCloud).
+
+### Changed — Clean button text
+
+**Before:** when `totals.safe < 0.01` after a scan, button showed "· scan first"
+(confusing — user just scanned).
+
+**After:**
+- `totals.scanned === 0` → "· scan first" (haven't scanned yet)
+- `totals.scanned > 0 && totals.safe < 0.01` → "· all clean ✓" (scanned, nothing to clean)
+
+Same fix applied to `CategoryPanel`'s per-tier buttons.
+
+### kVersion
+`0.20.2` → `0.20.3`
+
+---
+
 ## [0.20.2] — 2026-05-13 14:30:00 Eastern · *Quick CLI command sheet in README — one-shot terminal commands, no app needed*
 
 ### Added — ⚡ Quick CLI section in README

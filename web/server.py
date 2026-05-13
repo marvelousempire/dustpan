@@ -245,21 +245,39 @@ def get_report() -> dict:
 
 
 def _measure_path(args):
-    """Worker for parallel scanning. Returns (group_name, label, path, expanded, exists, size_kb)."""
+    """Worker for parallel scanning.
+
+    Returns (group_name, label, path, size_kb, exists, permission_denied).
+
+    v0.20.3: replaced check_output+DEVNULL with run+capture_output so we can
+    distinguish between "path is empty (0 KB)" and "du was denied by macOS TCC".
+    Many important directories (~/Downloads, ~/Library/Containers,
+    ~/Library/Group Containers, Notes, Safari, device backups) require Full Disk
+    Access. Without it du exits non-zero and previously the error was silently
+    swallowed, producing false 0 GB readings.
+    """
     group_name, label, path = args
     expanded = os.path.expanduser(path)
     exists = os.path.exists(expanded)
     size_kb = 0
+    permission_denied = False
     if exists:
         try:
-            out = subprocess.check_output(
-                ["du", "-sk", expanded], stderr=subprocess.DEVNULL, timeout=30,
+            r = subprocess.run(
+                ["du", "-sk", expanded],
+                capture_output=True, text=True, timeout=30,
             )
-            size_kb = int(out.split()[0])
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired,
-                ValueError, FileNotFoundError):
+            if r.returncode == 0:
+                parts = r.stdout.split()
+                if parts:
+                    size_kb = int(parts[0])
+            elif ("Operation not permitted" in r.stderr
+                  or "Permission denied" in r.stderr):
+                permission_denied = True
+            # Other non-zero exits (e.g. path disappeared mid-scan) → size stays 0
+        except (subprocess.TimeoutExpired, ValueError, FileNotFoundError):
             pass
-    return (group_name, label, path, size_kb, exists)
+    return (group_name, label, path, size_kb, exists, permission_denied)
 
 
 def scan_category(category_id: str) -> dict:
@@ -279,18 +297,25 @@ def scan_category(category_id: str) -> dict:
         results = list(ex.map(_measure_path, work))
     elapsed_ms = int((time.time() - started_at) * 1000)
 
-    # Reassemble into groups in the original order
+    # Reassemble into groups in the original order.
+    # Results now carry a 6th element: permission_denied (bool).
     groups_out = {gname: {"paths": [], "total_gb": 0} for gname in cat["groups"]}
-    by_label = {(g, l, p): (size_kb, exists) for g, l, p, size_kb, exists in results}
+    by_label = {(g, l, p): (size_kb, exists, perm_denied)
+                for g, l, p, size_kb, exists, perm_denied in results}
+    denied_labels: list = []
     for group_name, items in cat["groups"].items():
         for label, path in items:
-            size_kb, exists = by_label.get((group_name, label, path), (0, False))
+            size_kb, exists, perm_denied = by_label.get(
+                (group_name, label, path), (0, False, False))
             size_gb = round(size_kb / 1024 / 1024, 2)
             groups_out[group_name]["paths"].append({
                 "label": label, "path": path,
                 "size_kb": size_kb, "size_gb": size_gb,
                 "exists":  exists,
+                "permission_denied": perm_denied,
             })
+            if perm_denied:
+                denied_labels.append(label)
         groups_out[group_name]["total_gb"] = round(
             sum(p["size_gb"] for p in groups_out[group_name]["paths"]), 2
         )
@@ -308,6 +333,9 @@ def scan_category(category_id: str) -> dict:
             totals.get("safe", 0) + totals.get("probably_safe", 0), 2
         ),
         "scan_ms": elapsed_ms,
+        # v0.20.3: permission-denied count so the UI can prompt for Full Disk Access
+        "permission_denied_count": len(denied_labels),
+        "permission_denied_paths": denied_labels,
     }
 
 
