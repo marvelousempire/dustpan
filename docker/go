@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# Dustpan Docker one-shot bootstrap
+# Usage: ./docker/go
+# Does: verify Docker → copy .env → create data dirs → build + up → health-wait → open browser
+
+set -euo pipefail
+cd "$(dirname "$0")/.."   # always run from repo root
+
+# ── 1. Verify Docker Desktop is running ──────────────────────────────────────
+if ! docker info >/dev/null 2>&1; then
+  echo "⚠  Docker Desktop is not running."
+  echo "   Open Docker Desktop and try again."
+  exit 1
+fi
+
+# ── 2. Copy .env.example → .env if .env doesn't exist ───────────────────────
+if [ ! -f docker/.env ]; then
+  cp docker/.env.example docker/.env
+  echo "✓  Created docker/.env from .env.example"
+  echo "   Edit docker/.env to set DUSTPAN_MASTER_KEY and Postgres credentials."
+  echo ""
+fi
+
+# ── 3. Stamp build metadata into .env ────────────────────────────────────────
+GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+BUILT_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+# Write/update GIT_SHA, GIT_BRANCH, BUILT_AT without duplicating
+for var in GIT_SHA GIT_BRANCH BUILT_AT; do
+  val=$(eval echo "\$$var")
+  if grep -q "^${var}=" docker/.env 2>/dev/null; then
+    sed -i.bak "s|^${var}=.*|${var}=${val}|" docker/.env && rm -f docker/.env.bak
+  else
+    echo "${var}=${val}" >> docker/.env
+  fi
+done
+
+# ── 4. Create data directories ───────────────────────────────────────────────
+mkdir -p data/backups data/incoming
+
+# ── 5. Build + bring up the stack ────────────────────────────────────────────
+echo "🐳  Building and starting Dustpan stack…"
+docker compose -f docker/docker-compose.yml --env-file docker/.env up -d --build --wait
+
+# ── 6. Wait for app health ────────────────────────────────────────────────────
+echo "⏳  Waiting for app to be ready…"
+for i in $(seq 1 30); do
+  if curl -sf https://localhost/api/status --cacert /dev/null -k >/dev/null 2>&1; then
+    echo "✓  App is up at https://localhost"
+    break
+  fi
+  sleep 2
+done
+
+# ── 7. One-time Caddy trust (localhost HTTPS) ─────────────────────────────────
+# Only runs if the Caddy local CA is not already trusted.
+if ! security find-certificate -c "Caddy Local Authority" /Library/Keychains/System.keychain >/dev/null 2>&1; then
+  echo "🔒  Installing Caddy local CA into macOS Keychain (one-time, asks for password)…"
+  docker compose -f docker/docker-compose.yml --env-file docker/.env \
+    run --rm caddy caddy trust
+fi
+
+# ── 8. Open browser ───────────────────────────────────────────────────────────
+open https://localhost
+
+# ── 9. Tail logs ─────────────────────────────────────────────────────────────
+echo ""
+echo "Dustpan is running at https://localhost"
+echo "Ctrl+C to stop tailing logs (stack keeps running in background)"
+echo ""
+docker compose -f docker/docker-compose.yml --env-file docker/.env logs -f app caddy

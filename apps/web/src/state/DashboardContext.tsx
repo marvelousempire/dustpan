@@ -11,8 +11,10 @@ import {
 import { api, streamSSE } from "../lib/api";
 import type {
   Action,
+  AIStatus,
   CategoryScan,
   DiskStatus,
+  Habit,
   HistoryReport,
   TopLevelTab,
 } from "../lib/types";
@@ -58,6 +60,10 @@ interface DashboardState {
   overviewAutoScanned: boolean;
   showChangelog: boolean;
   confirm: ConfirmOptions | null;
+  /** Plan 0006: AI status — docker_mode + configured providers. */
+  aiStatus: AIStatus | null;
+  /** Plan 0006: habit records for each category. Empty when DB not available. */
+  habits: Habit[];
 
   setActiveTab: (tabId: string) => void;
   setActiveSub: (tabId: string, subId: string) => void;
@@ -98,6 +104,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [overviewAutoScanned, setOverviewAutoScanned] = useState(false);
+  const [aiStatus, setAiStatus] = useState<AIStatus | null>(null);
+  const [habits, setHabits] = useState<Habit[]>([]);
   const [showChangelog, setShowChangelog] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmOptions | null>(null);
 
@@ -145,6 +153,12 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     api.report().then(setHistory).catch(() => {});
+  }, []);
+
+  // Plan 0006: load AI status + habits on mount. Both are soft — failures are silent.
+  useEffect(() => {
+    api.aiStatus().then(setAiStatus).catch(() => {});
+    api.habits().then((d) => setHabits(d.habits ?? [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -224,6 +238,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setScanning(true);
     try {
       await Promise.all(allCategories.map((c) => scanCategory(c)));
+      // Refresh habits after a full re-scan (DB may have new snapshots).
+      api.habits().then((d) => setHabits(d.habits ?? [])).catch(() => {});
     } finally {
       setScanning(false);
     }
@@ -406,6 +422,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       overviewAutoScanned,
       showChangelog,
       confirm,
+      aiStatus,
+      habits,
       setActiveTab,
       setActiveSub,
       scanCategory,
@@ -422,6 +440,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     [
       status, history, tabs, allCategories, scans, runningCleans, activeTab, activeSub,
       output, outputVisible, busy, scanning, overviewAutoScanned, showChangelog, confirm,
+      aiStatus, habits,
       setActiveTab, setActiveSub, scanCategory, scanEverything, cleanPath,
       cleanAllTier, cleanEverywhere, runAction, openConfirm, closeOutput,
     ],

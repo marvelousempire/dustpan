@@ -1,5 +1,76 @@
 # Changelog
 
+## [0.20.0] — 2026-05-13 13:30:00 Eastern · *Plan 0006 ships — Docker stack + AI engine + habit learning*
+
+### Added — Docker stack (`docker/`)
+
+Five files copied from the `ai-skills-library` canonical template and adapted for Dustpan:
+
+- **`docker/docker-compose.yml`** — `app + db (pgvector/pg16) + caddy` base services; optional `ollama` service activated with `--profile ollama`
+- **`docker/Dockerfile`** — multi-stage: Node 20 builds the React app, Python 3.11-slim runs the server (psycopg2-binary + cryptography installed)
+- **`docker/Caddyfile`** — HTTPS reverse proxy; `CADDY_HOST` env var switches localhost ↔ production domain; HSTS + security headers
+- **`docker/.env.example`** — `POSTGRES_*`, `CADDY_HOST`, `DUSTPAN_MASTER_KEY`, `OLLAMA_URL`, `OLLAMA_MODEL`
+- **`docker/go`** — one-shot bootstrap: verify Docker → copy `.env` → stamp git metadata → `docker compose up -d --build --wait` → one-time Caddy trust → open browser → tail logs
+
+Start Dustpan with full AI features: `./docker/go`
+
+### Added — `web/db.py` (database module)
+
+Optional Postgres module — no-op when `DATABASE_URL` is not set or `psycopg2` is not installed. `is_available()` returns `False` gracefully so `make ui` still works unchanged.
+
+- **Connection pool**: `psycopg2.pool.ThreadedConnectionPool` (min=1, max=4)
+- **Migrations** (all `IF NOT EXISTS`): `api_keys`, `ollama_settings`, `runs`, `category_snapshots`, `habits`
+- **AES-256-GCM encryption** via `cryptography.hazmat.primitives.ciphers.aead.AESGCM`; falls back to plaintext-with-prefix when the package is absent
+- **Domain helpers**: `save_api_key`, `get_api_key`, `delete_api_key`, `list_key_providers`, `get_ollama_settings`, `save_ollama_settings`, `record_snapshot`, `record_run`, `compute_habits` (linear regression over 28-day window)
+
+### Added — `web/ai.py` (AI provider dispatch)
+
+Pure `urllib` — no pip installs for the AI module itself. Handles three API surface formats:
+- **OpenAI-compatible**: OpenAI (`gpt-4o-mini`), Perplexity, Groq, Ollama (base URL override)
+- **Anthropic format**: separate request shape + `x-api-key` + `anthropic-version` headers (`claude-3-haiku-20240307`)
+- **Gemini format**: Google's `generateContent` REST API (`gemini-1.5-flash`)
+- `build_scan_prompt()` builds a structured disk-summary prompt for the AI
+
+### Added — `web/requirements.txt`
+
+`psycopg2-binary==2.9.9` and `cryptography==42.0.5` — only needed for Docker mode.
+
+### Changed — `web/server.py`
+
+**New endpoints:**
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/ai/status` | `{docker_mode, providers}` — what the UI checks to decide mode |
+| `GET` | `/api/settings/keys` | List of providers with stored keys (no values) |
+| `POST` | `/api/settings/keys` | Save encrypted API key |
+| `DELETE` | `/api/settings/keys/{provider}` | Remove a key |
+| `GET` | `/api/settings/ollama` | Ollama URL + model |
+| `POST` | `/api/settings/ollama` | Save Ollama settings |
+| `GET` | `/api/habits` | Computed habit records (slope + days to threshold) |
+| `GET` | `/api/runs` | Run history (paginated, newest first) |
+| `POST` | `/api/ai/summary` | Call configured AI provider, return 2-sentence recommendation, persist to `habits` |
+
+All endpoints return `{"error":"no_db","message":"…"}` with HTTP 501 when DB is not available. **`make ui` path unaffected.**
+
+**Scan hook**: every `GET /api/category/<id>/scan` now calls `db.record_snapshot()` after returning results (no-op without DB).
+
+**Startup**: `db.migrate()` runs at process start (no-op without DB).
+
+### Changed — Frontend
+
+- **`types.ts`** — `AIStatus`, `Habit`, `Run` types added
+- **`api.ts`** — `aiStatus()`, `habits()`, `runs()`, `settingsKeys()`, `settingsOllama()`, `saveKey()`, `deleteKey()`, `saveOllama()`, `aiSummary()` calls added
+- **`DashboardContext`** — `aiStatus` + `habits` state; loaded on mount; habits refreshed after every `scanEverything`
+- **`AISettingsPanel`** — branches on `aiStatus.docker_mode`: Docker mode shows server-backed key rows (enter to update, one-click remove, "stored securely" placeholder); non-Docker mode keeps localStorage rows with the upgrade callout
+- **`HabitBanner`** (new) — AnimatePresence chip per category with `days_to_threshold ≤ 14`; shows growth rate + AI recommendation; click navigates to the category; hidden when no Docker mode or no urgent habits
+- **`OverviewPanel`** — `HabitBanner` wired above the action buttons
+
+### kVersion
+`0.19.9` → `0.20.0`
+
+---
+
 ## [0.19.9] — 2026-05-13 13:00:00 Eastern · *Overview redesign: buttons top, 3-pane below, animated space bar chart. New AI & Settings panel (plan 0006 foundation).*
 
 ### Changed — Overview layout

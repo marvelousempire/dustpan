@@ -1,0 +1,109 @@
+name: dustpan
+
+# ── Services ────────────────────────────────────────────────────────────────
+#
+# Base (always on):  app · db · caddy
+# Optional profile:  ollama   →  docker compose --profile ollama up
+#
+# Quick start:
+#   ./docker/go           one-shot bootstrap (copies .env, builds, opens browser)
+#   make docker-up        bring up in background
+#   make docker-down      stop (keeps data)
+#   make docker-logs      tail app + caddy
+#   make backup           dump Postgres → ./data/backups/
+#   make reset            wipe volumes (confirm prompt)
+
+services:
+
+  # ── app ──────────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+      DUSTPAN_MASTER_KEY: "${DUSTPAN_MASTER_KEY}"
+      XCC_HOST: "0.0.0.0"
+      XCC_UI_PORT: "8765"
+      OLLAMA_URL: "${OLLAMA_URL:-http://ollama:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.2}"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8765/api/status')\" 2>/dev/null && exit 0 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  # ── db ───────────────────────────────────────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    volumes:
+      - dustpan_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"          # host:container — for psql / pg_dump from host
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── caddy ────────────────────────────────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"        # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - dustpan_caddy_data:/data
+      - dustpan_caddy_config:/config
+    networks:
+      - internal
+    depends_on:
+      app:
+        condition: service_healthy
+
+  # ── ollama (optional — activate with --profile ollama) ───────────────────
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    restart: unless-stopped
+    volumes:
+      - dustpan_ollama_data:/root/.ollama
+    networks:
+      - internal
+    # Uncomment for GPU support (requires nvidia-container-toolkit):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+# ── Volumes ──────────────────────────────────────────────────────────────────
+volumes:
+  dustpan_db_data:
+  dustpan_caddy_data:
+  dustpan_caddy_config:
+  dustpan_ollama_data:
+
+# ── Networks ─────────────────────────────────────────────────────────────────
+networks:
+  internal:
+    driver: bridge
