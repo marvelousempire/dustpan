@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.19.0] — 2026-05-13 10:04:48 Eastern · *Dustpan rebrand — by AVERY GOODMAN — with centered About modal and Apple SF Pro typography*
+
+The product is now **Dustpan** — same code, same functionality, refined identity. The cleanup engine (11 categories, 17 sub-tools, 58 annotated actions, the SSE live channel, the AppleScript, the pie chart, the theme toggle, every safety tier) is unchanged. What changed is the *feel* — name, attribution, typography, and a proper About modal that explains what this is and why it exists.
+
+### Added — Dustpan wordmark + attribution
+- **App name: Dustpan** — replaces "Cleanup Hub" everywhere. Header, page title, server startup, README, package.json, both Vite and Next.js apps, vanilla `web/index.html`.
+- **Attribution: BY AVERY GOODMAN** — small-caps treatment next to the wordmark in the header, in the About modal, and in the page title (`Dustpan — by AVERY GOODMAN`). Follows the global `learn-mappers-copyright` rule (AVERY GOODMAN always all-caps in user-facing attribution).
+- **Apple SF Pro stack made explicit.** New `font-display` Tailwind family resolves to `-apple-system → "SF Pro Display" → "SF Pro" → system-ui` for display text (wordmark, hero numbers, modal titles). Body text continues to use `font-sans` (SF Pro Text). On macOS these resolve to Apple's optical-sized SF Pro Display + Text automatically.
+- **Server startup line updated:** `🧹  Dustpan  ·  by AVERY GOODMAN`
+
+### Added — About modal
+- **Triggered from the footer "About" button** (replaces the bare repo URL in the footer; the GitHub link stays).
+- **Centered using the v0.18.6 flex-overlay pattern** so it sits dead-center at every viewport size, every theme.
+- **Premium entrance animation:** spring physics (`stiffness: 180, damping: 22, mass: 0.9`) on `opacity + scale + y` so the modal "lands" rather than "pops." 22-frame curtain on the backdrop.
+- **Three explainer sections** in the modal body:
+  - **What it is** — disk-cleanup utility for working Macs, 11 categories, cost annotation per action.
+  - **Why it exists** — closed-source cleaners hide what they do; Dustpan is auditable end-to-end, safe by default, fast, no Docker / pip / cloud / telemetry, one readable AppleScript and one Python file.
+  - **Who built it** — AVERY GOODMAN at Learn Mappers LLC. Free. MIT. Made for developers and creative pros tired of paying rent to free up their own disk.
+- **Privacy line:** `🛡 LOCALHOST ONLY — NOTHING LEAVES YOUR MAC`
+- **Footer:** version + copyright (`Dustpan v0.19.0 · © 2026 Learn Mappers LLC DBA AVERY GOODMAN · UCC 1-308`).
+- Implemented in both UIs: React (`AboutModal.tsx`, Radix Dialog + Motion spring) and vanilla (`web/index.html`, native modal-backdrop + display:flex centering).
+
+### Changed
+- **Header wordmark size** lifted from 17px → 22px with a tighter `-0.022em` letter-spacing for a more confident display feel. Inline `BY AVERY GOODMAN` byline rendered at 10px / 0.14em tracking / fg-faint.
+- **Footer reorganized:** `About · GitHub · Changelog · MIT · localhost-only` instead of the bare repo URL. Each segment separated by inline middle dots in fg-faint.
+- **Page title** in both apps: `Dustpan — by AVERY GOODMAN`.
+- **README hero** rebranded to Dustpan with the new tagline `Sweep your Mac clean.`
+
+### Preserved (nothing changed about the engine)
+- All 11 categories + 17 sub-tools + 58 actions in `web/cleaners.py` — untouched
+- All Python server routes + `/api/live` SSE channel — untouched
+- AppleScript cleanup logic — untouched (only kVersion bump)
+- Pie chart math, sidebar mini-donuts, theme tokens, terminal pane, scan/clean flows — all working identically
+- Network mode, browser auto-open, three-frontend routing — all working as in v0.18.x
+
+### Verified
+At 1280×900, both modes:
+- Header reads **Dustpan** + small-caps **BY AVERY GOODMAN**
+- Footer "About" button opens the modal — pixel-centered (`hCenter: 0px off · vCenter: 0px off`)
+- Modal entry uses spring motion, premium feel; backdrop blur active
+- Closing modal returns to the dashboard with no scroll jump
+- Dark theme: wordmark + byline both legible on dark background, theme toggle still works
+- All existing functionality (scans, cleans, SSE, pie clicks, theme switch) unchanged
+
+### Why
+Maintainer: *"This app is called dustpan by Avery Goodman at the bottom we need in about that pops up in the middle of course that tells exactly what his app is for and what the intention of it is to serve and why it was created… cinematic smooth motion premium quality font like Apple SF."*
+
+This release does the rebrand half (name + About + wordmark + Apple SF stack). Subsequent v0.19.x patches will refine the rest of the motion language (refined pie spring, theatrical hero count-up, micro-animations on cards) so the feel stays cinematic without ever sacrificing the underlying functionality.
+
 ## [0.18.9] — 2026-05-13 09:25:02 Eastern · *README overhaul + repo cleanup*
 
 ### Changed

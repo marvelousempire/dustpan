@@ -1,11 +1,15 @@
 <p align="center">
-  <img src="assets/icon-hero.svg" width="80" height="80" alt="Cleanup Hub">
+  <img src="assets/icon-hero.svg" width="80" height="80" alt="Dustpan">
 </p>
 
-<h1 align="center">🧹 Cleanup Hub</h1>
+<h1 align="center">🧹 Dustpan</h1>
 
 <p align="center">
-  <strong>Reclaim 50–150 GB on your Mac. Three lines. No Docker. No subscription. No telemetry.</strong>
+  <sub><strong>by AVERY GOODMAN</strong></sub>
+</p>
+
+<p align="center">
+  <strong>Sweep your Mac clean.</strong> Reclaim 50–150 GB. Three lines. No Docker. No subscription. No telemetry.
 </p>
 
 <p align="center">
@@ -284,7 +288,7 @@ See [`docs/SHORTCUTS.md`](./docs/SHORTCUTS.md) for a paste-ready *Run Script Ove
 
 ## 🆚 How it compares
 
-|  | Cleanup Hub | CleanMyMac | DevCleaner | `rm -rf` from memory |
+|  | Dustpan | CleanMyMac | DevCleaner | `rm -rf` from memory |
 |---|---|---|---|---|
 | **Open source / auditable** | ✓ MIT | ✗ closed | ✗ closed | n/a |
 | **Xcode-specific knowledge** | ✓ | partial | ✓ | up to you |

@@ -40,8 +40,12 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', "system-ui", "sans-serif"],
-        mono: ["ui-monospace", "SFMono-Regular", '"SF Mono"', "Menlo", "monospace"],
+        // SF Pro Text for body, SF Pro Display for headings — Apple's native stack.
+        // On macOS / iOS, system-ui resolves to SF Pro automatically; explicit
+        // family names listed as fallbacks for older Safari and non-Apple targets.
+        sans:    ["-apple-system", "BlinkMacSystemFont", '"SF Pro Text"', "system-ui", "sans-serif"],
+        display: ["-apple-system", "BlinkMacSystemFont", '"SF Pro Display"', '"SF Pro"', "system-ui", "sans-serif"],
+        mono:    ["ui-monospace", "SFMono-Regular", '"SF Mono"', "Menlo", "monospace"],
       },
       fontSize: {
         display: ["80px", { lineHeight: "1", letterSpacing: "-0.04em", fontWeight: "700" }],

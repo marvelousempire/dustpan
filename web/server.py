@@ -752,7 +752,7 @@ def main():
     n_tabs    = len([t for t in cleaners.TABS if not t.get("meta")])
 
     print()
-    print(f"  🧹  Cleanup Hub")
+    print(f"  🧹  Dustpan  ·  by AVERY GOODMAN")
     print()
     if network_mode:
         print(f"  {'Local':9}  \033[1;36m{local_url}\033[0m")
