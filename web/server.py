@@ -119,7 +119,29 @@ def _snapshot_running() -> list:
     with _RUNNING_LOCK:
         return [{"token": t, **info} for t, info in _RUNNING_CLEANS.items()]
 PORT_RANGE     = 20      # try preferred .. preferred + 19 before falling back
-HOST           = "127.0.0.1"   # localhost only
+# HOST can be overridden:
+#   XCC_HOST=0.0.0.0 make ui          → listen on all interfaces (network mode)
+#   XCC_HOST=127.0.0.1                → localhost only (default, safer)
+HOST = os.environ.get("XCC_HOST", "127.0.0.1")
+
+
+def _local_ip() -> Optional[str]:
+    """Return the machine's primary LAN IP, or None on failure.
+
+    Technique: open a UDP socket toward 8.8.8.8 — no packet is actually sent,
+    but the OS must pick the outbound interface, which reveals the right LAN IP.
+    """
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except Exception:
+        return None
+    finally:
+        try:
+            s.close()
+        except Exception:
+            pass
 
 
 def find_open_port(preferred: int, tries: int = PORT_RANGE) -> int:
@@ -716,24 +738,52 @@ def main():
     port = find_open_port(PREFERRED_PORT)
     if port != PREFERRED_PORT:
         print(f"⚠  Port {PREFERRED_PORT} is busy — using {port} instead.")
+
     httpd = socketserver.ThreadingTCPServer((HOST, port), Handler)
     httpd.daemon_threads = True
-    url = f"http://{HOST}:{port}"
-    print(f"🧹  Cleanup Hub web UI → \033[1;36m{url}\033[0m")
-    print(f"    {sum(len(c['actions']) for c in cleaners.CATEGORIES.values())} actions across {len([t for t in cleaners.TABS])} tabs")
-    print("    Localhost only — never reachable from your network.")
-    print("    Press Ctrl+C to stop.\n")
 
+    # Decide what URL to show the user and what to open in the browser.
+    network_mode = (HOST == "0.0.0.0")
+    local_url    = f"http://127.0.0.1:{port}"
+    lan_ip       = _local_ip() if network_mode else None
+    network_url  = f"http://{lan_ip}:{port}" if lan_ip else None
+
+    n_actions = sum(len(c["actions"]) for c in cleaners.CATEGORIES.values())
+    n_tabs    = len([t for t in cleaners.TABS if not t.get("meta")])
+
+    print()
+    print(f"  🧹  Cleanup Hub")
+    print()
+    if network_mode:
+        print(f"  {'Local':9}  \033[1;36m{local_url}\033[0m")
+        if network_url:
+            print(f"  {'Network':9}  \033[1;32m{network_url}\033[0m  ← share with devices on your Wi-Fi")
+        else:
+            print(f"  Network    (could not detect LAN IP — try http://YOUR_MAC_IP:{port})")
+        print()
+        print("  ⚠  NETWORK MODE: every device on your Wi-Fi can scan and delete files.")
+        print("     Intended for personal home-network use. Stop with Ctrl+C when done.")
+    else:
+        print(f"  {'URL':9}  \033[1;36m{local_url}\033[0m")
+        print(f"  Access     Localhost only (run 'make ui-network' to expose on Wi-Fi)")
+    print()
+    print(f"  {n_actions} actions across {n_tabs} tabs  ·  Press Ctrl+C to stop.")
+    print()
+
+    # Open the local URL in the default browser. Always use localhost (127.0.0.1)
+    # so this works regardless of HOST setting and doesn't depend on LAN IP detection.
     if not os.environ.get("XCC_UI_NO_OPEN"):
         try:
-            webbrowser.open(url)
+            # Small delay lets the server fully bind before the first request arrives.
+            import threading as _threading
+            _threading.Timer(0.4, lambda: webbrowser.open(local_url)).start()
         except Exception:
             pass
 
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\n    Stopped.")
+        print("\n  Stopped.")
         httpd.server_close()
         sys.exit(0)
 

@@ -2,7 +2,7 @@ SHORTCUT_NAME := Xcode Cleanup
 SCRIPT        := xcode-cleanup.applescript
 
 .DEFAULT_GOAL := help
-.PHONY: help run dry-run demo force install-shortcut uninstall-shortcut shortcut-run record-demo check size-report history install-cli uninstall-cli install-launchd uninstall-launchd install-swiftbar uninstall-swiftbar package-shortcut report ui ui-all ui-legacy ui-react ui-next ui-dev clean-docker
+.PHONY: help run dry-run demo force install-shortcut uninstall-shortcut shortcut-run record-demo check size-report history install-cli uninstall-cli install-launchd uninstall-launchd install-swiftbar uninstall-swiftbar package-shortcut report ui ui-network ui-all ui-legacy ui-react ui-next ui-dev clean-docker
 
 help: ## Show this help
 	@echo "Xcode Cleanup Shortcut — Make targets"
@@ -164,6 +164,16 @@ ui: ## Open the web UI at http://127.0.0.1:8765 (rebuilds the Vite app in ~6s)
 		echo "ℹ pnpm not installed — serving vanilla UI. Install pnpm to get the React build."; \
 	fi
 	@python3 web/server.py
+
+ui-network: ## Build Vite UI + serve on ALL network interfaces (0.0.0.0) — share on Wi-Fi
+	@# ⚠  NETWORK MODE: every device on your Wi-Fi can scan and trigger cleanups.
+	@# Use on a trusted home network. Stop with Ctrl+C when done.
+	@if command -v pnpm >/dev/null 2>&1; then \
+		echo "▶ Building Vite UI (apps/web)…"; \
+		pnpm install --silent && pnpm --filter @cleanup-hub/web build \
+		  || { echo "⚠ Vite build failed — falling back to vanilla UI."; }; \
+	fi
+	@XCC_HOST=0.0.0.0 python3 web/server.py
 
 ui-all: ## Build ALL frontends (Vite + Next.js) via Turbo then serve
 	@pnpm install --silent && pnpm turbo run build

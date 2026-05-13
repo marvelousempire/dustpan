@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.18.8] — 2026-05-13 08:51:20 Eastern · *network mode (`make ui-network`) + auto-opens browser on start*
+
+### Added
+- **`make ui-network`** — builds the Vite app then binds to `0.0.0.0` so any device on your Wi-Fi can reach the dashboard. Prints both the local URL and the LAN URL:
+  ```
+    🧹  Cleanup Hub
+
+    Local      http://127.0.0.1:8765
+    Network    http://192.168.X.X:8765  ← share with devices on your Wi-Fi
+
+    ⚠  NETWORK MODE: every device on your Wi-Fi can scan and delete files.
+       Intended for personal home-network use. Stop with Ctrl+C when done.
+  ```
+  LAN IP is auto-detected via a zero-packet UDP socket trick (connect to 8.8.8.8:80; OS picks the right interface; read back the source address).
+- **`XCC_HOST` environment variable** — override the bind address for any make target: `XCC_HOST=0.0.0.0 make ui` or `XCC_HOST=192.168.8.200 make ui` to bind a specific interface.
+
+### Fixed
+- **Browser auto-opens with a 400ms delay** after the server binds, ensuring the server is ready to handle the first request before the browser arrives. Previously `webbrowser.open()` was called synchronously before `serve_forever()` — a fast browser could see a connection refused on the first attempt if it landed in the tiny window between the call and the server actually listening. The delay is done on a `threading.Timer` so `serve_forever()` starts immediately and the browser fires 0.4s later.
+- **Startup message restyled** to a two-line summary (URL + access mode) instead of a mix of print statements. Shows "run `make ui-network` to expose on Wi-Fi" hint in default localhost mode.
+
+### Security note
+Network mode is intentionally opt-in. `make ui` (the default) continues to bind to `127.0.0.1`. The network endpoint runs the same cleanup actions as the local one — anyone who can reach the port can trigger file deletions — so use it on trusted home networks only. Stop with `Ctrl+C` when you're done.
+
+### Make target table (updated)
+| Target | Binds to | Build |
+|---|---|---|
+| `make ui` | 127.0.0.1 (localhost only) | Vite, ~6s |
+| `make ui-network` | 0.0.0.0 (all interfaces, shows LAN IP) | Vite, ~6s |
+| `make ui-all` | 127.0.0.1 | Vite + Next via Turbo |
+| `make ui-legacy` | 127.0.0.1 | None (vanilla shell) |
+| `make ui-next` | 127.0.0.1 | Next.js only |
+| `make ui-dev` | — | Vite + Next dev servers (HMR) |
+
 ## [0.18.7] — 2026-05-13 08:41:31 Eastern · *Activity terminal scrolls inside — no longer stretches the page*
 
 ### Fixed
