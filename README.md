@@ -108,6 +108,123 @@ The dashboard has three things side-by-side at the top, then a grid of category 
 
 ---
 
+## 🛠️ Under the hood
+
+The complete tech stack. Six surfaces, each built for its own constraints. If you're contributing or curious — this is everything that goes into making Dustpan run.
+
+### TL;DR — surfaces at a glance
+
+| Surface | Stack | Why this stack |
+|---|---|---|
+| 🐍 **Backend** | Python 3 stdlib (`http.server` + threading) | Ships on every Mac. Zero pip installs. Auditable in ~700 readable lines. |
+| ⚡ **Main dashboard** | Vite 6 + React 18 + TypeScript 5.7 + Tailwind 3.4 + Motion 11 | Fast cold build (~6s), HMR for dev, premium animation feel, Apple-native typography |
+| 📰 **Fallback dashboard** | Vanilla HTML + Motion via CDN | Works the second after `git clone` — no `pnpm install` required |
+| 🧪 **Experimental UI** | Next.js 14 (App Router, static export) | Future surface; statically exported so backend stays Python |
+| 🎭 **Cleanup engine** | AppleScript + macOS shell | Native pop-ups, progress bars, notifications. Runs without a server. |
+| 🚀 **Install surfaces** | Shortcut · CLI · launchd · SwiftBar · SSH | One cleanup source, five ergonomic entry points |
+
+### 🐍 Backend (`web/server.py` + `web/cleaners.py`)
+
+| Layer | Tool | What it handles |
+|---|---|---|
+| Runtime | **Python 3.9+ stdlib only** | No `pip install`. Ships on every Mac since Monterey. |
+| HTTP | `http.server.BaseHTTPRequestHandler` | Routing, response writing, content types |
+| Concurrency | `ThreadingTCPServer` + `threading.Lock` | One thread per request; lock-protected in-flight clean registry |
+| Streaming | Server-Sent Events (`text/event-stream`) | `/api/live` channel + per-clean output streams |
+| Network | `socket` + `XCC_HOST` env var | Toggle between `127.0.0.1` (localhost-only) and `0.0.0.0` (Wi-Fi visible) |
+| LAN discovery | Zero-packet UDP socket to `8.8.8.8` | OS picks the outbound interface → reveals primary LAN IP for the Network URL |
+| Subprocess | `subprocess.Popen` + `subprocess.run` | Shells out to `rm`, `du`, `find`, `xcrun`, `docker`, `osascript` |
+| Data layer | [`web/cleaners.py`](./web/cleaners.py) | 11 categories · 17 sub-tools · 58 actions — single source of truth |
+| Static serving | `apps/web/dist/` + `apps/web-next/out/` + `web/index.html` | Serves whichever frontend the URL asks for |
+
+**Why this stack.** Dustpan's brand promise is *"no Docker, no pip install, no telemetry."* Python is on every Mac. The whole server is auditable in one file. Anyone can read it, understand it, and verify it isn't doing anything sneaky.
+
+### ⚡ Main dashboard (`apps/web/` = `@cleanup-hub/web`)
+
+| Layer | Tool | What it handles |
+|---|---|---|
+| Framework | **React 18.3** + **TypeScript 5.7** | UI + types |
+| Build | **Vite 6** (`vite build`, `vite dev`) | Production bundle ~120 KB JS gz + ~6 KB CSS gz · builds in ~6s · HMR for dev |
+| Styling | **Tailwind CSS 3.4** + `tailwindcss-animate` | Utility-first styling |
+| Tokens | HSL CSS custom properties | Light + Dark + explicit `[data-theme]` override (all three activation paths) |
+| Typography | **Apple SF Pro Display** + **SF Pro Text** | Native Mac type via `-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro"...` |
+| Animation | **Motion 11** (`motion/react`) | Springs, layout-aware tweens, `AnimatePresence` |
+| Components | **Radix UI** primitives (1.x) | `@radix-ui/react-dialog`, `react-scroll-area`, `react-separator`, `react-tooltip`, `react-slot` |
+| Icons | **Lucide React 0.469** | All glyphs throughout the UI |
+| Utils | `clsx` + `tailwind-merge` + `class-variance-authority` | `cn()` helper + variant patterns |
+| State | Hand-rolled `DashboardContext` (`useState` + `useEffect`) | No Redux/Zustand — Context is sufficient |
+| Real-time | Native `EventSource` | Subscribed to `/api/live` with exponential backoff reconnect |
+| Theme | Pre-paint inline `<script>` in `index.html` | Applies saved theme **before React mounts** — no flash on cold load |
+
+**Why this stack.** Vite is the fastest cold-build path in the React ecosystem. Motion 11 gives the cinematic spring physics the maintainer specified. Radix gives accessibility primitives for free (Dialog focus trapping, ESC handling, Portal). Apple's SF Pro Display + Text resolve automatically on macOS via the system-ui stack — no fonts to host, no FOUT.
+
+### 📰 Fallback dashboard (`web/index.html`)
+
+| Layer | Tool | What it handles |
+|---|---|---|
+| Build | **None** | Single self-contained HTML file. No bundler. |
+| Animation | **Motion 11** via `cdn.jsdelivr.net/npm/motion@11.18.0/+esm` | Loaded as an ES module; gracefully degrades if CDN unreachable |
+| Icons | Inline SVGs (Lucide source) | Hand-pasted for offline use |
+| API contracts | Same `/api/*` endpoints as Vite app | Identical scan/clean flow, different render engine |
+
+**Why this stack.** Works the second after `git clone` without `pnpm install`. The demo/airgap path. If pnpm isn't installed, `make ui` falls back to serving this — the user never sees an error.
+
+### 🧪 Experimental dashboard (`apps/web-next/` = `@cleanup-hub/web-next`)
+
+| Layer | Tool | What it handles |
+|---|---|---|
+| Framework | **Next.js 14.2** (App Router) | Router + RSC patterns |
+| Mode | `output: "export"` (static export) | Pre-rendered HTML + `_next/static/*` chunks. No Node runtime in production. |
+| basePath | `/next` | Coexists with the Vite app at root |
+| Tailwind | Same token system as `apps/web` | Mirrored, not shared — keeps the apps loosely coupled |
+
+**Why this stack.** A future surface to explore Next-specific patterns (server components, route groups, parallel routes) without coupling them to the canonical Vite UI. Static export keeps the Python backend as the only runtime — no Node needed in production.
+
+### 🎭 Cleanup engine ([`xcode-cleanup.applescript`](./xcode-cleanup.applescript))
+
+| Layer | Tool | What it handles |
+|---|---|---|
+| Language | **AppleScript** (~250 lines) | The original Dustpan script — predates the web dashboard |
+| Native UI | `display alert` · `display notification` · `progress total steps` | Real macOS modals, progress bars, system notifications |
+| Shell-out | `do shell script` | Runs `rm -rf`, `du`, `xcrun simctl delete unavailable`, etc. |
+| Logging | `~/Library/Logs/xcode-cleanup.log` + CSV | Consumed by [`scripts/report.py`](./scripts/report.py) for the sparkline chart |
+| Update check | Once-daily `curl` to GitHub Releases API (cached 24h) | Tells you when a new Dustpan is out |
+
+**Why this stack.** Native macOS feel. Zero dependencies. Runs without any server. Anyone with a Mac can `osascript xcode-cleanup.applescript` and it just works.
+
+### 🚀 Install surfaces
+
+| Surface | File | What it does |
+|---|---|---|
+| **`xcc` CLI** | [`bin/xcc`](./bin/xcc) | Wrapper installed to `~/.local/bin/` by `make install-cli` |
+| **Apple Shortcut** | `make install-shortcut` | Registers the AppleScript with Shortcuts.app — pin to menu bar, bind a hotkey |
+| **launchd** | [`launchd/com.example.xcode-cleanup.plist`](./launchd/) | Hourly auto-clean; threshold-gated so it's silent when disk is healthy |
+| **SwiftBar plugin** | [`swiftbar/Xcode_Cleanup.5m.sh`](./swiftbar/) | Menu-bar widget showing reclaimable GB; click for inline actions |
+| **Remote SSH runner** | [`scripts/remote-cleanup.sh`](./scripts/remote-cleanup.sh) | `curl \| bash` runner for cleaning a remote Mac without cloning |
+
+**Why this stack.** One source of cleanup logic, five different ergonomic entry points so every workflow has its preferred surface — GUI for the casual session, CLI for the build server, menu bar for the live indicator, Shortcut for the keyboard hotkey, SSH for the remote.
+
+### 🧰 Build & tooling
+
+| Layer | Tool | What it handles |
+|---|---|---|
+| Package manager | **pnpm 9** (workspace mode) | `apps/*` glob, single lockfile |
+| Monorepo orchestration | **Turbo 2** | `turbo run build / dev / typecheck / lint` — parallel + cached |
+| Type-check | **TypeScript 5.7** strict mode | `tsc --noEmit` runs in CI + on every build |
+| PostCSS | **Autoprefixer 10** + Tailwind 3.4 | Vendor prefixes + utility CSS |
+| Vite plugin | **`@vitejs/plugin-react` 4.3** | Fast Refresh + JSX transform |
+| CI | **GitHub Actions** ([`.github/workflows/check.yml`](./.github/workflows/check.yml)) | AppleScript syntax + Python import + TS strict — every push |
+| Auto-release | GitHub Actions on `main` merge | Squash-merges tag the release and publish; PR title becomes the release name |
+| Dev experience | `make ui-dev` → `pnpm turbo run dev` | Vite HMR (`:5174`) + Next dev (`:5175`) in parallel |
+
+**Why this stack.** Fast, type-safe, parallel builds. No Docker, no Node runtime needed in production (the React app builds to static HTML+JS that Python serves). Turbo's caching means a no-op `make ui` is instant.
+
+---
+
+> **When this section changes.** Update this section whenever a dependency is added/removed, or a major version of any tool changes (React 18 → 19, Vite 6 → 7, Tailwind 3 → 4, etc.). Treat it as a living document — the README is the prototype for every future app shipped from this org, and this section is the contract for what each one's tech stack inventory should look like.
+
+---
+
 ## 🧹 What Dustpan actually cleans
 
 Eleven categories. Each one has a tier (safe / opt-in / caution) so you know what's happening.
