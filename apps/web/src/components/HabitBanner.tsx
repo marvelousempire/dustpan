@@ -13,9 +13,10 @@ import { fmt } from "../lib/utils";
  *   2. At least one category has days_to_threshold <= 14
  */
 export function HabitBanner() {
-  const { habits, aiStatus, setActiveTab } = useDashboard();
-
-  if (!aiStatus?.docker_mode) return null;
+  // v0.20.5: SQLite records habits for all users — no Docker gate needed.
+  // The banner shows whenever the habit engine has computed urgent rows,
+  // regardless of whether Postgres or SQLite is the active store.
+  const { habits, setActiveTab } = useDashboard();
 
   const urgent = habits
     .filter((h) => h.days_to_threshold <= 14 && h.growth_gb_per_week > 0)

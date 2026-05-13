@@ -545,24 +545,30 @@ What you get: `app + db + caddy` services, **HTTPS out of the box** (one-time `c
 
 ## 🧹 What Dustpan actually cleans
 
-Eleven categories. Each one has a tier (safe / opt-in / caution) so you know what's happening.
+Thirteen categories. Each one has a tier (safe / opt-in / caution) so you know what's happening before anything is deleted.
+
+> **Need Full Disk Access?** macOS blocks size measurement for protected directories (Downloads, Safari, Notes, iCloud, device backups) without it. If sections show 0 GB, the app will tell you exactly what to grant and how.
 
 | Category | What it is (plain English) | What you'd get back |
 |---|---|---|
-| **Xcode** | Apple's app for making iPhone/Mac apps. When you build a project it makes a LOT of working files. They pile up over months. | **10–25 GB.** Your projects are fine — these working files just rebuild next time. |
-| **LLMs** | Desktop apps for AI — Claude, Cursor, ChatGPT. They save copies of conversations and download tool data. | 1–15 GB. Your conversations on the cloud are safe; only local copies get cleared. |
-| **Docker** | A program developers use to package apps. It builds up huge internal snapshots called "images" and a giant virtual disk file. | 5–60 GB. Same as cleaning Docker yourself, but with a safety check first. |
-| **Apps** | Random caches from apps you use daily — Slack, Discord, Zoom, Spotify, Teams. | 0.5–5 GB. They re-download what they need automatically. |
-| **Browsers** | Chrome, Safari, Firefox, Edge, Brave, Arc, Vivaldi. Each one saves copies of websites you visit so they reload faster. | 2–20 GB. The first time you visit each site again, it's 1–3 seconds slower. That's the whole cost. |
-| **Downloads** | Your `~/Downloads` folder. Dustpan helps you find old installers, leftover .dmg files, and big files you forgot about. You choose what to delete. | 0–50 GB depending on how messy your Downloads is. |
-| **Creative** | Adobe (Photoshop, Premiere), DaVinci Resolve, Final Cut Pro, Logic Pro, Blender, OBS. These create giant scratch files while you work. | 5–80 GB on a working creative Mac. Your projects are never touched — only the work-in-progress scratch files. |
-| **Temp files** | macOS itself makes temporary files in `/tmp` and `/var/folders`. They're supposed to clean up, but often don't. Plus your Trash. | 0.5–10 GB. They're literally meant to be temporary. |
-| **Archives** | Old `.zip`, `.dmg`, `.iso`, `.tar.gz` files lying around in Downloads, Desktop, Documents, and Movies. Dustpan finds them; you decide. | Highly variable. Could be 0 GB, could be 30 GB. |
-| **System** | macOS's own caches — icon thumbnails, Spotlight search index, Time Machine local copies, diagnostic reports. | 0.1–20 GB. macOS rebuilds them automatically as needed. |
+| 🔥 **Space Eaters** | The stuff nobody told you about — npm/pip/Cargo/Gradle/Go/Yarn package caches, Ruby gems, CocoaPods. These accumulate silently from everyday development work. | **2–30 GB.** Every cache is 100% auto-rebuilt the next time you run the tool. Nothing installed is removed. |
+| ☁️ **iCloud Drive** | Files synced from iCloud that are stored as local copies on your Mac. Notes with embedded photos (receipts, screenshots) can hit 10–30 GB alone. Dustpan uses `brctl evict` — files stay on iCloud and re-download when you open them. | 1–50 GB. Completely reversible. Files never leave iCloud. |
+| 🔨 **Xcode** | Apple's app for building iPhone/Mac apps. Every build creates working files that pile up for months. | **10–25 GB.** Your projects are fine — these files rebuild next time you compile. |
+| 🤖 **LLMs** | Desktop AI apps — Claude, Cursor, ChatGPT. They download tool data and save local conversation copies. | 1–15 GB. Your cloud conversations are safe; only local copies are cleared. |
+| 🌐 **Browsers** | Chrome, Safari, Firefox, Edge, Brave, Arc, Vivaldi. Plus `~/Library/WebKit` — the shared offline storage all of them use — which is almost never cleaned. | 2–20 GB. The first visit to each site after cleaning is 1–3 seconds slower. That's it. |
+| 💬 **Apps** | Telegram (5–20 GB in its group container), Slack, Discord, Zoom, Teams, Spotify, VS Code, Figma, WhatsApp, Signal. Their caches rebuild automatically. | 0.5–25 GB depending on what's installed. |
+| 🐳 **Docker** | Builds up internal snapshots ("images") and a giant virtual disk file (Docker.raw). | 5–60 GB. Same as running Docker cleanup yourself, with safety checks. |
+| 📥 **Downloads** | Your `~/Downloads` folder. Dustpan surfaces old installers, leftover .dmg files, and big files you forgot about. You decide what to remove. | 0–50 GB depending on how old your Downloads folder is. |
+| 🎨 **Creative** | Adobe (Photoshop, Premiere), DaVinci Resolve, Final Cut Pro, Logic Pro, Blender, OBS. Giant scratch files accumulate while you work. | 5–80 GB on an active creative Mac. Your projects are never touched — only the scratch files. |
+| 🧹 **Temp files** | macOS temp directories (`/tmp`, `/var/folders`). They're supposed to clean themselves; they often don't. Plus your Trash. | 0.5–10 GB. Literally meant to be temporary. |
+| 📦 **Archives** | Old `.zip`, `.dmg`, `.iso`, `.tar.gz` files in Downloads, Desktop, Documents. Dustpan finds them by file type; you decide. | Highly variable — 0 to 30+ GB depending on your habits. |
+| 💾 **System** | macOS's own caches — icon thumbnails, Spotlight parser, CloudKit, diagnostic reports, app logs. | 0.1–10 GB. macOS rebuilds them automatically. |
 
-**Things Dustpan will never auto-delete** (it shows them so you can decide):
+**Things Dustpan surfaces but never auto-deletes** (shows sizes so you can decide):
 
-Xcode Archives (your App Store crash data), iPhone backups, provisioning profiles, Docker.raw (the big virtual disk), unattached Docker volumes, Lightroom catalogs, DaVinci project databases, Final Cut library structure, Logic projects, OBS scenes.
+iOS/iPadOS device backups, Steam game installs, Docker.raw, iCloud Notes attachments, Lightroom catalogs, DaVinci project databases, Final Cut library structure, Logic projects, OBS scenes, app cookies and login data.
+
+> **Finder sidebar stays safe.** Dustpan explicitly excludes `~/Library/Application Support/com.apple.sharedfilelist` (your sidebar favorites) and `~/Library/Preferences/` (all app settings) from every clean tier.
 
 ---
 

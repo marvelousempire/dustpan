@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.20.5] — 2026-05-13 17:00:00 Eastern · *HabitBanner for all users, AI Settings copy fixed, SpaceBarChart real Done state, README updated*
+
+### Fixed (gap 1) — HabitBanner hidden behind Docker gate; SQLite users never saw it
+### Fixed (gap 2) — AI Settings said "Coming in v0.20.0"; habits shipped in v0.20.4 for everyone
+### Fixed (gap 3) — SpaceBarChart Done used setTimeout(3000); now tracks busy true→false via useEffect
+### Changed (gap F) — README category table: 13 categories, Space Eaters + iCloud Drive rows added, FDA callout, Finder sidebar safety note
+
+`0.20.4` → `0.20.5`
+
+---
+
 ## [0.20.4] — 2026-05-13 16:00:00 Eastern · *Space Eaters auto-populated, color-coded chart with delete buttons, SQLite default persistence, Finder sidebar bug fixed*
 
 ### Fixed — Finder sidebar cleared by "Clean System" (critical)

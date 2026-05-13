@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { useDashboard } from "../state/DashboardContext";
 import { TabIcon } from "./icons";
@@ -45,6 +45,20 @@ export function SpaceBarChart() {
   const { tabs, scans, status, cleanAllTier, setActiveTab, busy } = useDashboard();
   // Per-row clean state: "idle" | "cleaning" | "done"
   const [rowState, setRowState] = useState<Record<string, "idle" | "cleaning" | "done">>({});
+  // Track which tabId triggered the most recent clean so we can mark it "done"
+  // when busy transitions false→false (i.e. the stream finished).
+  const cleaningTabRef = useRef<string | null>(null);
+  const prevBusyRef    = useRef(busy);
+
+  // Watch busy: when it falls from true → false, mark the cleaning row "done".
+  useEffect(() => {
+    if (prevBusyRef.current && !busy && cleaningTabRef.current) {
+      const tabId = cleaningTabRef.current;
+      setRowState((prev) => ({ ...prev, [tabId]: "done" }));
+      cleaningTabRef.current = null;
+    }
+    prevBusyRef.current = busy;
+  }, [busy]);
 
   const freeGb = status?.free_gb ?? 1; // avoid /0
 
@@ -119,14 +133,11 @@ export function SpaceBarChart() {
     const catId = row.subcategories[0] ?? row.catId;
     if (!catId || row.safe < 0.001) return;
 
-    // setRowState to "cleaning", then "done" after clean callback
+    // Mark this row as "cleaning" and record which tab triggered it.
+    // The useEffect above watches busy→false and flips it to "done".
     setRowState((prev) => ({ ...prev, [row.tabId]: "cleaning" }));
+    cleaningTabRef.current = row.tabId;
     cleanAllTier(catId, "safe");
-    // "done" is set after the clean callback fires (approximated here via setTimeout)
-    // A proper done signal would require cleanAllTier to accept a callback.
-    setTimeout(() => {
-      setRowState((prev) => ({ ...prev, [row.tabId]: "done" }));
-    }, 3000);
   }
 
   return (

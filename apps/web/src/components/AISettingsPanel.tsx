@@ -354,15 +354,24 @@ export function AISettingsPanel() {
           )}
         </div>
 
-        {/* Upgrade callout — only shown when NOT in Docker mode */}
+        {/* Mode info — SQLite (default) vs Docker (opt-in) */}
         {!dockerMode && (
-          <div className="mt-4 rounded-md border border-accent/20 bg-[hsl(var(--accent)/0.05)] px-4 py-3">
+          <div className="mt-4 rounded-md border border-border/15 bg-[hsl(var(--bg-3)/0.5)] px-4 py-3">
             <div className="text-[12px] leading-[1.6] text-fg-dim">
-              <strong className="font-semibold text-fg">Enable Docker mode for full features:</strong>{" "}
-              encrypted key vault (keys never reach the browser), usage history, habit tracking
-              with growth-slope analysis, AI summaries, and self-hosted Ollama. Run{" "}
-              <code className="rounded bg-[hsl(var(--bg-3)/0.8)] px-1 font-mono text-[11px]">./docker/go</code>{" "}
-              to start the stack.
+              <strong className="font-semibold text-fg">✓ Habit tracking + run history are already active</strong>{" "}
+              — recorded automatically to{" "}
+              <code className="rounded bg-[hsl(var(--bg-3)/0.8)] px-1 font-mono text-[10px]">
+                ~/Library/Application Support/dustpan/history.db
+              </code>{" "}
+              (SQLite, no setup needed).{" "}
+              <span className="mt-1 block">
+                <strong className="font-semibold text-fg">Docker mode</strong>{" "}
+                adds an{" "}
+                <strong className="font-semibold text-fg">encrypted server-side API key vault</strong>{" "}
+                (keys never reach the browser) and self-hosted Ollama. Run{" "}
+                <code className="rounded bg-[hsl(var(--bg-3)/0.8)] px-1 font-mono text-[10px]">./docker/go</code>{" "}
+                to enable it.
+              </span>
             </div>
           </div>
         )}
@@ -443,27 +452,51 @@ export function AISettingsPanel() {
         </div>
       </section>
 
-      {/* How AI will be used */}
+      {/* How AI is used — active vs planned */}
       <section className="glass rounded-lg border border-border/20 p-5 shadow-sm">
         <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-faint">
-          How AI will be used
+          What's live vs what needs a key
         </div>
         <ul className="flex flex-col gap-2 text-[13px] text-fg-dim">
           <li className="flex gap-2.5">
-            <span className="mt-0.5 flex-shrink-0 text-accent">→</span>
-            <span><strong className="font-semibold text-fg">Post-scan summaries.</strong> After every scan, get a plain-English 2-sentence summary of what was found and whether to clean.</span>
+            <span className="mt-0.5 flex-shrink-0 text-safe text-[10px] font-bold">✓</span>
+            <span>
+              <strong className="font-semibold text-fg">Habit tracking is already running.</strong>{" "}
+              Every scan writes a snapshot to your local SQLite DB. After a few weeks of use, Dustpan
+              computes how fast each category grows and warns you before it gets out of hand — no AI
+              key needed.
+            </span>
+          </li>
+          <li className="flex gap-2.5">
+            <span className="mt-0.5 flex-shrink-0 text-safe text-[10px] font-bold">✓</span>
+            <span>
+              <strong className="font-semibold text-fg">Run history is already recorded.</strong>{" "}
+              Every clean is stored locally. The habit engine uses this to learn your cleanup patterns.
+            </span>
           </li>
           <li className="flex gap-2.5">
             <span className="mt-0.5 flex-shrink-0 text-accent">→</span>
-            <span><strong className="font-semibold text-fg">Habit-based recommendations.</strong> Dustpan tracks how fast each category fills up. When a category is growing faster than usual, AI explains why and what to do.</span>
+            <span>
+              <strong className="font-semibold text-fg">Post-scan AI summaries</strong>{" "}
+              need a key above. After every scan, Dustpan calls your chosen provider with an
+              anonymized disk summary and returns a plain-English recommendation.
+            </span>
           </li>
           <li className="flex gap-2.5">
             <span className="mt-0.5 flex-shrink-0 text-accent">→</span>
-            <span><strong className="font-semibold text-fg">Smart manager proposals.</strong> When Dustpan detects a consistent pattern (e.g. Xcode fills 4 GB/week every time you build), it can draft a recurring clean schedule — or even an automated agent — tailored to your actual habits.</span>
+            <span>
+              <strong className="font-semibold text-fg">Smart habit recommendations</strong>{" "}
+              layer AI onto the growth-slope data already being collected. When Xcode fills 4 GB/week,
+              the AI explains why and proposes a clean schedule.
+            </span>
           </li>
           <li className="flex gap-2.5">
-            <span className="mt-0.5 flex-shrink-0 text-accent">→</span>
-            <span><strong className="font-semibold text-fg">Your data stays yours.</strong> Dustpan sends only anonymized disk summaries to the AI (category name, GB, trend). No file paths, no content, no personal data. Ollama sends nothing — it runs on your machine.</span>
+            <span className="mt-0.5 flex-shrink-0 text-fg-faint">🔒</span>
+            <span>
+              <strong className="font-semibold text-fg">Your data stays yours.</strong>{" "}
+              Only anonymized category totals (name, GB, trend) are sent to the AI. No file paths,
+              no filenames, no personal data. Ollama sends nothing — it runs on your machine.
+            </span>
           </li>
         </ul>
       </section>
