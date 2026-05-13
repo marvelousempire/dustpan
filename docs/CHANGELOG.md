@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.20.1] — 2026-05-13 14:00:00 Eastern · *Plan 0007 — Space Eaters: fix stale browser paths, add Telegram/WhatsApp/Signal/iCloud Drive/iOS backups/dev caches*
+
+### Fixed — Browsers showing 0 GB
+
+Safari moved its cache to a container directory in macOS Ventura+. The old `~/Library/Caches/com.apple.Safari` path is now empty on most Macs. Both paths are now measured so older and newer macOS versions both surface real data.
+
+Also added `~/Library/WebKit` — the **shared offline storage** used by Safari and every WebKit/Electron app (IndexedDB, localStorage, Service Worker caches). This was completely missing. It's commonly 1–3 GB and almost never cleaned.
+
+Chrome now measures both the `Caches/Google/Chrome` directory and the `Application Support` profile caches (Code Cache, GPU cache, Service Worker CacheStorage) which are where the actual disk usage lives on modern macOS.
+
+### Changed — Apps category (complete rewrite)
+
+Focused on non-browser apps. Added:
+- **Telegram** — `Group Containers/6N38VWS5BX.ru.keepcoder.Telegram` (media cache, 5–20 GB) + Telegram Desktop
+- **Slack** — now measures all three layers: `Cache/`, `Code Cache/`, `Service Worker/`, `GPUCache/` (was only Service Worker)
+- **Discord** — now measures `Cache/`, `Code Cache/`, `blob_storage/`, plus the capital-D `Discord/` variant
+- **Spotify** — added `PersistentCache/` and `Storage/` (was only the Caches dir)
+- **Teams** — added `Code Cache/` and `GPUCache/`
+- **VS Code + Cursor** — `Cache/`, `CachedData/`, `GPUCache/`, `workspaceStorage/`, `CachedExtensionVSIXs/`
+- **Figma** — full Application Support cache (document previews, offline fonts, 2–5 GB)
+- **WhatsApp** and **Signal** (opt-in tier — received media re-downloadable from chat)
+
+### Added — 🔥 Space Eaters tab
+
+New category surfacing the biggest space hoarders that nobody told you about:
+
+- **iOS/iPadOS device backups** (`~/Library/Application Support/MobileSync/Backup`) — one backup per device, 5–50 GB each. Show-only action with sorted size list.
+- **Developer caches** (probably-safe tier): npm (~/.npm), pip, Cargo registry+git, Gradle, Maven, Go module cache, Yarn, pnpm store, Ruby gems, CocoaPods
+- **Steam game data** — informational size display
+- Actions: show iOS backup sizes, show dev cache sizes, clear npm/pip/cargo/gradle individually, show top-25 biggest files in ~/Documents + ~/Desktop
+
+### Added — ☁️ iCloud Drive tab
+
+New category with a key safety insight: `brctl evict` removes the **local copy** of a file but leaves it on iCloud intact. The file re-downloads automatically when opened. This is exactly what macOS "Optimize Mac Storage" does.
+
+- Measures `~/Library/Mobile Documents` (total local iCloud Drive cache)
+- Measures `~/Library/CloudStorage` (Monterey+ format)
+- Actions:
+  - **Show iCloud Drive space by app** — `du -sh` per app container, sorted; plus stub vs local-copy count
+  - **Evict iCloud Drive local copies** — runs `brctl evict` on every locally-present file; files become `*.icloud` stubs and re-download on demand
+  - **List iCloud stub files** — shows what's already on iCloud-only
+
+### Changed — Tab order
+
+`Space Eaters` and `iCloud Drive` now appear at the top of the sidebar (below Overview) so the highest-value discoveries are immediately visible.
+
+### kVersion
+`0.20.0` → `0.20.1`
+
+---
+
 ## [0.20.0] — 2026-05-13 13:30:00 Eastern · *Plan 0006 ships — Docker stack + AI engine + habit learning*
 
 ### Added — Docker stack (`docker/`)

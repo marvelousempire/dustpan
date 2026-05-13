@@ -30,21 +30,26 @@ import {
   KeyRound,
   Cpu,
   Sparkles,
+  Flame,
+  Cloud,
+  HardDriveDownload,
 } from "lucide-react";
 
 // Tab-icon map keyed by tab id. Mirrors TAB_ICONS in the legacy vanilla UI.
 export const TAB_ICONS: Record<string, React.ElementType> = {
-  overview: LayoutGrid,
-  xcode: Hammer,
-  llms: Bot,
-  docker: Container,
-  apps: AppWindow,
-  browsers: Globe,
-  downloads: Download,
-  creative: Palette,
-  temp: Trash,
-  archives: Archive,
-  system: HardDrive,
+  overview:       LayoutGrid,
+  "space-eaters": Flame,
+  icloud:         Cloud,
+  xcode:          Hammer,
+  llms:           Bot,
+  docker:         Container,
+  apps:           AppWindow,
+  browsers:       Globe,
+  downloads:      Download,
+  creative:       Palette,
+  temp:           Trash,
+  archives:       Archive,
+  system:         HardDrive,
 };
 
 export function TabIcon({ tabId, className }: { tabId: string; className?: string }) {
@@ -73,4 +78,7 @@ export {
   KeyRound,
   Cpu,
   Sparkles,
+  Flame,
+  Cloud,
+  HardDriveDownload,
 };

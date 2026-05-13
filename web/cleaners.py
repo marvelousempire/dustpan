@@ -658,76 +658,147 @@ CATEGORIES = {
         },
     },
 
-    # ─── Apps (browsers, communicators, downloads) ────────────────────
+    # ─── Apps (chat, productivity, dev tools) ────────────────────────
+    # Focused on non-browser apps that accumulate large caches silently.
+    # Browser caches live in the dedicated `browsers` category.
     "apps": {
         "label": "Apps",
-        "icon":  "🧹",
-        "tagline": "Browser caches, chat-app caches, old installers.",
+        "icon":  "💬",
+        "tagline": "Telegram · Slack · Discord · VS Code · Figma · WhatsApp — app caches that quietly eat GB.",
         "groups": {
             "safe": [
-                ("Chrome cache",                          "~/Library/Caches/Google/Chrome"),
-                ("Safari cache",                          "~/Library/Caches/com.apple.Safari"),
-                ("Firefox cache",                         "~/Library/Caches/Firefox"),
-                ("Brave cache",                           "~/Library/Caches/BraveSoftware"),
-                ("Arc cache",                             "~/Library/Caches/Arc"),
-                ("Slack service-worker cache",            "~/Library/Application Support/Slack/Service Worker"),
-                ("Discord cache",                         "~/Library/Application Support/discord/Cache"),
-                ("Spotify cache",                         "~/Library/Caches/com.spotify.client"),
-                ("Zoom cache",                            "~/Library/Caches/us.zoom.xos"),
-                ("Microsoft Teams cache",                 "~/Library/Caches/com.microsoft.teams"),
-                ("Homebrew downloads",                    "~/Library/Caches/Homebrew/downloads"),
+                # ── Messaging / Communication ──────────────────────────────
+                # Telegram stores all received media in a Group Container that
+                # can reach 5–20 GB. The cache rebuilds as you re-view content.
+                ("Telegram media cache (Group Container)",  "~/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram/stable/postbox/media"),
+                ("Telegram Desktop cache",                  "~/Library/Application Support/Telegram Desktop/tdata/user_data/cache"),
+                ("Telegram Desktop temp",                   "~/Library/Application Support/Telegram Desktop/tdata/user_data/temp"),
+
+                # Slack has three separate cache layers; Cache/ is usually largest.
+                ("Slack Cache",                             "~/Library/Application Support/Slack/Cache"),
+                ("Slack Code Cache",                        "~/Library/Application Support/Slack/Code Cache"),
+                ("Slack Service Worker",                    "~/Library/Application Support/Slack/Service Worker"),
+                ("Slack GPU cache",                         "~/Library/Application Support/Slack/GPUCache"),
+
+                # Discord — lowercase and capital-D variants exist on different setups.
+                ("Discord cache",                           "~/Library/Application Support/discord/Cache"),
+                ("Discord Code Cache",                      "~/Library/Application Support/discord/Code Cache"),
+                ("Discord blob storage",                    "~/Library/Application Support/discord/blob_storage"),
+                ("Discord (capital-D) cache",               "~/Library/Application Support/Discord/Cache"),
+
+                # Zoom
+                ("Zoom cache",                              "~/Library/Caches/us.zoom.xos"),
+                ("Zoom app cache",                          "~/Library/Application Support/zoom.us/cache"),
+
+                # Microsoft Teams
+                ("Microsoft Teams cache",                   "~/Library/Application Support/Microsoft/Teams/Cache"),
+                ("Microsoft Teams Code Cache",              "~/Library/Application Support/Microsoft/Teams/Code Cache"),
+                ("Microsoft Teams GPU cache",               "~/Library/Application Support/Microsoft/Teams/GPUCache"),
+
+                # ── Music / Media ─────────────────────────────────────────
+                # Spotify caches buffered + downloaded tracks (3–10 GB is common).
+                ("Spotify cache",                           "~/Library/Caches/com.spotify.client"),
+                ("Spotify persistent cache",                "~/Library/Application Support/Spotify/PersistentCache"),
+                ("Spotify storage",                         "~/Library/Application Support/Spotify/Storage"),
+
+                # ── Developer tools ───────────────────────────────────────
+                # VS Code keeps a large compiled-TypeScript cache per install.
+                ("VS Code cache",                           "~/Library/Application Support/Code/Cache"),
+                ("VS Code CachedData (compiled TS)",        "~/Library/Application Support/Code/CachedData"),
+                ("VS Code GPU cache",                       "~/Library/Application Support/Code/GPUCache"),
+                ("Cursor cache",                            "~/Library/Application Support/Cursor/Cache"),
+                ("Cursor CachedData",                       "~/Library/Application Support/Cursor/CachedData"),
+
+                # Figma desktop caches document previews, fonts, and asset tiles
+                # — can easily reach 2–5 GB on an active design machine.
+                ("Figma cache",                             "~/Library/Application Support/Figma"),
+
+                # ── Homebrew ──────────────────────────────────────────────
+                ("Homebrew downloads cache",                "~/Library/Caches/Homebrew/downloads"),
             ],
             "probably_safe": [
-                ("~/Downloads/*.dmg installer images",    "~/Downloads"),
-                ("Trash",                                 "~/.Trash"),
-                ("All ~/Library/Caches/*",                "~/Library/Caches"),
+                # VS Code workspace storage holds per-project state. Clearing
+                # loses workspace-level settings but not your code or extensions.
+                ("VS Code workspace storage",               "~/Library/Application Support/Code/User/workspaceStorage"),
+                ("VS Code cached extension VSIXs",          "~/Library/Application Support/Code/CachedExtensionVSIXs"),
+
+                # WhatsApp / Signal store received media. Re-downloadable from chat
+                # history, but clears local copies of photos/videos.
+                ("WhatsApp media",                          "~/Library/Application Support/WhatsApp"),
+                ("Signal attachments",                      "~/Library/Application Support/Signal/attachments.noindex"),
             ],
             "caution": [
-                ("Mail downloads",                        "~/Library/Containers/com.apple.mail/Data/Library/Mail Downloads"),
+                ("Mail downloads (user data)",  "~/Library/Containers/com.apple.mail/Data/Library/Mail Downloads"),
             ],
         },
         "actions": {
-            "clear-browser-caches": {
-                "label": "Clear browser caches",
-                "desc":  "Clears Chrome, Safari, Firefox, Brave, Arc caches.",
-                "cost":  "Each browser reloads pages from origin on next visit (slightly slower first-load per site). Bookmarks, history, passwords, cookies are NOT affected.",
-                "shell": "rm -rf ~/Library/Caches/Google/Chrome/*/Cache/* "
-                         "~/Library/Caches/Google/Chrome/*/Code\\ Cache/* "
-                         "~/Library/Caches/com.apple.Safari/* "
-                         "~/Library/Caches/Firefox/* "
-                         "~/Library/Caches/BraveSoftware/*/Cache/* "
-                         "~/Library/Caches/Arc/* 2>/dev/null; true",
-            },
             "clear-chat-caches": {
-                "label": "Clear chat-app caches",
-                "desc":  "Clears Slack, Discord, Zoom, Teams caches.",
-                "cost":  "Slack/Discord re-download recent message media on next launch. You stay signed in. No conversation history lost.",
-                "shell": "rm -rf ~/Library/Application\\ Support/Slack/Service\\ Worker/* "
-                         "~/Library/Application\\ Support/discord/Cache/* "
-                         "~/Library/Caches/com.spotify.client/* "
-                         "~/Library/Caches/us.zoom.xos/* "
-                         "~/Library/Caches/com.microsoft.teams/* 2>/dev/null; true",
+                "label": "Clear Telegram + Slack + Discord + Zoom + Teams caches",
+                "desc":  "Wipes safe-tier cache dirs for every major chat app in one shot.",
+                "cost":  "Each app re-downloads avatars, emoji packs, and recently viewed media on next launch. You stay signed in everywhere. No message history is lost.",
+                "shell": (
+                    "rm -rf "
+                    "'~/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram/stable/postbox/media' "
+                    "'~/Library/Application Support/Telegram Desktop/tdata/user_data/cache' "
+                    "'~/Library/Application Support/Telegram Desktop/tdata/user_data/temp' "
+                    "'~/Library/Application Support/Slack/Cache' "
+                    "'~/Library/Application Support/Slack/Code Cache' "
+                    "'~/Library/Application Support/Slack/Service Worker' "
+                    "'~/Library/Application Support/Slack/GPUCache' "
+                    "'~/Library/Application Support/discord/Cache' "
+                    "'~/Library/Application Support/discord/Code Cache' "
+                    "'~/Library/Application Support/discord/blob_storage' "
+                    "'~/Library/Application Support/Discord/Cache' "
+                    "'~/Library/Caches/us.zoom.xos' "
+                    "'~/Library/Application Support/Microsoft/Teams/Cache' "
+                    "'~/Library/Application Support/Microsoft/Teams/Code Cache' "
+                    "2>/dev/null; echo \'\u2713 Chat app caches cleared.\'"
+                ),
             },
-            "clear-old-installers": {
-                "label": "Clear *.dmg installers in ~/Downloads",
-                "desc":  "Removes ~/Downloads/*.dmg and *.pkg files (often 100MB–5GB each).",
-                "cost":  "You'll need to re-download installers from the apps' websites if you want to reinstall. Apps already installed stay installed.",
-                "shell": "rm -f ~/Downloads/*.dmg ~/Downloads/*.pkg 2>/dev/null; true",
+            "clear-spotify-cache": {
+                "label": "Clear Spotify cache (3–10 GB)",
+                "desc":  "Removes Spotify\'s download + storage cache.",
+                "cost":  "Spotify re-buffers songs as you play. Downloaded offline tracks need to be re-downloaded.",
+                "shell": "rm -rf ~/Library/Caches/com.spotify.client/* "
+                         "~/Library/Application\ Support/Spotify/PersistentCache/* "
+                         "~/Library/Application\ Support/Spotify/Storage/* "
+                         "2>/dev/null; echo \'\u2713 Spotify cache cleared.\'",
             },
-            "empty-trash": {
-                "label": "Empty Trash",
-                "desc":  "Permanently removes everything in ~/.Trash.",
-                "cost":  "Files in Trash are gone forever. Anything outside Trash is untouched.",
-                "shell": "rm -rf ~/.Trash/* ~/.Trash/.[!.]* 2>/dev/null; true",
+            "clear-vscode-cache": {
+                "label": "Clear VS Code / Cursor cache",
+                "desc":  "Removes compiled-TypeScript and GPU caches for VS Code and Cursor.",
+                "cost":  "VS Code/Cursor re-compiles on first launch (~5s). Extensions, settings, keybindings untouched.",
+                "shell": "rm -rf "
+                         "'~/Library/Application Support/Code/Cache' "
+                         "'~/Library/Application Support/Code/CachedData' "
+                         "'~/Library/Application Support/Code/GPUCache' "
+                         "'~/Library/Application Support/Cursor/Cache' "
+                         "'~/Library/Application Support/Cursor/CachedData' "
+                         "2>/dev/null; echo \'\u2713 VS Code/Cursor cache cleared.\'",
             },
             "clear-homebrew": {
-                "label": "Clear Homebrew downloads",
-                "desc":  "Runs `brew cleanup -s` — removes old formula downloads + clears cache.",
-                "cost":  "Re-downloads needed on next `brew install` of a formula whose download was pruned (usually fast). Installed brews stay installed.",
-                "shell": "command -v brew >/dev/null && brew cleanup -s 2>&1 || echo 'Homebrew not installed — skipping'",
+                "label": "Clear Homebrew download cache",
+                "desc":  "Runs `brew cleanup -s` — removes cached formula + cask archives.",
+                "cost":  "Re-downloads on next `brew install` of a pruned formula (fast). Installed brews stay installed.",
+                "shell": "command -v brew >/dev/null && brew cleanup -s 2>&1 || echo \'Homebrew not installed — skipping\'",
+            },
+            "show-telegram-size": {
+                "label": "Show Telegram full footprint (informational)",
+                "desc":  "du -sh on Telegram\'s Group Container and Desktop data directory.",
+                "cost":  "Read-only.",
+                "shell": (
+                    "echo \'=== Telegram (iOS-based) ===\'; "
+                    "du -sh \'~/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram/\' 2>/dev/null "
+                    "|| echo \'  (not installed)\'; "
+                    "echo \'=== Telegram Desktop ===\'; "
+                    "du -sh \'~/Library/Application Support/Telegram Desktop/\' 2>/dev/null "
+                    "|| echo \'  (not installed)\'"
+                ),
+                "informational": True,
             },
         },
     },
+
 
     # ─── System (macOS-level junk) ─────────────────────────────────────
     "system": {
@@ -805,90 +876,149 @@ CATEGORIES = {
     },
 
     # ─── Browsers ─────────────────────────────────────────────────────
-    # Combined cache/history reclaim across the macOS browsers the user is most
-    # likely to have on a working machine. Caches are safe (browser re-fetches).
-    # Cookies + history live in caution-tier because removing them logs you out
-    # of sites and loses session state.
+    # Cache reclaim for every browser you're likely to have installed.
+    #
+    # WHY BROWSERS SOMETIMES SHOW ZERO:
+    # Safari moved its cache to a container directory in macOS Ventura+.
+    # The old ~/Library/Caches/com.apple.Safari path is now empty on most
+    # Macs. We measure both paths so older and newer macOS installations
+    # both surface real data. Same issue for Chrome — the actual disk cache
+    # lives inside Application Support, not just Caches.
+    #
+    # ~/Library/WebKit is a SEPARATE high-value target: it holds IndexedDB,
+    # localStorage, offline databases, and Service Worker caches for EVERY
+    # WebKit-based app (not just Safari). Often 1–3 GB on an active machine.
     "browsers": {
         "label": "Browsers",
         "icon":  "🌐",
-        "tagline": "Reclaim 2–20 GB across Chrome / Safari / Firefox / Edge / Brave / Arc.",
+        "tagline": "Reclaim 2–30 GB across Chrome / Safari / Firefox / Edge / Brave / Arc. Check WebKit too.",
         "groups": {
             "safe": [
-                ("Chrome cache",                "~/Library/Caches/Google/Chrome"),
-                ("Chrome Code Cache",           "~/Library/Application Support/Google/Chrome/Default/Code Cache"),
-                ("Chrome GPU cache",            "~/Library/Application Support/Google/Chrome/Default/GPUCache"),
-                ("Chrome service-worker cache", "~/Library/Application Support/Google/Chrome/Default/Service Worker/CacheStorage"),
-                ("Safari cache",                "~/Library/Caches/com.apple.Safari"),
-                ("Safari WebKit cache",         "~/Library/Caches/com.apple.WebKit.WebContent"),
-                ("Firefox cache",               "~/Library/Caches/Firefox"),
-                ("Firefox profile caches",      "~/Library/Application Support/Firefox/Profiles"),
-                ("Edge cache",                  "~/Library/Caches/Microsoft Edge"),
-                ("Edge Code Cache",             "~/Library/Application Support/Microsoft Edge/Default/Code Cache"),
-                ("Brave cache",                 "~/Library/Caches/BraveSoftware/Brave-Browser"),
-                ("Brave service-worker cache",  "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Service Worker/CacheStorage"),
-                ("Arc cache",                   "~/Library/Caches/Company Browser, Inc."),
-                ("Arc service-worker cache",    "~/Library/Application Support/Arc/User Data/Default/Service Worker/CacheStorage"),
-                ("Vivaldi cache",               "~/Library/Caches/Vivaldi"),
+                # ── Chrome ────────────────────────────────────────────────
+                # Chrome keeps its disk cache inside Application Support on
+                # modern macOS. The Caches/Google/Chrome entry may be empty.
+                ("Chrome cache (Caches dir)",           "~/Library/Caches/Google/Chrome"),
+                ("Chrome Default profile cache",        "~/Library/Application Support/Google/Chrome/Default/Cache"),
+                ("Chrome Code Cache",                   "~/Library/Application Support/Google/Chrome/Default/Code Cache"),
+                ("Chrome GPU cache",                    "~/Library/Application Support/Google/Chrome/Default/GPUCache"),
+                ("Chrome Service Worker cache",         "~/Library/Application Support/Google/Chrome/Default/Service Worker/CacheStorage"),
+
+                # ── Safari ────────────────────────────────────────────────
+                # macOS Ventura+ moves Safari into a container. Measure BOTH
+                # so older and newer macOS versions both report non-zero.
+                ("Safari cache (legacy path)",          "~/Library/Caches/com.apple.Safari"),
+                ("Safari cache (Ventura+ container)",   "~/Library/Containers/com.apple.Safari/Data/Library/Caches"),
+                ("Safari WebKit storage",               "~/Library/Containers/com.apple.Safari/Data/Library/WebKit"),
+
+                # WebKit offline storage — shared across ALL WebKit-based apps.
+                # This single directory is often 1–3 GB and almost never cleaned.
+                ("WebKit offline storage + IndexedDB",  "~/Library/WebKit"),
+                ("WebKit Caches",                       "~/Library/Caches/com.apple.WebKit.WebContent"),
+                ("WebKit networking cache",             "~/Library/Caches/com.apple.WebKit.Networking"),
+
+                # ── Firefox ───────────────────────────────────────────────
+                ("Firefox cache (Caches dir)",          "~/Library/Caches/Firefox"),
+                ("Firefox profile caches (cache2)",     "~/Library/Application Support/Firefox/Profiles"),
+
+                # ── Edge ──────────────────────────────────────────────────
+                ("Edge cache (Caches dir)",             "~/Library/Caches/Microsoft Edge"),
+                ("Edge Default profile cache",          "~/Library/Application Support/Microsoft Edge/Default/Cache"),
+                ("Edge Code Cache",                     "~/Library/Application Support/Microsoft Edge/Default/Code Cache"),
+
+                # ── Brave ─────────────────────────────────────────────────
+                ("Brave cache (Caches dir)",            "~/Library/Caches/BraveSoftware/Brave-Browser"),
+                ("Brave Default profile cache",         "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cache"),
+                ("Brave Service Worker cache",          "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Service Worker/CacheStorage"),
+
+                # ── Arc ───────────────────────────────────────────────────
+                ("Arc cache (Caches dir)",              "~/Library/Caches/Company Browser, Inc."),
+                ("Arc Service Worker cache",            "~/Library/Application Support/Arc/User Data/Default/Service Worker/CacheStorage"),
+
+                # ── Others ────────────────────────────────────────────────
+                ("Vivaldi cache",                       "~/Library/Caches/Vivaldi"),
+                ("Opera cache",                         "~/Library/Caches/com.operasoftware.Opera"),
             ],
             "probably_safe": [
-                ("Chrome history (sites + autocomplete)",      "~/Library/Application Support/Google/Chrome/Default/History"),
-                ("Chrome download history",                    "~/Library/Application Support/Google/Chrome/Default/Network/Network Persistent State"),
+                ("Chrome browsing history",             "~/Library/Application Support/Google/Chrome/Default/History"),
+                ("Edge browsing history",               "~/Library/Application Support/Microsoft Edge/Default/History"),
+                ("Brave browsing history",              "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/History"),
+                ("Arc browsing history",                "~/Library/Application Support/Arc/User Data/Default/History"),
                 ("Safari downloads.plist (history only — not the files)", "~/Library/Safari/Downloads.plist"),
-                ("Firefox cache2",                              "~/Library/Application Support/Firefox/Profiles"),
-                ("Edge history",                                "~/Library/Application Support/Microsoft Edge/Default/History"),
-                ("Brave history",                               "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/History"),
-                ("Arc history",                                 "~/Library/Application Support/Arc/User Data/Default/History"),
             ],
             "caution": [
-                ("Chrome cookies (logs you out)",        "~/Library/Application Support/Google/Chrome/Default/Cookies"),
-                ("Chrome login data (saved passwords)",  "~/Library/Application Support/Google/Chrome/Default/Login Data"),
-                ("Safari cookies",                       "~/Library/Cookies"),
-                ("Safari local storage",                 "~/Library/Safari/LocalStorage"),
-                ("Firefox cookies + login data",         "~/Library/Application Support/Firefox/Profiles"),
-                ("Edge cookies",                         "~/Library/Application Support/Microsoft Edge/Default/Cookies"),
-                ("Brave cookies",                        "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cookies"),
-                ("Arc cookies",                          "~/Library/Application Support/Arc/User Data/Default/Cookies"),
+                ("Chrome cookies (logs you out of all sites)",  "~/Library/Application Support/Google/Chrome/Default/Cookies"),
+                ("Chrome saved passwords",                      "~/Library/Application Support/Google/Chrome/Default/Login Data"),
+                ("Safari cookies",                              "~/Library/Cookies"),
+                ("Safari local storage",                        "~/Library/Safari/LocalStorage"),
+                ("Firefox cookies + login data",                "~/Library/Application Support/Firefox/Profiles"),
+                ("Edge cookies",                                "~/Library/Application Support/Microsoft Edge/Default/Cookies"),
+                ("Brave cookies",                               "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cookies"),
+                ("Arc cookies",                                 "~/Library/Application Support/Arc/User Data/Default/Cookies"),
             ],
         },
         "actions": {
             "clean-all-browser-caches": {
-                "label": "Clean every browser's cache",
-                "desc":  "rm -rf the safe-tier cache folders across all installed browsers in one shot.",
-                "cost":  "First page-load on each site re-fetches assets (~1–3s extra per site). No logins lost, no history lost — only image/JS/CSS caches.",
-                "shell": "rm -rf "
-                         "~/Library/Caches/Google/Chrome/* "
-                         "~/Library/Application\\ Support/Google/Chrome/Default/Code\\ Cache/* "
-                         "~/Library/Application\\ Support/Google/Chrome/Default/GPUCache/* "
-                         "~/Library/Application\\ Support/Google/Chrome/Default/Service\\ Worker/CacheStorage/* "
-                         "~/Library/Caches/com.apple.Safari/* "
+                "label": "Clean every browser\'s cache + WebKit offline storage",
+                "desc":  "Wipes safe-tier cache folders for all installed browsers, plus ~/Library/WebKit (shared offline storage).",
+                "cost":  "First page-load on each site re-fetches assets (1–3s extra per site). No logins, bookmarks, history, passwords affected — only caches and offline storage.",
+                "shell": (
+                    "rm -rf "
+                    "'~/Library/Caches/Google/Chrome' "
+                    "'~/Library/Application Support/Google/Chrome/Default/Cache' "
+                    "'~/Library/Application Support/Google/Chrome/Default/Code Cache' "
+                    "'~/Library/Application Support/Google/Chrome/Default/GPUCache' "
+                    "'~/Library/Application Support/Google/Chrome/Default/Service Worker/CacheStorage' "
+                    "'~/Library/Caches/com.apple.Safari' "
+                    "'~/Library/Containers/com.apple.Safari/Data/Library/Caches' "
+                    "'~/Library/Containers/com.apple.Safari/Data/Library/WebKit' "
+                    "'~/Library/WebKit' "
+                    "'~/Library/Caches/com.apple.WebKit.WebContent' "
+                    "'~/Library/Caches/com.apple.WebKit.Networking' "
+                    "'~/Library/Caches/Firefox' "
+                    "'~/Library/Caches/Microsoft Edge' "
+                    "'~/Library/Application Support/Microsoft Edge/Default/Cache' "
+                    "'~/Library/Application Support/Microsoft Edge/Default/Code Cache' "
+                    "'~/Library/Caches/BraveSoftware/Brave-Browser' "
+                    "'~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cache' "
+                    "'~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Service Worker/CacheStorage' "
+                    "'~/Library/Caches/Company Browser, Inc.' "
+                    "'~/Library/Application Support/Arc/User Data/Default/Service Worker/CacheStorage' "
+                    "'~/Library/Caches/Vivaldi' "
+                    "'~/Library/Caches/com.operasoftware.Opera' "
+                    "2>/dev/null; echo \'\u2713 All browser caches + WebKit storage cleared.\'"
+                ),
+            },
+            "clean-webkit-only": {
+                "label": "Clear WebKit offline storage only",
+                "desc":  "Targets ~/Library/WebKit — the shared offline storage used by Safari and every Electron/WebKit app. Often 1–3 GB, almost never cleaned.",
+                "cost":  "Web apps using IndexedDB or offline-storage (Gmail Offline, Notion, etc.) lose cached data and re-download it on next open.",
+                "shell": "rm -rf ~/Library/WebKit/* "
                          "~/Library/Caches/com.apple.WebKit.WebContent/* "
-                         "~/Library/Caches/Firefox/* "
-                         "~/Library/Caches/Microsoft\\ Edge/* "
-                         "~/Library/Application\\ Support/Microsoft\\ Edge/Default/Code\\ Cache/* "
-                         "~/Library/Caches/BraveSoftware/Brave-Browser/* "
-                         "~/Library/Application\\ Support/BraveSoftware/Brave-Browser/Default/Service\\ Worker/CacheStorage/* "
-                         "~/Library/Caches/Company\\ Browser,\\ Inc./* "
-                         "~/Library/Application\\ Support/Arc/User\\ Data/Default/Service\\ Worker/CacheStorage/* "
-                         "~/Library/Caches/Vivaldi/* 2>/dev/null; true",
+                         "~/Library/Caches/com.apple.WebKit.Networking/* "
+                         "2>/dev/null; echo \'\u2713 WebKit offline storage cleared.\'",
             },
             "list-browser-sizes": {
-                "label": "Show per-browser disk usage",
-                "desc":  "Informational. Runs `du -sh` on each browser's profile root so you can see who's hoarding the most.",
+                "label": "Show per-browser disk usage (informational)",
+                "desc":  "Runs du -sh on each browser\'s profile root so you can see who\'s using the most space.",
                 "cost":  "Read-only — no files touched.",
-                "shell": "for p in "
-                         "~/Library/Application\\ Support/Google/Chrome "
-                         "~/Library/Application\\ Support/Firefox "
-                         "~/Library/Safari "
-                         "~/Library/Application\\ Support/Microsoft\\ Edge "
-                         "~/Library/Application\\ Support/BraveSoftware/Brave-Browser "
-                         "~/Library/Application\\ Support/Arc; do "
-                         "  if [ -d \"$p\" ]; then du -sh \"$p\" 2>/dev/null; fi; "
-                         "done",
+                "shell": (
+                    "for p in "
+                    "\'~/Library/Application Support/Google/Chrome\' "
+                    "\'~/Library/Application Support/Firefox\' "
+                    "\'~/Library/Safari\' "
+                    "\'~/Library/Containers/com.apple.Safari\' "
+                    "\'~/Library/Application Support/Microsoft Edge\' "
+                    "\'~/Library/Application Support/BraveSoftware/Brave-Browser\' "
+                    "\'~/Library/Application Support/Arc\' "
+                    "\'~/Library/WebKit\'; do "
+                    "  [ -d \"$p\" ] && du -sh \"$p\" 2>/dev/null; "
+                    "done"
+                ),
                 "informational": True,
             },
         },
     },
+
 
     # ─── Downloads ────────────────────────────────────────────────────
     # ~/Downloads accumulates installers, screenshots, DMGs, ZIP exports, video
@@ -1036,20 +1166,231 @@ CATEGORIES = {
         },
     },
 
+
+    # ─── Space Eaters ─────────────────────────────────────────────────
+    # The things that eat disk space that you never see coming.
+    # iOS backups, developer caches, and package managers are the biggest
+    # offenders — each can hold 10–80 GB that the user has forgotten about.
+    "space-eaters": {
+        "label": "Space Eaters",
+        "icon":  "🔥",
+        "tagline": "iOS backups · npm · pip · cargo · gradle — hidden hoarders that can hit 80 GB.",
+        "groups": {
+            "safe": [],
+            "probably_safe": [
+                # Developer package manager caches. These are pure caches —
+                # entirely reconstructed by the tools on next use.
+                ("npm global cache",         "~/.npm"),
+                ("pip cache (macOS path)",   "~/Library/Caches/pip"),
+                ("pip cache (Linux path)",   "~/.cache/pip"),
+                ("Cargo registry (Rust)",    "~/.cargo/registry"),
+                ("Cargo git (Rust)",         "~/.cargo/git"),
+                ("Gradle caches",            "~/.gradle/caches"),
+                ("Maven local repo",         "~/.m2/repository"),
+                ("Go module cache",          "~/go/pkg/mod/cache"),
+                ("Yarn cache",               "~/.yarn/cache"),
+                ("pnpm store",               "~/.pnpm-store"),
+                ("Ruby gems cache",          "~/.gem"),
+                ("CocoaPods cache",          "~/Library/Caches/CocoaPods"),
+            ],
+            "caution": [
+                # iOS/iPadOS/watchOS device backups. These are NOT caches —
+                # they are real backup data. But people forget they have 5 old
+                # device backups from 2019 here. Surfaced for awareness only.
+                # One backup can be 5–50 GB; ten stale ones = hundreds of GB.
+                ("iOS/iPadOS device backups",  "~/Library/Application Support/MobileSync/Backup"),
+
+                # Steam game data. Not a cache — deleting removes installed games.
+                # Surfaced so users can see how much space Steam is using.
+                ("Steam game data",            "~/Library/Application Support/Steam/steamapps"),
+            ],
+        },
+        "actions": {
+            "show-ios-backups": {
+                "label": "Show iOS/iPadOS backup sizes (sorted)",
+                "desc":  "Lists each device backup in ~/Library/Application Support/MobileSync/Backup with its size. Often the single biggest surprise on a developer\'s Mac.",
+                "cost":  "Read-only — nothing is touched. Delete old backups manually in Finder or via iTunes/Finder > Manage Backups.",
+                "shell": (
+                    "backup_dir=\"$HOME/Library/Application Support/MobileSync/Backup\"; "
+                    "if [ -d \"$backup_dir\" ]; then "
+                    "  echo \"iOS/iPadOS device backups:\"; "
+                    "  du -sh \"$backup_dir\"/* 2>/dev/null | sort -rh | head -20; "
+                    "  echo \"\"; "
+                    "  du -sh \"$backup_dir\" 2>/dev/null | awk \'{print \"Total: \" $1}\'; "
+                    "else "
+                    "  echo \"No iOS backups found at $backup_dir\"; "
+                    "fi"
+                ),
+                "informational": True,
+            },
+            "show-dev-cache-sizes": {
+                "label": "Show developer cache sizes (npm / pip / cargo / gradle)",
+                "desc":  "Runs du -sh on the most common developer package manager caches.",
+                "cost":  "Read-only.",
+                "shell": (
+                    "for label_path in "
+                    "\"npm:$HOME/.npm\" "
+                    "\"pip:$HOME/Library/Caches/pip\" "
+                    "\"cargo registry:$HOME/.cargo/registry\" "
+                    "\"gradle:$HOME/.gradle/caches\" "
+                    "\"maven:$HOME/.m2/repository\" "
+                    "\"Go modules:$HOME/go/pkg/mod/cache\" "
+                    "\"yarn:$HOME/.yarn/cache\" "
+                    "\"pnpm:$HOME/.pnpm-store\" "
+                    "\"CocoaPods:$HOME/Library/Caches/CocoaPods\"; do "
+                    "  label=\"${label_path%%:*}\"; "
+                    "  p=\"${label_path#*:}\"; "
+                    "  [ -d \"$p\" ] && printf \"%-20s  %s\\n\" \"$label\" \"$(du -sh \"$p\" 2>/dev/null | cut -f1)\"; "
+                    "done"
+                ),
+                "informational": True,
+            },
+            "clear-npm-cache": {
+                "label": "Clear npm cache (~/.npm)",
+                "desc":  "Runs `npm cache clean --force` then removes the ~/.npm directory.",
+                "cost":  "npm re-downloads packages from the registry on next install. Slightly slower first install per package. Nothing currently installed is affected.",
+                "shell": "command -v npm >/dev/null && npm cache clean --force 2>&1; rm -rf ~/.npm 2>/dev/null; echo \'\u2713 npm cache cleared.\'",
+            },
+            "clear-pip-cache": {
+                "label": "Clear pip cache",
+                "desc":  "Removes ~/Library/Caches/pip and ~/.cache/pip.",
+                "cost":  "pip re-downloads packages from PyPI on next install. No installed packages affected.",
+                "shell": "rm -rf ~/Library/Caches/pip ~/.cache/pip 2>/dev/null; echo \'\u2713 pip cache cleared.\'",
+            },
+            "clear-cargo-cache": {
+                "label": "Clear Cargo registry + git cache (Rust)",
+                "desc":  "Removes ~/.cargo/registry and ~/.cargo/git. Cargo re-fetches crates.io metadata on next build.",
+                "cost":  "Next `cargo build` re-downloads crate source (re-compilation needed). Your installed binaries (~/.cargo/bin) are NOT touched.",
+                "shell": "rm -rf ~/.cargo/registry ~/.cargo/git 2>/dev/null; echo \'\u2713 Cargo registry + git cache cleared.\'",
+            },
+            "clear-gradle-cache": {
+                "label": "Clear Gradle caches (~/.gradle/caches)",
+                "desc":  "Removes ~/.gradle/caches. Gradle re-downloads dependencies on next build.",
+                "cost":  "First build after clearing re-downloads all Gradle dependencies from Maven Central. Build wrappers (gradlew) stay in each project.",
+                "shell": "rm -rf ~/.gradle/caches 2>/dev/null; echo \'\u2713 Gradle caches cleared.\'",
+            },
+            "show-steam-size": {
+                "label": "Show Steam game data size (informational)",
+                "desc":  "Shows the total size of ~/Library/Application Support/Steam/steamapps — where installed games live.",
+                "cost":  "Read-only. Delete individual games from inside Steam if you want to free this space.",
+                "shell": "du -sh ~/Library/Application\ Support/Steam/steamapps 2>/dev/null || echo \'Steam not installed\'",
+                "informational": True,
+            },
+            "show-top-25-files": {
+                "label": "Show 25 biggest files in ~/Documents + ~/Desktop",
+                "desc":  "Surfaces large files you may have forgotten about. Read-only.",
+                "cost":  "Read-only.",
+                "shell": (
+                    "find ~/Documents ~/Desktop -maxdepth 5 -type f -size +50M 2>/dev/null "
+                    "| while read f; do du -sh \"$f\" 2>/dev/null; done "
+                    "| sort -rh | head -25"
+                ),
+                "informational": True,
+            },
+        },
+    },
+
+    # ─── iCloud Drive ──────────────────────────────────────────────────
+    # ~/Library/Mobile Documents holds every file iCloud Drive has synced
+    # locally. Files you haven\'t accessed recently may already be stubs
+    # (*.icloud = placeholder, no local data).
+    #
+    # KEY INSIGHT: `brctl evict` removes the local copy of a file but leaves
+    # it on iCloud perfectly intact. It\'s exactly what macOS "Optimize Mac
+    # Storage" does. The file re-downloads automatically when you open it.
+    # This is 100% safe and 100% reversible.
+    "icloud": {
+        "label": "iCloud Drive",
+        "icon":  "☁️",
+        "tagline": "Local iCloud Drive cache. Files stay on iCloud — only your local copy is removed.",
+        "groups": {
+            "safe": [
+                # ~/Library/Mobile Documents is the iCloud Drive root.
+                # ALL content synced by iCloud Drive lives here (Pages, Numbers,
+                # Keynote, third-party apps that use iCloud). Even with
+                # "Optimize Mac Storage" off this can be 5–50+ GB.
+                ("iCloud Drive local cache (Mobile Documents)", "~/Library/Mobile Documents"),
+                # CloudStorage appears on Monterey+ for iCloud Drive and is
+                # also used by some third-party cloud providers.
+                ("iCloud CloudStorage cache",                   "~/Library/CloudStorage"),
+            ],
+            "probably_safe": [],
+            "caution": [],
+        },
+        "actions": {
+            "show-icloud-breakdown": {
+                "label": "Show iCloud Drive space by app (top 20)",
+                "desc":  "Lists each app container inside ~/Library/Mobile Documents with its local size, sorted biggest-first. Also shows how many files are already stubs vs locally present.",
+                "cost":  "Read-only.",
+                "shell": (
+                    "echo \'=== iCloud Drive — local footprint by app ===\'; "
+                    "du -sh \'$HOME/Library/Mobile Documents\'/* 2>/dev/null | sort -rh | head -20; "
+                    "echo \'\'; "
+                    "echo \'=== CloudStorage ===\'; "
+                    "du -sh \'$HOME/Library/CloudStorage\'/* 2>/dev/null | sort -rh | head -10; "
+                    "echo \'\'; "
+                    "echo \'=== Local vs stub count ===\'; "
+                    "local_count=$(find \'$HOME/Library/Mobile Documents\' -not -name \'*.icloud\' -type f 2>/dev/null | wc -l); "
+                    "stub_count=$(find \'$HOME/Library/Mobile Documents\' -name \'*.icloud\' -type f 2>/dev/null | wc -l); "
+                    "echo \"  Locally present: $local_count files\"; "
+                    "echo \"  Already stubs:   $stub_count files (data on iCloud, no local copy)\""
+                ),
+                "informational": True,
+            },
+            "evict-icloud-cache": {
+                "label": "Evict iCloud Drive local copies (safe — files stay on iCloud)",
+                "desc":  (
+                    "Runs `brctl evict` on every locally-present file in ~/Library/Mobile Documents. "
+                    "Files are NOT deleted — they become *.icloud stubs and re-download automatically "
+                    "when you open them. This is exactly what macOS \'Optimize Mac Storage\' does. "
+                    "100% safe and 100% reversible."
+                ),
+                "cost":  (
+                    "Files in ~/Library/Mobile Documents become stubs (visible in Finder with a cloud icon). "
+                    "Opening any file triggers a re-download from iCloud (speed depends on your connection). "
+                    "Files remain on iCloud forever — nothing is deleted from Apple\'s servers."
+                ),
+                "shell": (
+                    "echo \'Evicting locally-cached iCloud Drive files…\'; "
+                    "count=0; "
+                    "find \'$HOME/Library/Mobile Documents\' -not -name \'*.icloud\' -type f 2>/dev/null | "
+                    "while read f; do "
+                    "  brctl evict \"$f\" 2>/dev/null && count=$((count+1)) && echo \"  Evicted: $f\"; "
+                    "done; "
+                    "echo \"\u2713 Done. Re-run Show iCloud Drive space to see freed space.\""
+                ),
+            },
+            "show-icloud-stubs": {
+                "label": "List all iCloud stub files (*.icloud)",
+                "desc":  "Shows files that are on iCloud but NOT stored locally. Opening them triggers a re-download.",
+                "cost":  "Read-only.",
+                "shell": (
+                    "echo \'Files currently on iCloud only (stubs)::\'; "
+                    "find \'$HOME/Library/Mobile Documents\' -name \'*.icloud\' -type f 2>/dev/null "
+                    "| while read f; do echo \"  $f\"; done; "
+                    "echo \'\'; "
+                    "echo \'Tip: To download all stubs: open iCloud Drive in Finder and select all.\'"
+                ),
+                "informational": True,
+            },
+        },
+    },
 }
 
 # Tab structure — top-level navigation.
 # `meta: True` entries are UI-only (no cleaners.py category). The dashboard
 # treats them as special tabs (Overview aggregates everything across categories).
 TABS = [
-    {"id": "overview",  "label": "Overview",  "meta": True},
-    {"id": "xcode",     "label": "Xcode",     "category": "xcode"},
-    {"id": "llms",      "label": "LLMs",      "subcategories": ["llms-claude", "llms-cursor", "llms-chatgpt"]},
-    {"id": "docker",    "label": "Docker",    "category": "docker"},
-    {"id": "apps",      "label": "Apps",      "category": "apps"},
-    {"id": "browsers",  "label": "Browsers",  "category": "browsers"},
-    {"id": "downloads", "label": "Downloads", "category": "downloads"},
-    {"id": "creative",  "label": "Creative",  "subcategories": [
+    {"id": "overview",      "label": "Overview",      "meta": True},
+    {"id": "space-eaters",  "label": "Space Eaters",  "category": "space-eaters"},
+    {"id": "icloud",        "label": "iCloud Drive",  "category": "icloud"},
+    {"id": "xcode",         "label": "Xcode",         "category": "xcode"},
+    {"id": "llms",          "label": "LLMs",          "subcategories": ["llms-claude", "llms-cursor", "llms-chatgpt"]},
+    {"id": "browsers",      "label": "Browsers",      "category": "browsers"},
+    {"id": "apps",          "label": "Apps",          "category": "apps"},
+    {"id": "docker",        "label": "Docker",        "category": "docker"},
+    {"id": "downloads",     "label": "Downloads",     "category": "downloads"},
+    {"id": "creative",      "label": "Creative",      "subcategories": [
         "creative-adobe",
         "creative-davinci",
         "creative-finalcut",
@@ -1057,7 +1398,7 @@ TABS = [
         "creative-blender",
         "creative-obs",
     ]},
-    {"id": "temp",      "label": "Temp files","category": "temp"},
-    {"id": "archives",  "label": "Archives",  "category": "archives"},
-    {"id": "system",    "label": "System",    "category": "system"},
+    {"id": "temp",          "label": "Temp files",    "category": "temp"},
+    {"id": "archives",      "label": "Archives",      "category": "archives"},
+    {"id": "system",        "label": "System",        "category": "system"},
 ]
