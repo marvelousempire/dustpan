@@ -26,6 +26,10 @@ import {
   Sun,
   Moon,
   Monitor,
+  Settings,
+  KeyRound,
+  Cpu,
+  Sparkles,
 } from "lucide-react";
 
 // Tab-icon map keyed by tab id. Mirrors TAB_ICONS in the legacy vanilla UI.
@@ -65,4 +69,8 @@ export {
   Sun,
   Moon,
   Monitor,
+  Settings,
+  KeyRound,
+  Cpu,
+  Sparkles,
 };

@@ -45,6 +45,7 @@ writing them into the repo we get:
 | [0003](0003-database-tier-guide-for-future-apps.md) | Database tier guide for future apps — SQLite / Docker Postgres / Homebrew Postgres decision tree + Makefile templates | shipped — superseded by 0004 | v0.19.5 |
 | [0004](0004-canonical-docker-stack-template.md) | Canonical Docker stack template (cloned from claude-chat-reader) — binary rule: state = Docker, no state = no Docker | shipped | v0.19.6 |
 | [0005](0005-terminal-theme-support.md) | Terminal theme support — white bg on light mode, dark bg on dark mode, with WCAG-correct text contrast for all status and ANSI colors | shipped | v0.19.7 |
+| [0006](0006-docker-ai-habits-engine.md) | Docker stack + AI engine + habit learning — pgvector DB, encrypted key vault, OpenAI/Anthropic/Groq/Gemini/Perplexity/Ollama, growth-slope habit engine, AI summaries | in progress | v0.20.0 |
 
 ## When to add a plan
 
