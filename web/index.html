@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cleanup Hub</title>
+<title>Dustpan — by AVERY GOODMAN</title>
 <style>
   :root {
     color-scheme: light dark;
@@ -218,8 +218,14 @@
 
   header.app-header h1 {
     margin: 0;
-    font-size: 17px; font-weight: 600;
-    letter-spacing: -0.01em;
+    display: inline-flex; align-items: baseline; gap: 8px;
+    font-size: 22px; font-weight: 600;
+    letter-spacing: -0.022em;
+  }
+  .brand-byline {
+    font-size: 10px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-faint);
   }
   header.app-header .badge {
     margin-left: auto;
@@ -1202,6 +1208,62 @@
   .modal-body strong { font-weight: 600; }
   .modal-body em { color: var(--text-dim); font-style: normal; }
 
+  /* About Dustpan modal — premium, cinematic, centered. */
+  .modal-card.about-card { max-width: 560px; border-radius: 18px; }
+  .about-body { padding: 24px 28px 22px; }
+  .about-hero {
+    text-align: center;
+    padding: 6px 0 18px;
+    border-bottom: 1px solid var(--border-2);
+    margin-bottom: 18px;
+  }
+  .about-wordmark {
+    font-size: 44px; font-weight: 600;
+    letter-spacing: -0.028em;
+    line-height: 1;
+    color: var(--text);
+  }
+  .about-byline {
+    margin-top: 10px;
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.16em;
+    color: var(--text-faint);
+  }
+  .about-tagline {
+    margin-top: 14px;
+    font-size: 16px; line-height: 1.4;
+    letter-spacing: -0.005em;
+    color: var(--text);
+  }
+  .about-body section { margin: 0 0 16px; }
+  .about-body h3 {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-faint);
+    margin: 0 0 6px;
+  }
+  .about-body section p {
+    margin: 0;
+    font-size: 13px; line-height: 1.65;
+    color: var(--text-dim);
+  }
+  .about-privacy {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 18px;
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-faint);
+  }
+  .about-privacy svg { width: 12px; height: 12px; color: var(--safe); }
+  .about-footer {
+    border-top: 1px solid var(--border-2);
+    padding: 11px 24px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.01em;
+  }
+
   /* Confirm-modal specific */
   .confirm-body {
     padding: 18px 22px 22px;
@@ -1360,7 +1422,7 @@
       <path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/>
       <path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>
     </svg>
-    <h1>Cleanup Hub</h1>
+    <h1 class="brand-title">Dustpan<span class="brand-byline">by AVERY GOODMAN</span></h1>
     <div class="running-widget" id="running-widget" hidden aria-live="polite">
       <span class="running-spinner" aria-hidden="true"></span>
       <span class="running-label" id="running-label">—</span>
@@ -1411,7 +1473,7 @@
 
   <footer>
     <div class="footer-row">
-      <a href="https://github.com/marvelousempire/xcode-cleanup-shortcut" target="_blank">marvelousempire/xcode-cleanup-shortcut</a> · MIT · <a href="#" id="footer-changelog">Changelog</a> · localhost-only
+      <a href="#" id="footer-about">About</a> · <a href="https://github.com/marvelousempire/xcode-cleanup-shortcut" target="_blank">GitHub</a> · <a href="#" id="footer-changelog">Changelog</a> · MIT · localhost-only
     </div>
     <div class="footer-row footer-copyright">
       © 2026 Learn Mappers LLC DBA AVERY GOODMAN · All rights reserved · Intellectual property · UCC 1-308
@@ -1425,6 +1487,45 @@
         <button class="modal-close" id="changelog-close" aria-label="Close">×</button>
       </header>
       <div class="modal-body" id="changelog-body">Loading…</div>
+    </div>
+  </div>
+
+  <!-- v0.19.0 — About Dustpan modal. Mirrors the React AboutModal copy. -->
+  <div class="modal-backdrop" id="about-modal" hidden>
+    <div class="modal-card about-card">
+      <header class="modal-header">
+        <h2>About Dustpan</h2>
+        <button class="modal-close" id="about-close" aria-label="Close">×</button>
+      </header>
+      <div class="modal-body about-body">
+        <div class="about-hero">
+          <div class="about-wordmark">Dustpan</div>
+          <div class="about-byline">by AVERY GOODMAN</div>
+          <div class="about-tagline">Sweep your Mac clean.</div>
+        </div>
+        <section>
+          <h3>What it is</h3>
+          <p>A disk-cleanup utility for working Macs. Eleven categories — Xcode, Docker, LLM tools, browsers, downloads, creative apps, archives, system caches, and more. Every action carries a plain-English cost annotation so you know exactly what you lose before you click anything.</p>
+        </section>
+        <section>
+          <h3>Why it exists</h3>
+          <p>Closed-source cleaners hide what they do and charge yearly for the privilege. Dustpan is auditable end-to-end — every line is open. Safe by default — it never deletes anything irreversible without surfacing the cost first. Fast — a pure Python backend with zero pip installs, zero Docker, zero cloud, zero telemetry. The cleanup logic is one readable AppleScript and one Python file — you can fork it on a Sunday.</p>
+        </section>
+        <section>
+          <h3>Who built it</h3>
+          <p>Crafted by AVERY GOODMAN at Learn Mappers LLC. Free. Open source. MIT licensed. Made for developers, creative pros, and anyone tired of paying rent to free up their own disk.</p>
+        </section>
+        <div class="about-privacy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+          Localhost only — nothing leaves your Mac
+        </div>
+      </div>
+      <footer class="about-footer">
+        © 2026 Learn Mappers LLC DBA AVERY GOODMAN · UCC 1-308
+      </footer>
     </div>
   </div>
 
@@ -3022,6 +3123,14 @@ $("#changelog-close").addEventListener("click", closeChangelog);
 $("#changelog-modal").addEventListener("click", (ev) => { if (ev.target.id === "changelog-modal") closeChangelog(); });
 document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !$("#changelog-modal").hidden) closeChangelog(); });
 $("#footer-changelog")?.addEventListener("click", (ev) => { ev.preventDefault(); openChangelog(); });
+
+// v0.19.0 — About Dustpan modal wiring.
+function openAbout() { $("#about-modal").hidden = false; }
+function closeAbout() { $("#about-modal").hidden = true; }
+$("#footer-about")?.addEventListener("click", (ev) => { ev.preventDefault(); openAbout(); });
+$("#about-close")?.addEventListener("click", closeAbout);
+$("#about-modal")?.addEventListener("click", (ev) => { if (ev.target.id === "about-modal") closeAbout(); });
+document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !$("#about-modal").hidden) closeAbout(); });
 
 // ── /api/live SSE subscription (v0.15.0, elevations F + G) ────────────────
 // One persistent connection. Auto-reconnects with backoff on disconnect.

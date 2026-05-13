@@ -30,7 +30,7 @@ export default function Home() {
     <main className="mx-auto max-w-[640px] px-6 pt-16 pb-24">
       <header className="mb-8 flex items-center gap-2">
         <Sparkles className="h-5 w-5 text-accent" aria-hidden />
-        <h1 className="text-[20px] font-bold tracking-[-0.01em]">Cleanup Hub · Next</h1>
+        <h1 className="text-[20px] font-bold tracking-[-0.01em]">Dustpan · Next</h1>
         <span className="ml-2 rounded-full border border-border/30 bg-bg-2 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-fg-dim">
           experimental
         </span>

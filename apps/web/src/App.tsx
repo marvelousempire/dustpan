@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DashboardProvider, useDashboard } from "./state/DashboardContext";
 import { AppHeader } from "./components/AppHeader";
 import { SidebarLeft } from "./components/SidebarLeft";
@@ -6,12 +7,13 @@ import { OverviewPanel } from "./components/OverviewPanel";
 import { CategoryPanel } from "./components/CategoryPanel";
 import { OutputConsole } from "./components/OutputConsole";
 import { ChangelogModal } from "./components/ChangelogModal";
+import { AboutModal } from "./components/AboutModal";
 import { RunningWidget } from "./components/RunningWidget";
 import { OnboardingCoachmark } from "./components/OnboardingCoachmark";
 import { SUB_LABELS } from "./components/SidebarRight";
 import { cn } from "./lib/utils";
 // `motion` / `AnimatePresence` removed in v0.18.4 — see comment on the panel
-// switch below. Individual components still import Motion as needed.
+// switch below. Individual components still use Motion as needed.
 
 export default function App() {
   return (
@@ -31,6 +33,7 @@ function AppBody() {
     openChangelog,
     closeChangelog,
   } = useDashboard();
+  const [showAbout, setShowAbout] = useState(false);
 
   const tab = tabs.find((t) => t.id === activeTab);
   const hasSub = !!tab?.subcategories?.length;
@@ -111,24 +114,35 @@ function AppBody() {
       </div>
 
       <footer className="mt-9 text-center text-[12px] text-fg-dim">
-        <div>
+        <div className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+          <button
+            type="button"
+            onClick={() => setShowAbout(true)}
+            className="font-semibold text-fg border-b border-border/20 hover:border-accent hover:text-accent transition-colors"
+          >
+            About
+          </button>
+          <span className="text-fg-faint">·</span>
           <a
             href="https://github.com/marvelousempire/xcode-cleanup-shortcut"
             target="_blank"
             rel="noreferrer"
             className="border-b border-border/20 text-fg no-underline transition-colors hover:border-accent hover:text-accent"
           >
-            marvelousempire/xcode-cleanup-shortcut
-          </a>{" "}
-          · MIT ·{" "}
+            GitHub
+          </a>
+          <span className="text-fg-faint">·</span>
           <a
             href="#"
             onClick={(e) => { e.preventDefault(); openChangelog(); }}
             className="border-b border-border/20 text-fg no-underline transition-colors hover:border-accent hover:text-accent"
           >
             Changelog
-          </a>{" "}
-          · localhost-only
+          </a>
+          <span className="text-fg-faint">·</span>
+          <span className="text-fg-faint">MIT</span>
+          <span className="text-fg-faint">·</span>
+          <span className="text-fg-faint">localhost-only</span>
         </div>
         {/* Copyright per the `learn-mappers-copyright` global rule —
             AVERY GOODMAN in all caps, UCC 1-308 reservation in the same block. */}
@@ -138,6 +152,7 @@ function AppBody() {
       </footer>
 
       <ChangelogModal open={showChangelog} onClose={closeChangelog} />
+      <AboutModal open={showAbout} onClose={() => setShowAbout(false)} />
     </div>
   );
 }
