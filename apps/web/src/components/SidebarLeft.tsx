@@ -1,5 +1,5 @@
 import { useDashboard } from "../state/DashboardContext";
-import { TabIcon } from "./icons";
+import { TabIcon, Settings, Sparkles } from "./icons";
 import { ThemeToggle } from "./ThemeToggle";
 import { cn, fmt } from "../lib/utils";
 
@@ -104,11 +104,31 @@ export function SidebarLeft() {
             </button>
           );
         })}
+        {/* AI & Settings entry — hard-coded footer, not server-driven */}
+        <div className="mt-1.5 border-t border-border/10 pt-1.5">
+          <button
+            type="button"
+            onClick={() => setActiveTab("settings")}
+            className={cn(
+              "flex w-full items-center gap-2.5 rounded-md border-l-[3px] border-transparent px-3 py-2.5 pl-[11px] text-left text-[13px] font-semibold transition-colors",
+              activeTab === "settings"
+                ? "text-accent-strong border-l-accent"
+                : "text-fg-dim hover:bg-bg-3 hover:text-fg",
+            )}
+            style={activeTab === "settings" ? { background: "hsl(var(--accent) / 0.10)" } : undefined}
+          >
+            <Sparkles
+              className={cn("h-4 w-4 flex-shrink-0", activeTab === "settings" ? "text-accent" : "text-fg-faint")}
+            />
+            <span className="flex-1 truncate">AI & Settings</span>
+          </button>
+        </div>
+
         {/* v0.18.3 — Auto / Light / Dark theme switcher sits at the bottom of
             the category nav. The CSS already supports both the
             prefers-color-scheme media query and the [data-theme] attribute,
             so this just toggles the attribute (and localStorage). */}
-        <div className="mt-1.5 border-t border-border/10 pt-1.5">
+        <div className="border-t border-border/10 pt-1.5">
           <ThemeToggle />
         </div>
       </nav>

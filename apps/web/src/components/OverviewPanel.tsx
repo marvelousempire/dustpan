@@ -3,6 +3,7 @@ import { useDashboard } from "../state/DashboardContext";
 import { Hero } from "./Hero";
 import { PieChart } from "./PieChart";
 import { OutputConsole } from "./OutputConsole";
+import { SpaceBarChart } from "./SpaceBarChart";
 import { History, RefreshCw, CheckCheck, AlertTriangle, ChevronRight, TabIcon } from "./icons";
 import { cn, fmt } from "../lib/utils";
 
@@ -28,43 +29,8 @@ export function OverviewPanel() {
 
   return (
     <div>
-      {/* 3-pane top: hero · pie · terminal. Mirrors the vanilla v0.14.2 layout
-          so the same maintainer-driven structure is present in both frontends. */}
-      <div className="mb-3.5 grid gap-3.5 overview-top">
-        <div className="overflow-hidden rounded-lg border border-border/15 shadow-md" style={{ background: "hsl(var(--bg-2))" }}>
-          <Hero status={status} embedded />
-        </div>
-        <div className="flex flex-col overflow-hidden rounded-lg border border-border/15 shadow-sm" style={{ background: "hsl(var(--bg-2))" }}>
-          <div className="px-4 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-faint">
-            Where the disk is going
-          </div>
-          <PieChart />
-        </div>
-        <div className="flex flex-col overflow-hidden rounded-lg border border-border/15 shadow-sm" style={{ background: "hsl(var(--bg-2))" }}>
-          <div className="px-4 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-faint">
-            Activity
-          </div>
-          <div className="flex flex-1 flex-col px-3 pb-3">
-            <OutputConsole embedded fillHeight withToolbar />
-          </div>
-        </div>
-      </div>
-
-      {history?.real_runs ? (
-        <div
-          className="mt-3 mb-4 flex items-center justify-center gap-2 rounded-full border border-border/10 px-4 py-2.5 text-[12px] tabular"
-          style={{ background: "hsl(var(--bg-2) / 0.55)" }}
-        >
-          <History className="h-3.5 w-3.5 text-accent" aria-hidden />
-          <span className="text-fg-dim">
-            You've freed <strong className="font-semibold text-fg">{fmt(history.total_freed_gb)} GB</strong> across{" "}
-            <strong className="font-semibold text-fg">{history.real_runs}</strong> run
-            {history.real_runs === 1 ? "" : "s"}.
-          </span>
-        </div>
-      ) : null}
-
-      <section className="glass mb-4 rounded-lg border border-border/20 p-5 shadow-sm">
+      {/* ── 1. Action buttons (top) ───────────────────────────────────────── */}
+      <section className="glass mb-4 rounded-lg border border-border/20 p-4 shadow-sm">
         <div className="flex flex-wrap gap-2.5">
           <button
             type="button"
@@ -94,7 +60,7 @@ export function OverviewPanel() {
             Clean ALL opt-in {totals.optin >= 0.01 ? `· ${fmt(totals.optin)} GB` : "· scan first"}
           </button>
         </div>
-        <div className="mt-3 text-[12px] leading-[1.55] tabular text-fg-dim">
+        <div className="mt-2.5 text-[12px] leading-[1.55] tabular text-fg-dim">
           {scanning ? (
             <>Re-scanning {allCategories.length} categories in parallel…</>
           ) : totals.scanned === 0 ? (
@@ -108,6 +74,45 @@ export function OverviewPanel() {
           )}
         </div>
       </section>
+
+      {/* ── 2. 3-pane: hero · pie · terminal ─────────────────────────────── */}
+      <div className="mb-3.5 grid gap-3.5 overview-top">
+        <div className="overflow-hidden rounded-lg border border-border/15 shadow-md" style={{ background: "hsl(var(--bg-2))" }}>
+          <Hero status={status} embedded />
+        </div>
+        <div className="flex flex-col overflow-hidden rounded-lg border border-border/15 shadow-sm" style={{ background: "hsl(var(--bg-2))" }}>
+          <div className="px-4 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-faint">
+            Where the disk is going
+          </div>
+          <PieChart />
+        </div>
+        <div className="flex flex-col overflow-hidden rounded-lg border border-border/15 shadow-sm" style={{ background: "hsl(var(--bg-2))" }}>
+          <div className="px-4 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-faint">
+            Activity
+          </div>
+          <div className="flex flex-1 flex-col px-3 pb-3">
+            <OutputConsole embedded fillHeight withToolbar />
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3. History banner ────────────────────────────────────────────── */}
+      {history?.real_runs ? (
+        <div
+          className="mt-1 mb-4 flex items-center justify-center gap-2 rounded-full border border-border/10 px-4 py-2.5 text-[12px] tabular"
+          style={{ background: "hsl(var(--bg-2) / 0.55)" }}
+        >
+          <History className="h-3.5 w-3.5 text-accent" aria-hidden />
+          <span className="text-fg-dim">
+            You've freed <strong className="font-semibold text-fg">{fmt(history.total_freed_gb)} GB</strong> across{" "}
+            <strong className="font-semibold text-fg">{history.real_runs}</strong> run
+            {history.real_runs === 1 ? "" : "s"}.
+          </span>
+        </div>
+      ) : null}
+
+      {/* ── 4. Horizontal space bar chart ────────────────────────────────── */}
+      <SpaceBarChart />
 
       <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
         {tabs.filter((t) => !t.meta).map((tab, idx) => {

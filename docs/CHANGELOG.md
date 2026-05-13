@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.19.9] — 2026-05-13 13:00:00 Eastern · *Overview redesign: buttons top, 3-pane below, animated space bar chart. New AI & Settings panel (plan 0006 foundation).*
+
+### Changed — Overview layout
+
+The three action buttons (**Re-scan everything**, **Clean ALL safe**, **Clean ALL opt-in**) now sit at the **top** of the Overview page so they're the first thing you see and reach. The 3-pane row (disk hero · pie chart · activity terminal) dropped below them.
+
+### Added — Space breakdown bar chart (`SpaceBarChart`)
+
+A new animated horizontal stacked bar chart appears after the 3-pane row, showing every category's disk footprint at a glance:
+
+- **Left:** category icon + name
+- **Middle:** animated stacked bar — green = safe to delete, amber = opt-in, red = caution
+- **Right:** total GB + percentage of monitored space
+- Bars animate in with a staggered spring entrance (Motion)
+- Sorted by total size descending; updates live when a re-scan completes
+
+### Added — AI & Settings panel
+
+A new **AI & Settings** entry appears at the bottom of the sidebar (Sparkles icon). The panel has:
+
+- **Cloud providers:** API key inputs for OpenAI, Anthropic, Perplexity, Groq, Gemini — masked inputs with show/hide toggle, green status dot when saved, per-provider "Get API key →" link, Save + Clear per row
+- **Local models (Ollama):** URL + model name fields; clear note that Docker mode (plan 0006) runs Ollama containerized alongside the app
+- **How AI will be used:** plain-English description of post-scan summaries, habit-based recommendations, smart manager proposals, and privacy guarantees
+- **Docker upgrade callout:** teaser for v0.20.0 encrypted vault + history + habit engine
+
+Keys are stored in `localStorage` for now; plan 0006 moves them to a server-side encrypted vault.
+
+### Added — Plan 0006 (`plans/0006-docker-ai-habits-engine.md`)
+
+Full architecture spec for v0.20.0:
+- Docker stack with `app + db + caddy + ollama` services
+- PostgreSQL schema: `api_keys` (AES-256-GCM encrypted), `runs`, `category_snapshots`, `habits`
+- New Python endpoints: `/api/settings/keys`, `/api/habits`, `/api/runs`, `/api/ai/summary`, `/api/ai/recommend`
+- Habit engine: linear regression over 4-week category snapshots → `days_to_threshold` → proactive banner
+- Ollama via OpenAI-compatible API; same code path as cloud providers
+- Non-Docker `make ui` path unaffected — endpoints return 501 gracefully
+
+### kVersion bump
+`0.19.8` → `0.19.9`
+
+---
+
 ## [0.19.8] — 2026-05-13 12:30:00 Eastern · *Fix: Re-scan button now shows spinner + "Scanning…" so users can see it running*
 
 ### Fixed — Re-scan button had no visual feedback
