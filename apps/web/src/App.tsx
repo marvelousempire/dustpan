@@ -46,7 +46,21 @@ function AppBody() {
       <OnboardingCoachmark />
 
       <div
-        className={cn("grid items-start gap-4.5", hasSub ? "lg:grid-cols-[220px_1fr_220px]" : "lg:grid-cols-[220px_1fr]")}
+        className={cn(
+          // v0.18.2 — port the v0.14 vanilla breakpoint ladder so the layout
+          // works below 1024px instead of collapsing to one column. Before
+          // this, anything narrower than `lg:` (1024px) stacked the sidebar
+          // on top and the main viewport BELOW it — looked like the page was
+          // missing because you had to scroll down to find it.
+          //   < md (768px) → 1 column (sidebar on top, main scrolls below)
+          //   md to lg     → 2 columns (sidebar + main); subcategories show
+          //                  as an inline pill row above the panel
+          //   lg+          → 2 or 3 columns (right sidebar appears when the
+          //                  active tab has subcategories)
+          "grid items-start gap-4.5",
+          "md:grid-cols-[220px_1fr]",
+          hasSub ? "lg:grid-cols-[220px_1fr_220px]" : "lg:grid-cols-[220px_1fr]",
+        )}
       >
         <SidebarLeft />
 
