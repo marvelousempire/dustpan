@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.19.5] — 2026-05-13 11:06:55 Eastern · *Plan 0003 shipped — Database tier guide for every future app · `app-launch-workflow` skill grew a new Part 8 with per-tier Makefile templates*
+
+### Added — plan 0003 in `plans/`
+- **`plans/0003-database-tier-guide-for-future-apps.md`** — the canonical reference for how every future app picks its database. Written before implementation, per the v0.19.4 plans-folder-convention. Decision tree (SQLite / Docker Postgres / Homebrew Postgres / embedded-postgres) + three full Makefile templates + data-location convention + required README "Data" section pattern.
+- **`plans/README.md` index** updated with the row.
+
+### Added — Part 8 in the `app-launch-workflow` skill
+Pushed to `marvelousempire/ai-skills-library` (commit `5916bfb`):
+
+- **Decision tree** — Personal local tools → SQLite. Multi-user/production-shaped → Docker Postgres. AI/RAG → Postgres + pgvector. "Postgres without Docker" → `embedded-postgres`. The right choice depends on the app; the user UX is identical regardless.
+- **Four required `make` targets** for any DB-needing app — `backup` / `restore` / `reset` / `export`. Same user-facing API across tiers; implementations differ per tier.
+- **Three full Makefile templates** — Tier 1 (SQLite, zero install), Tier 2 (Docker Compose Postgres), Tier 3 (Homebrew Postgres). Copy-paste into a new app's `Makefile`.
+- **Data location convention** — where each tier stores user data on disk, and the rule that `./data/backups/` always lives in the project folder so it can sync to iCloud/Dropbox.
+- **Required README "Data" section** for every DB-needing app — documents tier, location, the four make targets, and how to export human-readable.
+
+### Added — Cursor rule mirror
+- `~/.cursor/rules/app-launch-workflow.mdc` gets a condensed version of the decision tree + the four make targets + data location table + a pointer to the full skill body.
+
+### Why this matters
+The user UX promise is **one line gets you running.** That breaks the moment a user has to `brew install postgresql && createdb foo && psql -c "CREATE EXTENSION pgvector;" && …`. Two solves codified here:
+
+1. **Pick SQLite when possible** — there's no setup. Done.
+2. **Wrap Docker behind `make ui`** when SQLite isn't enough — install Docker Desktop once, and from then on every app the user clones uses the same `make ui` pattern. The user never types `docker compose up` themselves.
+
+Dustpan itself is unchanged — it's stateless. This is purely a contract for every future app shipped from this org.
+
+### Why this followed the plans-folder-convention
+Plan 0003 was written to `plans/0003-…md` first, indexed in `plans/README.md`, with `Status: in progress`. After this CHANGELOG entry lands, the status line gets flipped to `Status: shipped (commit <merge sha>, v0.19.5)`. Living documentation discipline.
+
 ## [0.19.4] — 2026-05-13 10:56:09 Eastern · *README: Requirements + Pages map + Privacy + Quick start refresh · plans/ folder added · global "plans-folder-convention" skill*
 
 ### Added — README sections (adopted from `marvelousempire/claude-chat-reader`)
