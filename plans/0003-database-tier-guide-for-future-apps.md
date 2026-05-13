@@ -1,4 +1,4 @@
-Status: shipped (commit ba87ab7, v0.19.5)
+Status: shipped (commit ba87ab7, v0.19.5) — Superseded by plan 0004.
 
 # Plan 0003 — Database tier guide for future apps
 

@@ -1,4 +1,4 @@
-Status: shipped (v0.19.6 — commit pending merge)
+Status: shipped (commit 8e07ce4, v0.19.6)
 
 # Plan 0004 — Canonical Docker stack template (cloned from claude-chat-reader)
 
