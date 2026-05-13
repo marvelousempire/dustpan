@@ -5,6 +5,9 @@ import type {
   Action,
   TopLevelTab,
   LiveEvent,
+  AIStatus,
+  Habit,
+  Run,
 } from "./types";
 
 const API_BASE = ""; // Same-origin in production; Vite proxy in dev.
@@ -16,12 +19,44 @@ async function jsonFetch<T>(path: string): Promise<T> {
 }
 
 export const api = {
-  status: () => jsonFetch<DiskStatus>("/api/status"),
-  report: () => jsonFetch<HistoryReport>("/api/report"),
-  tabs: () => jsonFetch<{ tabs: TopLevelTab[] }>("/api/tabs"),
-  scan: (catId: string) => jsonFetch<CategoryScan>(`/api/category/${catId}/scan`),
-  actions: (catId: string) => jsonFetch<{ actions: Action[] }>(`/api/category/${catId}/actions`),
+  status:    () => jsonFetch<DiskStatus>("/api/status"),
+  report:    () => jsonFetch<HistoryReport>("/api/report"),
+  tabs:      () => jsonFetch<{ tabs: TopLevelTab[] }>("/api/tabs"),
+  scan:      (catId: string) => jsonFetch<CategoryScan>(`/api/category/${catId}/scan`),
+  actions:   (catId: string) => jsonFetch<{ actions: Action[] }>(`/api/category/${catId}/actions`),
   changelog: () => fetch(API_BASE + "/api/changelog").then((r) => r.text()),
+
+  // ── Plan 0006: AI + DB endpoints ──────────────────────────────────────────
+  aiStatus: () => jsonFetch<AIStatus>("/api/ai/status"),
+  habits:   () => jsonFetch<{ habits: Habit[] }>("/api/habits"),
+  runs:     (limit = 50) => jsonFetch<{ runs: Run[] }>(`/api/runs?limit=${limit}`),
+
+  settingsKeys: () => jsonFetch<{ providers: string[] }>("/api/settings/keys"),
+  settingsOllama: () => jsonFetch<{ url: string; model: string }>("/api/settings/ollama"),
+
+  saveKey: (provider: string, key: string) =>
+    fetch(API_BASE + "/api/settings/keys", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, key }),
+    }).then((r) => r.json()),
+
+  deleteKey: (provider: string) =>
+    fetch(API_BASE + `/api/settings/keys/${provider}`, { method: "DELETE" }).then((r) => r.json()),
+
+  saveOllama: (url: string, model: string) =>
+    fetch(API_BASE + "/api/settings/ollama", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, model }),
+    }).then((r) => r.json()),
+
+  aiSummary: (category: string, provider?: string) =>
+    fetch(API_BASE + "/api/ai/summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category, provider }),
+    }).then((r) => r.json()),
 };
 
 export type SSEMessage = { event: string; data: any };

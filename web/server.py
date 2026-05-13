@@ -5,15 +5,25 @@ Runs on http://127.0.0.1:8765 (override via XCC_UI_PORT env var).
 Reads cleanup definitions from cleaners.CATEGORIES.
 
 Endpoints:
-    GET /                          → index.html
-    GET /api/status                → {free_gb, used_gb, total_gb, used_pct}
-    GET /api/tabs                  → tab structure for the UI
-    GET /api/category/<id>/scan    → {groups, totals} for that category
-    GET /api/category/<id>/actions → list of {id, label, desc, cost} for that category
-    GET /api/run?category=<>&action=<>  → SSE stream of action output
-    GET /api/report                → CSV history sparkline data
+    GET  /                              → index.html
+    GET  /api/status                    → {free_gb, used_gb, total_gb, used_pct}
+    GET  /api/tabs                      → tab structure for the UI
+    GET  /api/category/<id>/scan        → {groups, totals} for that category
+    GET  /api/category/<id>/actions     → list of {id, label, desc, cost} for that category
+    GET  /api/run?category=<>&action=<> → SSE stream of action output
+    GET  /api/report                    → CSV history sparkline data
+    GET  /api/ai/status                 → {docker_mode, providers}
+    GET  /api/habits                    → [{category, growth_gb_per_week, days_to_threshold, …}]
+    GET  /api/runs                      → recent run history
+    GET  /api/settings/keys             → [list of providers with stored keys (no key values)]
+    GET  /api/settings/ollama           → {url, model}
+    POST /api/settings/keys             → save API key for a provider
+    POST /api/settings/ollama           → save Ollama URL + model
+    DELETE /api/settings/keys/<provider>→ remove a key
+    POST /api/ai/summary                → AI summary for a category scan
 
-Pure Python stdlib. No pip install. macOS only.
+Pure Python stdlib for the base path. psycopg2 + cryptography are loaded
+optionally — see web/db.py. No pip install needed for `make ui`.
 """
 
 import csv
@@ -37,6 +47,23 @@ from urllib.parse import parse_qs, urlparse
 # Make sibling module importable
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cleaners  # noqa: E402
+
+# Plan 0006 optional modules — gracefully absent when running without Docker.
+try:
+    import db as _db
+except ImportError:
+    _db = None  # type: ignore
+
+try:
+    import ai as _ai
+except ImportError:
+    _ai = None  # type: ignore
+
+def _db_available() -> bool:
+    return _db is not None and _db.is_available()
+
+def _no_db_response() -> dict:
+    return {"error": "no_db", "message": "Enable Docker mode for this feature. Run ./docker/go to start the full stack."}
 
 REPO_DIR = Path(__file__).resolve().parent.parent
 WEB_DIR  = REPO_DIR / "web"
@@ -379,6 +406,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 cid, sub = parts
                 if sub == "scan":
                     result = scan_category(cid)
+                    if result and _db_available():
+                        try:
+                            _db.record_snapshot(cid, result)
+                        except Exception:
+                            pass  # never fail a scan because of DB write
                     return self._serve_json(result) if result else self.send_error(404)
                 if sub == "actions":
                     actions = list_actions(cid)
@@ -401,6 +433,161 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._stream_clean_everything(tier)
         if path == "/api/live":
             return self._stream_live()
+
+        # ── Plan 0006: AI + DB endpoints ──────────────────────────────────
+        if path == "/api/ai/status":
+            providers = _db.list_key_providers() if _db_available() else []
+            return self._serve_json({
+                "docker_mode": _db_available(),
+                "providers": providers,
+            })
+
+        if path == "/api/settings/keys":
+            if not _db_available():
+                return self._serve_json_status(501, _no_db_response())
+            return self._serve_json({"providers": _db.list_key_providers()})
+
+        if path.startswith("/api/settings/keys/"):
+            provider = path[len("/api/settings/keys/"):]
+            if not _db_available():
+                return self._serve_json_status(501, _no_db_response())
+            return self._serve_json({"has_key": provider in _db.list_key_providers()})
+
+        if path == "/api/settings/ollama":
+            if not _db_available():
+                import os as _os
+                return self._serve_json({
+                    "url":   _os.environ.get("OLLAMA_URL", "http://localhost:11434"),
+                    "model": _os.environ.get("OLLAMA_MODEL", "llama3.2"),
+                })
+            return self._serve_json(_db.get_ollama_settings())
+
+        if path == "/api/habits":
+            if not _db_available():
+                return self._serve_json_status(501, _no_db_response())
+            return self._serve_json({"habits": _db.compute_habits()})
+
+        if path == "/api/runs":
+            if not _db_available():
+                return self._serve_json_status(501, _no_db_response())
+            limit = int(query.get("limit", ["50"])[0])
+            rows = _db.fetchall(
+                "SELECT id, ts, mode, category, tier, freed_gb, duration_ms, "
+                "disk_before_gb, disk_after_gb FROM runs ORDER BY ts DESC LIMIT %s",
+                (limit,),
+            )
+            return self._serve_json({"runs": rows})
+
+        self.send_error(404)
+
+    # ── Plan 0006: POST + DELETE handlers ─────────────────────────────────────
+
+    def do_DELETE(self):
+        url  = urlparse(self.path)
+        path = url.path
+
+        if path.startswith("/api/settings/keys/"):
+            provider = path[len("/api/settings/keys/"):]
+            if not _db_available():
+                return self._serve_json_status(501, _no_db_response())
+            _db.delete_api_key(provider)
+            return self._serve_json({"ok": True, "provider": provider})
+
+        self.send_error(404)
+
+    def do_POST(self):
+        url  = urlparse(self.path)
+        path = url.path
+
+        # Read request body
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body   = json.loads(self.rfile.read(length)) if length else {}
+        except (json.JSONDecodeError, ValueError):
+            return self._serve_json_status(400, {"error": "invalid_json"})
+
+        if path == "/api/settings/keys":
+            provider = (body.get("provider") or "").strip().lower()
+            key      = (body.get("key")      or "").strip()
+            if not provider or not key:
+                return self._serve_json_status(400, {"error": "provider and key required"})
+            if not _db_available():
+                return self._serve_json_status(501, _no_db_response())
+            _db.save_api_key(provider, key)
+            return self._serve_json({"ok": True, "provider": provider})
+
+        if path == "/api/settings/ollama":
+            ollama_url   = (body.get("url")   or "").strip()
+            ollama_model = (body.get("model") or "").strip()
+            if not ollama_url:
+                return self._serve_json_status(400, {"error": "url required"})
+            if not _db_available():
+                return self._serve_json_status(501, _no_db_response())
+            _db.save_ollama_settings(ollama_url, ollama_model or "llama3.2")
+            return self._serve_json({"ok": True})
+
+        if path == "/api/ai/summary":
+            category  = (body.get("category") or "").strip()
+            if not category:
+                return self._serve_json_status(400, {"error": "category required"})
+            if _ai is None:
+                return self._serve_json_status(501, {"error": "ai module not available"})
+
+            # Resolve provider + key
+            if _db_available():
+                providers = _db.list_key_providers()
+                provider  = body.get("provider") or (providers[0] if providers else None)
+                if not provider:
+                    return self._serve_json_status(400, {"error": "no AI provider configured"})
+                api_key = _db.get_api_key(provider) or ""
+                if provider == "ollama":
+                    ollama = _db.get_ollama_settings()
+                    base_url = ollama["url"]
+                    model    = ollama["model"]
+                else:
+                    base_url = None
+                    model    = None
+            else:
+                # No DB: accept provider+key in the request body (less secure)
+                provider = (body.get("provider") or "").strip()
+                api_key  = (body.get("key")      or "").strip()
+                base_url = body.get("base_url")
+                model    = body.get("model")
+                if not provider or not api_key:
+                    return self._serve_json_status(400, {"error": "provider and key required without Docker mode"})
+
+            # Get scan data if not provided
+            scan_result = body.get("scan_result") or {}
+            if not scan_result and category in cleaners.CATEGORIES:
+                scan_result = scan_category(category) or {}
+
+            # Optionally include habit data
+            habit = None
+            if _db_available():
+                habits = _db.compute_habits()
+                habit  = next((h for h in habits if h["category"] == category), None)
+
+            prompt = _ai.build_scan_prompt(category, scan_result, habit)
+            try:
+                text = _ai.complete(
+                    provider=provider,
+                    api_key=api_key,
+                    prompt=prompt,
+                    model=model,
+                    base_url=base_url,
+                )
+                # Persist recommendation
+                if _db_available():
+                    _db.execute(
+                        "INSERT INTO habits (category, recommendation, computed_at) "
+                        "VALUES (%s, %s, now()) "
+                        "ON CONFLICT (category) DO UPDATE "
+                        "SET recommendation = EXCLUDED.recommendation, computed_at = now()",
+                        (category, text),
+                    )
+                return self._serve_json({"ok": True, "recommendation": text})
+            except Exception as e:
+                return self._serve_json_status(500, {"error": str(e)})
 
         self.send_error(404)
 
@@ -486,8 +673,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _serve_json(self, data):
-        body = json.dumps(data).encode("utf-8")
+        body = json.dumps(data, default=str).encode("utf-8")
         self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _serve_json_status(self, status: int, data: dict):
+        body = json.dumps(data, default=str).encode("utf-8")
+        self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
@@ -735,6 +931,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 
 def main():
+    # Plan 0006: run DB migrations on startup (no-op when DB not configured)
+    if _db is not None:
+        try:
+            _db.migrate()
+        except Exception as e:
+            print(f"[db] startup migration error (non-fatal): {e}", file=sys.stderr)
+
     port = find_open_port(PREFERRED_PORT)
     if port != PREFERRED_PORT:
         print(f"⚠  Port {PREFERRED_PORT} is busy — using {port} instead.")

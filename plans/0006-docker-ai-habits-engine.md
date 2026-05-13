@@ -1,4 +1,4 @@
-Status: in progress
+Status: shipped (commit pending merge, v0.20.0)
 
 # Plan 0006 — Docker stack + AI engine + habit learning (v0.20.0)
 

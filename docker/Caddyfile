@@ -1,0 +1,26 @@
+# Dustpan — Caddy reverse proxy
+# Localhost dev:   caddy trust  (installs local CA into macOS Keychain once)
+# Production:      set CADDY_HOST=yourdomain.com in .env → Let's Encrypt auto-fetches cert
+
+{$CADDY_HOST:localhost} {
+    # Reverse-proxy everything to the Python app
+    reverse_proxy app:8765
+
+    # Security headers on every response
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options    "nosniff"
+        X-Frame-Options           "SAMEORIGIN"
+        Referrer-Policy           "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # Encode responses
+    encode gzip zstd
+
+    # Access log to stdout (Docker captures it)
+    log {
+        output stdout
+        format console
+    }
+}

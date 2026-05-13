@@ -1,0 +1,5 @@
+# Dustpan Docker dependencies (pip install -r requirements.txt)
+# These are ONLY needed for the Docker stack. The bare `make ui` path still uses
+# Python stdlib only — these packages must never be hard-imported at module level.
+psycopg2-binary==2.9.9
+cryptography==42.0.5

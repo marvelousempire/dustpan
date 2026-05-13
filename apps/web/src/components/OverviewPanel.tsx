@@ -4,6 +4,7 @@ import { Hero } from "./Hero";
 import { PieChart } from "./PieChart";
 import { OutputConsole } from "./OutputConsole";
 import { SpaceBarChart } from "./SpaceBarChart";
+import { HabitBanner } from "./HabitBanner";
 import { History, RefreshCw, CheckCheck, AlertTriangle, ChevronRight, TabIcon } from "./icons";
 import { cn, fmt } from "../lib/utils";
 
@@ -29,6 +30,9 @@ export function OverviewPanel() {
 
   return (
     <div>
+      {/* ── 0. Habit alerts (only in Docker mode when categories near threshold) */}
+      <HabitBanner />
+
       {/* ── 1. Action buttons (top) ───────────────────────────────────────── */}
       <section className="glass mb-4 rounded-lg border border-border/20 p-4 shadow-sm">
         <div className="flex flex-wrap gap-2.5">

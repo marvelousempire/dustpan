@@ -57,6 +57,40 @@ export interface TopLevelTab {
   meta?: boolean;
 }
 
+// Plan 0006 — AI + habits types ──────────────────────────────────────────────
+
+/** AI mode state: whether the backend has Docker + DB configured. */
+export interface AIStatus {
+  docker_mode: boolean;
+  /** Provider names that have an API key stored on the server. */
+  providers: string[];
+}
+
+/** Growth-slope habit record for a single category. */
+export interface Habit {
+  category: string;
+  growth_gb_per_week: number;
+  /** Estimated days until the category hits its threshold. 9999 = never. */
+  days_to_threshold: number;
+  current_gb: number;
+  threshold_gb: number;
+  /** AI-generated recommendation text, or null. */
+  recommendation: string | null;
+}
+
+/** A single scan or clean run recorded in the DB. */
+export interface Run {
+  id: number;
+  ts: string;
+  mode: "scan" | "clean";
+  category: string | null;
+  tier: string | null;
+  freed_gb: number | null;
+  duration_ms: number | null;
+  disk_before_gb: number | null;
+  disk_after_gb: number | null;
+}
+
 // Live stream events pushed from /api/live
 export type LiveEvent =
   | { kind: "disk"; free_gb: number; used_gb: number; total_gb: number; used_pct: number; ts: number }
