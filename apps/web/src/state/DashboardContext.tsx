@@ -76,6 +76,8 @@ interface DashboardState {
   cleanAllTier: (catId: string, tier: "safe" | "probably_safe") => void;
   cleanEverywhere: (tier: "safe" | "probably_safe") => void;
   runAction: (catId: string, actionId: string, label: string, cost?: string) => void;
+  /** Like runAction but skips the confirm dialog — for Emergency panel where cards already explain everything. */
+  runActionDirect: (catId: string, actionId: string, label: string, onDone?: (freed_gb: number) => void) => void;
   openConfirm: (opts: ConfirmOptions) => Promise<boolean>;
   closeOutput: () => void;
   openChangelog: () => void;
@@ -439,6 +441,26 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     [handleStream, openConfirm, scanCategory],
   );
 
+  /**
+   * runActionDirect — no confirm dialog. The Emergency panel cards already
+   * explain exactly what will be deleted and why; an extra modal is friction
+   * when the disk is at zero. The onDone callback receives the actual freed_gb
+   * from the SSE `done` event so the panel can update per-card counters live.
+   */
+  const runActionDirect = useCallback(
+    (catId: string, actionId: string, label: string, onDone?: (freed_gb: number) => void) => {
+      handleStream(
+        `/api/run?category=${encodeURIComponent(catId)}&action=${encodeURIComponent(actionId)}`,
+        `→ ${label}`,
+        (freed_gb: number) => {
+          scanCategory(catId);
+          onDone?.(freed_gb);
+        },
+      );
+    },
+    [handleStream, scanCategory],
+  );
+
   const value = useMemo<DashboardState>(
     () => ({
       status,
@@ -467,6 +489,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       cleanAllTier,
       cleanEverywhere,
       runAction,
+      runActionDirect,
       openConfirm,
       closeOutput,
       openChangelog: () => setShowChangelog(true),
@@ -477,7 +500,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       output, outputVisible, busy, scanning, overviewAutoScanned, showChangelog, confirm,
       aiStatus, habits, doctorReport,
       setActiveTab, setActiveSub, scanCategory, scanEverything, cleanPath,
-      cleanAllTier, cleanEverywhere, runAction, openConfirm, closeOutput,
+      cleanAllTier, cleanEverywhere, runAction, runActionDirect, openConfirm, closeOutput,
     ],
   );
 
