@@ -10,9 +10,22 @@
 
 ## Executive summary
 
-This is **not** a SaaS launch — no waitlist, no email capture, no phases. It's a single-day coordinated push to bring a free, open-source dev utility into iOS-dev consciousness. The goal is **GitHub stars + one install** (any of four paths), measured over 7 days post-launch.
+This is **not** a SaaS launch — no waitlist, no email capture, no phases. It's a single-day coordinated push to bring a free, open-source disk-recovery utility into developer + power-user consciousness. The goal is **GitHub stars + one install** (any of four paths), measured over 7 days post-launch.
 
-The product is fully ready. The README is conversion-shaped (rewritten via `copywriting` skill). The positioning is locked into `.agents/product-marketing-context.md`. The only soft gap is the progress-bar GIF (issue #2) — recommend capturing it before launch but not a blocker.
+**As of v0.25 the pitch widened materially.** The original "Xcode cleanup" framing under-sells what shipped:
+
+- **Local conversational AI agent with tool-calling** (Anthropic + OpenAI) — bring-your-own-key, sandboxed filesystem peek, action-approval gates, propose-new-cleaner inbox. (Plan 0023)
+- **Unlock space locked by previous users** — finds Homebrew owned by `olivia`, `/Users/<oldname>/` from a prior account, etc. Often 5–50 GB on shared/migrated Macs. (Plan 0024)
+- **Emergency Rescue panel** for disk-at-zero situations with live in-app terminal. (Plan 0021)
+- **Space Survey** — comprehensive filesystem crawl that finds worktrees, stale builds, large `node_modules`. (Plan 0022)
+
+This means **three distinct audiences** instead of one:
+
+1. **iOS / macOS developers** — Xcode caches, simulator runtimes, DerivedData (the original audience)
+2. **General macOS power users** — disk recovery, multi-user-cruft unlock, Photos cache, Docker.raw
+3. **LLM / AI early adopters** — conversational disk co-pilot with bring-your-own-key, no telemetry, local-first
+
+The README is conversion-shaped. The positioning has been updated to lead with the AI agent and locked-space recovery as the new headline differentiators. The original Xcode angle remains as one of the proof points.
 
 ### Three plausible outcomes
 
@@ -61,7 +74,83 @@ All three are acceptable outcomes for a zero-cost side-project launch. The asymm
 
 ## Channel copy (paste-ready)
 
-### Show HN
+> **Two pitch tracks below.** Pick based on which audience you're posting to:
+>
+> - **Track A — AI / agent audience (HN front page, r/LocalLLaMA, r/MacOS):** lead with the conversational AI agent with tool-calling
+> - **Track B — iOS dev audience (r/iOSProgramming, iOS Twitter):** lead with the original Xcode cleanup angle (kept below as the proven baseline)
+>
+> Track A is the new v0.25 surface area; Track B is the original v0.13 launch copy.
+
+---
+
+### Track A — Show HN (v0.25 positioning)
+
+**Title** (≤ 80 chars):
+```
+Show HN: DustPan – a local macOS disk cleaner you can chat with (BYO API key)
+```
+
+**URL field:** `https://github.com/marvelousempire/xcode-cleanup-shortcut`
+
+**Text field** (leave empty if title carries it; otherwise short version below).
+
+**First comment** (post yourself within 30s of submission):
+
+> Hi HN — author here.
+>
+> DustPan started as a 150-line Xcode-caches AppleScript ([original launch](https://news.ycombinator.com/item?id=...)). Over the last few months it grew into a local-first macOS disk-recovery app. v0.25 ships three things that I haven't seen anywhere else combined into one tool:
+>
+> 1. **Conversational agent with tool-calling.** Bring your own Anthropic or OpenAI key (no SaaS layer, no telemetry, key stays on your Mac). The agent has 15 curated tools — measure paths, list directories, scan categories, run pre-vetted cleanups, propose new cleaners — and a sandboxed filesystem peek (allow-listed to `~/Library`, `~/Developer`, `~/Documents`, `/Applications`, common dev caches; hard-blocked from `/System`, `~/.ssh`, keychains, Mail, iOS backups). Every destructive tool call shows an approval card with the cleanup's curated description + cost text pulled from a hand-maintained source file — not AI-generated.
+>
+> 2. **Unlock space locked by previous users.** macOS file permissions hide huge amounts of disk space behind UIDs that aren't your current login. Real case from my own Mac: `/opt/homebrew` was owned by 'olivia' from before I had it; `brew` couldn't manage it under my account; 12 GB invisible to standard cleaners. DustPan finds these, shows the exact `sudo chown -R $(whoami) <path>` command, but never runs sudo itself — that's the macOS password prompt's job, not the app's.
+>
+> 3. **Emergency Rescue panel** for disk-at-zero. When `df -h /` shows 0 free, the app auto-navigates to a panel with six numbered commands that each run with live output streaming into an in-app terminal. Recovered 8+ GB in under 60 seconds on a frozen Mac this morning.
+>
+> Architecturally: Python stdlib HTTP server (no FastAPI, no pip installs), Vite+React dashboard, AppleScript bridge, SSE for streaming. Everything is auditable in ~5000 lines. MIT, no telemetry, no auto-update phone-home.
+>
+> Quickest try:
+> ```
+> git clone https://github.com/marvelousempire/xcode-cleanup-shortcut.git
+> cd xcode-cleanup-shortcut && make ui
+> ```
+>
+> Critique welcome — especially on the tool-use loop (multi-turn approval re-entry was the trickiest part) and the foreign-ownership scanner edge cases.
+
+---
+
+### Track A — r/LocalLLaMA / r/MacOS post
+
+**Title (r/MacOS):**
+```
+DustPan v0.25: local Mac disk cleaner you can chat with (BYO API key, no telemetry)
+```
+
+**Title (r/LocalLLaMA):**
+```
+Built a tool-calling agent for macOS disk recovery — Anthropic + OpenAI BYO key, sandboxed FS peek, 15 curated tools
+```
+
+**Body:**
+
+> Hi all. Open-sourcing a side project that grew bigger than I expected.
+>
+> DustPan is a local macOS disk-recovery app — predefined safe cleanup categories (Xcode, Docker, browsers, etc.) is the boring part. The v0.25 release added three things I think people here will care about:
+>
+> **1. Conversational agent with real tool-calling.** Not "model returns JSON, app parses it" — proper multi-turn loop with Anthropic Messages API `tool_use` blocks and OpenAI function-calling. 15 tools: `get_disk_status`, `measure_path`, `list_directory`, `scan_category`, `run_category_action`, etc. Each tool's input is validated; destructive ones go through an approval-card gate before executing. BYO API key, stored in macOS Keychain. Zero SaaS.
+>
+> **2. Sandboxed filesystem peek.** Allow-listed roots (`~/Library`, `~/Developer`, `~/Documents`, `/Applications`, common dev caches). Hard-blocked: `/System`, `/etc`, `~/.ssh`, `~/Library/Keychains`, Mail, iOS backups. Validator resolves symlinks first so you can't sneak through them. `list_directory` returns only `{name, is_dir, size_bytes}` — never contents.
+>
+> **3. AI-proposed cleaners with paste-ready snippets.** When the agent finds a cache DustPan doesn't already cover, it can call `propose_new_cleaner` — the proposal lands in a review inbox. Accept generates a Python snippet you paste into `cleaners.py` and commit. Never auto-edits source.
+>
+> Stack: Python stdlib `http.server` (no FastAPI), Vite+React+Tailwind dashboard, SSE for streaming. MIT, no telemetry, ~5000 lines, fully auditable.
+>
+> Repo: https://github.com/marvelousempire/xcode-cleanup-shortcut
+>
+> Happy to answer architecture questions in the comments.
+
+---
+
+### Track B — Show HN (original v0.13 positioning, kept as proven baseline)
 
 **Title** (67 chars):
 ```
