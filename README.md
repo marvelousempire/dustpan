@@ -26,12 +26,17 @@
 </p>
 
 > Your Xcode caches, your Docker volumes, your browser data, your forgotten
-> downloads — **every cleanup tells you what it will cost before you click.**
-> Local. Auditable. Free.
+> downloads, *and disk space locked by previous users of this Mac* — **every cleanup tells you what it will cost before you click.**
+> Local. Auditable. Free. Now with an AI agent you can chat with.
 
 **Dustpan finds files on your Mac you probably don't need and helps you delete them safely.** Things like the working files Xcode makes when building apps, the giant disk Docker uses internally, browser caches, leftover installers in your Downloads folder, and dozens of other places things pile up. On a Mac that does real work it usually finds **50–150 GB** worth.
 
 The big difference from other "Mac cleaners": Dustpan **tells you exactly what you lose before you click**. Cleaning Chrome's cache? *"The first time you load each website it'll be 1–3 seconds slower."* Cleaning Xcode's working files? *"Your next build will take about 30 extra seconds."* No mystery. No "trust me." No closed source.
+
+**Three new superpowers as of v0.25:**
+- 💬 **Chat with SADPA** — a conversational AI agent (bring your own Anthropic or OpenAI key) that can measure your disk, drill into folders, run cleanups *after you approve*, and even propose new cleaners DustPan should know about.
+- 🔒 **Unlock space locked by previous users** — finds Homebrew owned by "olivia" from when she had the Mac, old `/Users/<name>/` home directories still on disk, and other multi-user cruft. Often **5–50 GB**. Shows the exact `sudo` command, never runs it for you.
+- 🚨 **Emergency Rescue panel** — when the disk is at zero and nothing else works, six numbered commands that recover space in under 60 seconds, with live output streaming to a terminal in the app.
 
 ---
 
@@ -74,23 +79,29 @@ The dashboard has three things side-by-side at the top, then a grid of category 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
 │  ← Sidebar                          Main viewport                         │
-│  ┌──────────┐                                                              │
-│  │ Overview │  ┌──── Hero ────┐  ┌── Disk pie ──┐  ┌── Activity ──────┐  │
-│  │ Xcode    │  │  12.1 GB free│  │   42.8 GB    │  │ Filter lines…    │  │
-│  │ LLMs     │  │  94% used    │  │   scanned    │  │ → Scanning…      │  │
-│  │ Docker   │  │  ▓▓▓▓▓▓▓▓▓░ │  │  🟢🟣🔵🟡🟤 │  │ ✓ Done. 6.4 GB  │  │
-│  │ Apps     │  │  Factory-    │  │  Xcode 2.2GB │  │ freed in 3.1s    │  │
-│  │ Browsers │  │  fresh w/o   │  │  Docker 14.6 │  │                  │  │
-│  │ Downloads│  │  losing your │  │  LLMs  12.4  │  │ [Auto][Light][🌙]│  │
-│  │ Creative │  │  stuff       │  │  …           │  │                  │  │
-│  │ Temp     │  └──────────────┘  └──────────────┘  └──────────────────┘  │
-│  │ Archives │                                                              │
-│  │ System   │  ── Re-scan everything ── ✓ Clean ALL safe · 6.4 GB ──────  │
-│  │──────────│                                                              │
-│  │  THEME   │  ┌ Xcode ──────┐  ┌ LLMs ───────┐  ┌ Docker ─────────┐   │
-│  │[Auto][☀][🌙]│ 6.4 GB safe │  │ 0.0 GB safe │  │ 0.0 GB safe     │   │
-│  └──────────┘  │ 0.2 GB opt-in│  │ 12.4 GB opt │  │ 0.0 GB opt-in   │   │
-│                │ ● 2.0 caution│  │             │  │ ● 14.6 caution  │   │
+│  ┌──────────────┐                                                          │
+│  │ Overview     │ ┌──── Hero ────┐ ┌── Disk pie ──┐ ┌── Activity ──────┐  │
+│  │ Xcode        │ │  12.1 GB free│ │   42.8 GB    │ │ Filter lines…    │  │
+│  │ LLMs         │ │  94% used    │ │   scanned    │ │ → Scanning…      │  │
+│  │ Docker       │ │  ▓▓▓▓▓▓▓▓▓░ │ │  🟢🟣🔵🟡🟤 │ │ ✓ 6.4 GB freed   │  │
+│  │ Apps         │ │  Factory-    │ │  Xcode 2.2GB │ │ in 3.1s          │  │
+│  │ Browsers     │ │  fresh w/o   │ │  Docker 14.6 │ │                  │  │
+│  │ Downloads    │ │  losing your │ │  LLMs  12.4  │ │ [Auto][Light][🌙]│  │
+│  │ Creative     │ │  stuff       │ │  …           │ │                  │  │
+│  │ Temp         │ └──────────────┘ └──────────────┘ └──────────────────┘  │
+│  │ Archives     │                                                          │
+│  │ System       │ ── Re-scan everything ── ✓ Clean ALL safe · 6.4 GB ───  │
+│  │──────────────│                                                          │
+│  │ 💬 Chat       │ ┌ Xcode ──────┐ ┌ LLMs ───────┐ ┌ Docker ─────────┐    │
+│  │   w/ SADPA[2]│ │ 6.4 GB safe │ │ 0.0 GB safe │ │ 0.0 GB safe     │    │
+│  │ 📊 Survey     │ │ 0.2 GB opt-in│ │ 12.4 GB opt │ │ 0.0 GB opt-in   │    │
+│  │ 🚨 Emergency  │ │ ● 2.0 caution│ │             │ │ ● 14.6 caution  │    │
+│  │ ✨ SADPA      │ └──────────────┘ └──────────────┘ └──────────────────┘  │
+│  │ ⚙️  Settings  │                                                          │
+│  │──────────────│                                                          │
+│  │  THEME       │                                                          │
+│  │[Auto][☀][🌙]│                                                          │
+│  └──────────────┘                                                          │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -101,6 +112,144 @@ The dashboard has three things side-by-side at the top, then a grid of category 
 **The donut in the middle** shows where your disk space is going. Each color is a different category. Click any slice to jump to that category.
 
 **The black box on the right** is the activity log. When you start cleaning, you'll see every file Dustpan touches scroll by in real time — like a live shipping tracker for your disk space.
+
+**The bottom of the sidebar** has five extra surfaces — the things that make DustPan more than a category cleaner. They're explained in the four sections below.
+
+---
+
+## 💬 Chat with SADPA — your AI disk co-pilot
+
+> *"It could have access to my computer. Look around my computer, suggest things and use dustpan as a tool, this thing should be so smart that it would even suggest tools that he needs to build to add to the app."*
+
+Drop in an **Anthropic** or **OpenAI** API key in Settings → AI. Open the **💬 Chat with SADPA** tab. Now you have a conversational disk-recovery expert.
+
+SADPA stands for **Smart Auto-Detector Protector Agent**. It has access to 15 curated tools — never raw shell — including measuring paths, listing directories, scanning categories, running pre-vetted cleanups, and proposing new ones DustPan should learn about.
+
+### What it can do, in plain English
+
+| Ask SADPA… | What happens |
+|---|---|
+| *"What's eating my disk?"* | Calls `get_disk_status` + `get_doctor_report`, returns a ranked list with real measured sizes — never speculation. |
+| *"Show me everything bigger than 5 GB in `~/Library/Containers`."* | Calls `list_directory`, returns sized children, drills into the big ones with `measure_path`. |
+| *"Find caches you don't already track."* | Explores known cache locations, finds something new (say JetBrains caches), calls `propose_new_cleaner` — the proposal lands in a review inbox at the bottom of the chat. |
+| *"Clean my Xcode DerivedData."* | Surfaces an **approval card** with the action's curated description + cost pulled straight from `cleaners.py`. You click [✓ Approve] or [✕ Reject]. |
+| *"Is any disk space locked by other user accounts?"* | Calls `find_foreign_ownership` — see the next section. |
+
+### Approval, by default
+
+Action tools (anything that deletes) show an **approval card** before running:
+
+```
+⚠️  SADPA wants to run this
+    Run 'Clear Xcode Build Cache (DerivedData)' in Xcode
+    Removes ~/Library/Developer/Xcode/DerivedData/* — Xcode's scratch pad…
+    Cost: One slightly slower Xcode build. That's it.
+
+    [✓ Approve]  [✕ Reject]
+```
+
+The `desc` and `cost` text comes from `cleaners.py`, not the AI — so the warning is curated, never hallucinated. A Settings toggle (*"Trust the AI to run safe-tier cleanups without asking"*) flips approval to automatic for paths in the `safe` group — defaults off.
+
+### Filesystem peek is sandboxed
+
+The agent can read sizes and list directories under `~/Library`, `~/Developer`, `~/Documents`, `~/Downloads`, `~/Desktop`, `/Applications`, and common dev caches (`~/.npm`, `~/.cargo`, `~/.pnpm-store`, etc.).
+
+**Hard-blocked**: `/System`, `/etc`, `/usr`, `/bin`, `~/.ssh`, `~/.aws`, `~/.gnupg`, `~/Library/Keychains`, `~/Library/Mail`, `~/Library/Messages`, iOS backup folders. The validator resolves symlinks first so you can't sneak through them.
+
+### Proposals inbox
+
+When SADPA finds a cache DustPan doesn't already cover, it can call `propose_new_cleaner`. The proposal goes to an inbox below the chat with **[✓ Accept & generate snippet]** / **[✕ Dismiss]** buttons.
+
+Accept generates a **paste-ready Python snippet** for `cleaners.py` with the right tuples, tiers, and an optional action block:
+
+```python
+# ── Proposed by AI agent: JetBrains IDE Caches ──
+# Target category: 'apps'
+# Rationale: IntelliJ, PyCharm, WebStorm keep large indexes/caches in ~/Library/Caches/JetBrains.
+# Cost: IDE re-indexes on next launch (~30 sec).
+
+# Tier: safe
+    ("IntelliJ caches", "~/Library/Caches/JetBrains/IntelliJIdea2024.1"),
+    ("PyCharm caches",  "~/Library/Caches/JetBrains/PyCharm2024.1"),
+```
+
+You copy. You paste. You commit. **The file stays hand-curated** — the AI hands you a draft, never a mutation. The sidebar shows a pending-proposal badge so you don't lose track.
+
+### Providers
+
+Real tool-use loop for **Anthropic** (Claude) and **OpenAI** (GPT-4 family). Other providers (Perplexity, Groq, Gemini, Ollama) work in text-only mode with a banner — they don't have tool-calling APIs DustPan can leverage. Keys are stored in macOS Keychain (Docker mode → encrypted Postgres).
+
+---
+
+## 🔒 Unlock space locked by previous users
+
+Macs that have been passed between users, migrated from another account, or shared with family members accumulate **disk space you literally can't touch** under your current login. The classic case: Homebrew installed by a previous user named "olivia" — `/opt/homebrew` is owned by her account, `brew install anything` fails for you. Or `/Users/<oldname>/` is still sitting on disk taking 30 GB.
+
+DustPan's **Space Survey** finds all of it:
+
+```
+🔒 Locked by previous users — 38.4 GB recoverable
+
+  1   12 GB    Homebrew at /opt/homebrew (installed by 'olivia')        owner: olivia
+              ▼ Expand to see the takeover command
+  2   24 GB    Old user home: /Users/abrownsanta                         owner: abrownsanta (gone)
+              ▼ Both delete and chown options shown
+  3   2.4 GB   Old user home: /Users/Guest                               owner: uid-201
+```
+
+Click any row to expand. The card shows the exact command in monospace with a **[📋 Copy]** button:
+
+```bash
+sudo chown -R $(whoami) /opt/homebrew
+```
+
+DustPan **never** runs `sudo` on its own. That's deliberate — ownership transfer is a permanent filesystem change, and the macOS password prompt is the correct consent gate. You copy, you paste into Terminal, macOS prompts you for your Mac password, done. After that, `brew` works under your account.
+
+For old user homes the card shows *both* options — delete (frees the full size immediately) or chown (keeps the data but makes it yours) — so you can decide based on whether you need their files.
+
+This is also a tool the AI agent can call (`find_foreign_ownership`) — ask it *"Is any disk space locked by other users?"* and you get the same scan in conversational form.
+
+---
+
+## 🚨 Emergency Rescue — when the disk is at zero
+
+When `df -h /` shows `0 bytes free` and macOS starts refusing to do anything, the **🚨 Emergency Rescue** tab is the one-stop panel. Six numbered command cards, each with a plain-English explanation, the exact shell command in monospace, and a **▶ Run this** button that streams live output to the terminal at the bottom of the screen.
+
+```
+① Xcode Build Cache (DerivedData)        typically 5–20 GB    [▶ Run this]
+② Xcode Device Debug Files               typically 2–8 GB     [▶ Run this]
+③ macOS Photo Recognition Cache          typically 2–5 GB     [▶ Run this]
+④ Xcode Documentation Index              typically 1–5 GB     [▶ Run this]
+⑤ Docker: Remove Unused Images           typically 2–20 GB    [▶ Run this]
+⑥ Check Disk Space Right Now             read-only            [▶ Run check]
+
+[▶▶ Run All Emergency Commands Now]
+```
+
+Plus two **read-only diagnostic** cards above for the foreign-ownership case:
+
+```
+🔒  Find space locked by previous users   [▶ Run check]
+🍺  Get the Homebrew takeover command     [▶ Run check]
+```
+
+**The Smart Auto-Detector Protector Agent watches your free space in real time.** When it drops below 1 GB, DustPan auto-navigates you to the Emergency Rescue panel — no clicking required. When it drops below 10 GB, a full background scan kicks off so the quick-wins and survey panels have real data when you get to them.
+
+---
+
+## 📊 Space Survey — the comprehensive crawl
+
+The Space Survey goes **beyond** DustPan's predefined categories. A single click triggers a parallel filesystem crawl that finds:
+
+- **Claude Code worktrees** anywhere under your home (`~/Developer/*/.claude/worktrees/`) with per-worktree size breakdown and merge status — *"`compassionate-chaum` 1.7 GB ✓ merged"*
+- **Stale build artifacts** (`.next`, `.next-local`, `dist`, `build`) over 200 MB in `~/Developer`, `~/Documents`, `~/Projects`, `~/Code`
+- **Large `node_modules`** over 500 MB outside predefined paths
+- **Known high-value caches** measured fresh (Docker.raw, Cursor, mediaanalysisd, pnpm store, Homebrew Cellar, ~/.cache, etc.)
+- **Foreign-owned paths** (see previous section)
+
+Results stream in **live** as each target is found, sorted by size. After the scan completes, a **"Recommended order"** section lays out the cleanup sequence (easy targets first, biggest wins first), and a separate **"🚫 Probably not worth touching"** section explains why some big-looking things (like `mediaanalysisd` — macOS rebuilds it within hours) aren't worth deleting.
+
+Each card expands to show the rationale, rebuild cost, exact shell command, and direct links to either the Emergency Rescue panel or the relevant category.
 
 ---
 
@@ -505,6 +654,32 @@ Every URL the Python server responds to.
 | `/api/clean-all-safe?category=<>&tier=<>` | Stream while a whole category-tier cleans |
 | `/api/clean-everything?tier=<>` | Stream while every category's tier cleans at once |
 | `/api/run?category=<>&action=<>` | Stream while a predefined action runs |
+| `/api/survey` | Live-streaming comprehensive disk crawl (worktrees, build artifacts, large `node_modules`, foreign-owned paths) |
+| `POST /api/ai/chat` | Multi-turn chat with tool-calling — events: `provider_info`, `assistant_text`, `tool_use_start`, `tool_use_result`, `tool_approval_needed`, `assistant_done` |
+| `/api/ai/diagnose` | One-shot SADPA diagnosis (the original SADPA panel) |
+
+### AI agent + proposals (Plan 0023, v0.23.0–v0.25.0)
+
+| Path | What it does |
+|---|---|
+| `/api/ai/status` | Configured providers + Docker mode flag |
+| `/api/ai/proposals?status=<>` | List cleaner proposals filed by the AI |
+| `/api/ai/proposals/count` | Pending count (sidebar badge) |
+| `/api/ai/proposals/<id>/snippet` | Generate paste-ready Python snippet |
+| `POST /api/ai/proposals/<id>/accept` | Mark accepted, return snippet |
+| `POST /api/ai/proposals/<id>/dismiss` | Mark dismissed |
+| `GET /api/settings/agent` | Read `allow_safe_auto` (auto-approve toggle) |
+| `POST /api/settings/agent` | Write `allow_safe_auto` |
+
+### Settings + keys
+
+| Path | What it does |
+|---|---|
+| `GET /api/settings/keys` | List configured providers (no key values) |
+| `POST /api/settings/keys` | Save an Anthropic / OpenAI / Perplexity / Groq / Gemini key |
+| `DELETE /api/settings/keys/<provider>` | Forget a key |
+| `GET /api/settings/ollama` | Ollama URL + model |
+| `POST /api/settings/ollama` | Save Ollama settings |
 
 ### Static assets
 

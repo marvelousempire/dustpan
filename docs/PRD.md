@@ -1,19 +1,38 @@
 # DustPan by AVERY GOODMAN — PRD
 
-**Status:** Live (v0.4 shipped)
+**Status:** Live (v0.25.0 shipped — see "Scope evolution" below)
 **Owner:** marvelousempire
-**Last updated:** 2026-05-08
+**Last updated:** 2026-05-14
 
 ## Problem
 
-Active iOS developers running Xcode see their boot drive fill up by 20–60 GB over a few weeks of normal work. The disk pressure surfaces as failed builds, full simulators, slow Spotlight, and macOS warning banners. The fix — `rm -rf` of well-known cache directories — is well documented but tedious to remember and run.
+The original framing focused on Xcode caches specifically. The product has grown materially — see "Scope evolution" below — but the core friction remains the same: **macOS users see disk fill up with files they don't understand and reach for `rm -rf` of guesses they Googled.** DustPan replaces guessing with auditable, tier-classified, cost-annotated cleanups, plus a sandboxed conversational agent.
 
-The current state of the user's workflow before this tool:
-- `du -sh ~/Library/Developer/...` to see what's eating space.
-- Hand-typed `rm -rf` for each path.
-- Repeat every couple of weeks.
+Active developers running Xcode + Docker + multiple toolchains routinely lose 50–150 GB to well-known cache directories. Shared/migrated Macs additionally lose 5–50 GB to files owned by previous accounts that the current user can't even see in Finder. The fix is well documented but tedious — and the AI-suggestion side ("which paths are safe to delete?") is exactly the kind of thing an LLM is good at, *if it can actually measure and act, not just speculate*.
 
-This is friction that should be a button.
+The original workflow before this tool:
+- `du -sh ~/Library/Developer/...` to see what's eating space
+- Hand-typed `rm -rf` for each path
+- Repeat every couple of weeks
+- Sometimes `sudo chown -R` a directory the new user can't touch
+- Pay $40/year for a closed-source GUI that does it less safely
+
+DustPan collapses all of this into one auditable, local, free tool.
+
+## Scope evolution (v0.4 → v0.25)
+
+| Version | Scope expansion |
+|---|---|
+| v0.4 | Xcode-only AppleScript cleanup with threshold gating + dry-run |
+| v0.10 | Web dashboard, 19+ categories, tiered safety classification |
+| v0.20 | Disk Doctor / Rescue Mode for under-10-GB-free Macs |
+| v0.21 | Emergency Rescue panel + SADPA auto-navigation |
+| v0.22 | Space Survey — comprehensive filesystem crawl |
+| v0.23 | Chat with SADPA — tool-calling AI agent (Anthropic + OpenAI) |
+| v0.24 | Foreign-ownership discovery — unlock space locked by previous users |
+| v0.25 | AI cleaner proposals — agent suggests new cleaners for DustPan to learn |
+
+The PRD goals below are now **superset**: the original Xcode goals plus the new pillars.
 
 ## Goals
 
