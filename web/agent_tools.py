@@ -1,0 +1,734 @@
+"""
+Plan 0023 — Tool registry for the conversational SADPA agent.
+
+This module is the single source of truth for what the AI agent can do.
+Everything is curated:
+  - Tier A (read-only): runs immediately, no approval
+  - Tier B (action): requires user approval unless allow_safe_auto + safe tier
+  - Tier C (meta): client-side concerns (navigate, ask_user)
+
+Crucially, NO tool ever accepts a raw shell command. Action tools take
+category_id + action_id only, so the model can never bypass the pre-vetted
+commands in cleaners.py. Path-touching tools route through validate_peek_path.
+"""
+from __future__ import annotations
+
+import csv
+import json
+import os
+import subprocess
+import time
+from pathlib import Path
+from typing import Any, Callable, Optional
+
+
+# ── Path safety: home-subtree allowlist + hard denies ────────────────────────
+
+HOME = Path.home()
+
+# Hard denies — any path under these is rejected, period.
+DENY_ROOTS_HARD = {
+    "/etc", "/System", "/usr", "/bin", "/sbin", "/var", "/private",
+    "/dev", "/Library", "/Network", "/cores", "/.vol",
+}
+
+# Sub-paths under HOME that are off limits even though HOME itself is allowed.
+DENY_SUBPATHS = [
+    HOME / ".ssh",
+    HOME / ".aws",
+    HOME / ".gnupg",
+    HOME / ".config" / "gh" / "hosts.yml",
+    HOME / "Library" / "Keychains",
+    HOME / "Library" / "Mail",
+    HOME / "Library" / "Messages",
+    HOME / "Library" / "Application Support" / "MobileSync" / "Backup",
+    HOME / "Library" / "Cookies",
+    HOME / "Library" / "PersonalAssistant",
+]
+
+# Allow-list of roots the agent may peek at.
+ALLOWED_ROOTS = [
+    HOME / "Library" / "Caches",
+    HOME / "Library" / "Application Support",
+    HOME / "Library" / "Containers",
+    HOME / "Library" / "Developer",
+    HOME / "Library" / "Logs",
+    HOME / "Library" / "Saved Application State",
+    HOME / "Library" / "WebKit",
+    HOME / "Developer",
+    HOME / "Documents",
+    HOME / "Downloads",
+    HOME / "Desktop",
+    HOME / "Movies",
+    HOME / "Music",
+    HOME / "Pictures",
+    HOME / ".cache",
+    HOME / ".npm",
+    HOME / ".cargo",
+    HOME / ".cocoapods",
+    HOME / ".gradle",
+    HOME / ".m2",
+    HOME / ".pnpm-store",
+    HOME / ".pyenv",
+    HOME / ".nvm",
+    HOME / ".rvm",
+    HOME / ".rustup",
+    Path("/Applications"),
+]
+
+
+def validate_peek_path(raw: str) -> Optional[Path]:
+    """
+    Return a resolved Path if the input is safe to read, else None.
+
+    Rules:
+      1. Tilde-expand and resolve symlinks (strict=False — path may not exist yet)
+      2. Reject if the resolved path or any prefix matches DENY_ROOTS_HARD
+      3. Reject if path is under any DENY_SUBPATHS entry
+      4. Require path to be under at least one ALLOWED_ROOTS entry
+    """
+    if not raw or not isinstance(raw, str):
+        return None
+    try:
+        p = Path(os.path.expanduser(raw.strip())).resolve(strict=False)
+    except (OSError, RuntimeError):
+        return None
+
+    # Reject paths under hard-deny roots
+    p_str = str(p)
+    for deny in DENY_ROOTS_HARD:
+        if p_str == deny or p_str.startswith(deny + "/"):
+            return None
+
+    # Reject paths under sensitive sub-paths
+    for deny in DENY_SUBPATHS:
+        try:
+            p.relative_to(deny)
+            return None  # match — reject
+        except ValueError:
+            pass
+
+    # Must be under an allowed root
+    for root in ALLOWED_ROOTS:
+        try:
+            p.relative_to(root)
+            return p
+        except ValueError:
+            pass
+
+    return None
+
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+def _du_gb(p: Path, timeout: int = 8) -> float:
+    """Return on-disk size in GB. 0 on error / timeout / missing."""
+    if not p.exists():
+        return 0.0
+    try:
+        r = subprocess.run(
+            ["du", "-sh", str(p)],
+            capture_output=True, text=True, timeout=timeout,
+        )
+        s = r.stdout.split("\t")[0].strip()
+        if not s or s in ("-", "0"):
+            return 0.0
+        mult = {"K": 1 / 1024 / 1024, "M": 1 / 1024, "G": 1.0, "T": 1024.0}
+        for suffix, factor in mult.items():
+            if s.endswith(suffix):
+                return round(float(s[:-1]) * factor, 2)
+        return round(int(s) / 1024**3, 2)
+    except Exception:
+        return 0.0
+
+
+def _du_bytes(p: Path, timeout: int = 6) -> int:
+    """Return on-disk size in bytes via `du -sk`. 0 on error."""
+    if not p.exists():
+        return 0
+    try:
+        r = subprocess.run(
+            ["du", "-sk", str(p)],
+            capture_output=True, text=True, timeout=timeout,
+        )
+        kb = int(r.stdout.split("\t")[0].strip())
+        return kb * 1024
+    except Exception:
+        return 0
+
+
+# ── Tool handlers ────────────────────────────────────────────────────────────
+# Each handler returns a JSON-serialisable dict.
+# Handlers receive (args: dict, ctx: dict). ctx is a per-turn bag with:
+#   - "scan_cache"      — the global scan cache
+#   - "disk_status"     — current get_status() dict
+#   - "allow_safe_auto" — bool from settings
+#   - "cleaners"        — cleaners.CATEGORIES dict (passed in to avoid circular imports)
+#   - "server_helpers"  — dict of bound server helpers (scan_category, get_status, etc.)
+
+def _h_get_disk_status(args: dict, ctx: dict) -> dict:
+    helpers = ctx.get("server_helpers", {})
+    get_status = helpers.get("get_status")
+    if not get_status:
+        return {"error": "get_status helper unavailable"}
+    s = get_status()
+    return {
+        "free_gb":  s.get("free_gb", 0),
+        "used_gb":  s.get("used_gb", 0),
+        "total_gb": s.get("total_gb", 0),
+        "used_pct": s.get("used_pct", 0),
+    }
+
+
+def _h_get_doctor_report(args: dict, ctx: dict) -> dict:
+    """Top safe-tier paths ranked by size, across all scanned categories."""
+    helpers = ctx.get("server_helpers", {})
+    build = helpers.get("build_doctor_report")
+    if not build:
+        return {"error": "doctor report builder unavailable"}
+    return build()
+
+
+def _h_list_categories(args: dict, ctx: dict) -> dict:
+    cats = ctx.get("cleaners", {})
+    out = []
+    for cid, cat in cats.items():
+        # Skip meta categories (emergency, etc.)
+        if cat.get("meta"):
+            continue
+        groups = cat.get("groups", {})
+        out.append({
+            "id":       cid,
+            "label":    cat.get("label", cid),
+            "tagline":  cat.get("tagline", ""),
+            "tiers": {
+                "safe":           len(groups.get("safe", [])),
+                "probably_safe":  len(groups.get("probably_safe", [])),
+                "caution":        len(groups.get("caution", [])),
+            },
+            "action_count": len(cat.get("actions", {})),
+        })
+    out.sort(key=lambda x: x["id"])
+    return {"categories": out, "count": len(out)}
+
+
+def _h_list_category_actions(args: dict, ctx: dict) -> dict:
+    cid = (args.get("category_id") or "").strip()
+    if not cid:
+        return {"error": "category_id required"}
+    cats = ctx.get("cleaners", {})
+    cat = cats.get(cid)
+    if not cat:
+        return {"error": f"unknown category: {cid}"}
+    actions = cat.get("actions", {})
+    out = []
+    for aid, a in actions.items():
+        out.append({
+            "id":             aid,
+            "label":          a.get("label", aid),
+            "desc":           a.get("desc", ""),
+            "cost":           a.get("cost", ""),
+            "informational":  bool(a.get("informational", False)),
+        })
+    return {"category_id": cid, "actions": out}
+
+
+def _h_scan_category(args: dict, ctx: dict) -> dict:
+    cid = (args.get("category_id") or "").strip()
+    if not cid:
+        return {"error": "category_id required"}
+    helpers = ctx.get("server_helpers", {})
+    scan = helpers.get("scan_category")
+    if not scan:
+        return {"error": "scan_category helper unavailable"}
+    try:
+        result = scan(cid)
+    except KeyError:
+        return {"error": f"unknown category: {cid}"}
+    except Exception as e:
+        return {"error": f"scan failed: {e}"}
+    # Trim to the structured essentials so we don't blow the context window
+    groups = result.get("groups", {})
+    summary = {"category_id": cid}
+    for tier_name in ("safe", "probably_safe", "caution"):
+        tier = groups.get(tier_name, {})
+        paths = tier.get("paths", []) or []
+        # Keep top 15 per tier, dropping anything < 50 MB
+        big = [
+            {
+                "label":    p.get("label", ""),
+                "path":     p.get("path", ""),
+                "size_gb":  round(p.get("size_gb", 0) or 0, 2),
+            }
+            for p in paths
+            if (p.get("size_gb") or 0) >= 0.05
+        ]
+        big.sort(key=lambda x: x["size_gb"], reverse=True)
+        summary[tier_name] = {
+            "total_gb":  tier.get("total_gb", 0),
+            "top_paths": big[:15],
+        }
+    return summary
+
+
+def _h_measure_path(args: dict, ctx: dict) -> dict:
+    raw = (args.get("path") or "").strip()
+    p = validate_peek_path(raw)
+    if p is None:
+        return {"error": "path not allowed", "input": raw,
+                "hint": "Allowed roots include ~/Library/Caches, ~/Library/Containers, ~/Developer, ~/Documents, /Applications"}
+    if not p.exists():
+        return {"path": str(p), "exists": False, "size_gb": 0}
+    return {
+        "path":      str(p),
+        "exists":    True,
+        "size_gb":   _du_gb(p, timeout=10),
+        "is_dir":    p.is_dir(),
+        "is_symlink": p.is_symlink(),
+    }
+
+
+def _h_list_directory(args: dict, ctx: dict) -> dict:
+    raw = (args.get("path") or "").strip()
+    p = validate_peek_path(raw)
+    if p is None:
+        return {"error": "path not allowed", "input": raw}
+    if not p.exists():
+        return {"error": "path does not exist", "path": str(p)}
+    if not p.is_dir():
+        return {"error": "not a directory", "path": str(p)}
+    try:
+        entries = []
+        for child in sorted(p.iterdir()):
+            if len(entries) >= 50:
+                break
+            try:
+                stat = child.lstat()
+                size_bytes = stat.st_size if child.is_file() else _du_bytes(child, timeout=3)
+            except (OSError, PermissionError):
+                size_bytes = 0
+            entries.append({
+                "name":       child.name,
+                "is_dir":     child.is_dir(),
+                "is_symlink": child.is_symlink(),
+                "size_bytes": size_bytes,
+                "size_gb":    round(size_bytes / 1024**3, 3) if size_bytes else 0,
+            })
+        # Sort by size desc so the model sees the big ones first
+        entries.sort(key=lambda e: e["size_bytes"], reverse=True)
+        return {
+            "path":       str(p),
+            "entries":    entries,
+            "truncated":  len(entries) >= 50,
+        }
+    except PermissionError:
+        return {"error": "permission denied", "path": str(p)}
+
+
+def _h_get_recent_runs(args: dict, ctx: dict) -> dict:
+    """Read the recent-runs CSV maintained by server.py _log_run()."""
+    limit = int(args.get("limit", 20))
+    limit = max(1, min(limit, 100))
+    csv_path = HOME / ".dustpan" / "runs.csv"
+    if not csv_path.exists():
+        return {"runs": [], "note": "no runs logged yet"}
+    try:
+        rows = []
+        with csv_path.open() as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                rows.append(row)
+        # Return most recent N
+        return {"runs": rows[-limit:][::-1], "total": len(rows)}
+    except Exception as e:
+        return {"error": f"failed to read runs: {e}"}
+
+
+def _h_run_disk_survey(args: dict, ctx: dict) -> dict:
+    """Run a synchronous version of the survey. Returns the final target list.
+
+    Heavy operation — typically 15–45 seconds. Reuses the same logic as
+    /api/survey but returns all results at once instead of streaming.
+    """
+    helpers = ctx.get("server_helpers", {})
+    run_survey_sync = helpers.get("run_survey_sync")
+    if not run_survey_sync:
+        return {"error": "survey helper unavailable"}
+    return run_survey_sync()
+
+
+def _h_run_category_action(args: dict, ctx: dict) -> dict:
+    """Execute a pre-vetted action from cleaners.py.
+
+    Approval logic is handled by the chat orchestrator before we get here.
+    By the time this runs, the user has either auto-approved (safe tier +
+    allow_safe_auto) or explicitly approved via the UI.
+    """
+    cid = (args.get("category_id") or "").strip()
+    aid = (args.get("action_id")   or "").strip()
+    if not cid or not aid:
+        return {"error": "category_id and action_id required"}
+    helpers = ctx.get("server_helpers", {})
+    exec_action = helpers.get("execute_action_sync")
+    if not exec_action:
+        return {"error": "action executor unavailable"}
+    return exec_action(cid, aid)
+
+
+def _h_clean_path(args: dict, ctx: dict) -> dict:
+    """Clean a single path that lives inside a category's safe/probably_safe."""
+    cid  = (args.get("category_id") or "").strip()
+    path = (args.get("path") or "").strip()
+    if not cid or not path:
+        return {"error": "category_id and path required"}
+    helpers = ctx.get("server_helpers", {})
+    exec_clean = helpers.get("execute_clean_path_sync")
+    if not exec_clean:
+        return {"error": "clean executor unavailable"}
+    return exec_clean(cid, path)
+
+
+def _h_navigate_to_tab(args: dict, ctx: dict) -> dict:
+    """Client-side concern — server just echoes it as an instruction."""
+    tab = (args.get("tab_id") or "").strip()
+    if not tab:
+        return {"error": "tab_id required"}
+    return {"tab_id": tab, "ok": True, "client_action": "navigate"}
+
+
+def _h_ask_user(args: dict, ctx: dict) -> dict:
+    """Client-side concern — render a follow-up question in the chat."""
+    return {
+        "question":     args.get("question", ""),
+        "options":      args.get("options", []),
+        "ok":           True,
+        "client_action": "ask",
+    }
+
+
+# ── Tool registry ────────────────────────────────────────────────────────────
+
+TOOLS: list[dict] = [
+    # ── Tier A: read-only, auto-execute ──
+    {
+        "name": "get_disk_status",
+        "description": (
+            "Get current macOS disk usage: free GB, used GB, total GB, percent used. "
+            "Call this FIRST when the user asks anything about disk space."
+        ),
+        "input_schema": {"type": "object", "properties": {}, "required": []},
+        "tier": "A", "requires_approval": False,
+        "handler": _h_get_disk_status,
+    },
+    {
+        "name": "get_doctor_report",
+        "description": (
+            "Get the top safe-tier reclaimable paths across all previously-scanned "
+            "categories, ranked by size. Returns quick-wins ready to clean."
+        ),
+        "input_schema": {"type": "object", "properties": {}, "required": []},
+        "tier": "A", "requires_approval": False,
+        "handler": _h_get_doctor_report,
+    },
+    {
+        "name": "list_categories",
+        "description": (
+            "List every cleanup category DustPan knows about (xcode, docker, apps, "
+            "system, temp, archives, downloads, browsers, etc.) with each category's "
+            "tagline and per-tier path counts. Use this to know what's available."
+        ),
+        "input_schema": {"type": "object", "properties": {}, "required": []},
+        "tier": "A", "requires_approval": False,
+        "handler": _h_list_categories,
+    },
+    {
+        "name": "list_category_actions",
+        "description": (
+            "List the pre-defined actions for a single category (e.g. 'clear DerivedData', "
+            "'docker system prune'). Returns each action's label, description, and cost. "
+            "Use this BEFORE proposing run_category_action so you know exactly what runs."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"category_id": {"type": "string", "description": "Category id, e.g. 'xcode'"}},
+            "required": ["category_id"],
+        },
+        "tier": "A", "requires_approval": False,
+        "handler": _h_list_category_actions,
+    },
+    {
+        "name": "scan_category",
+        "description": (
+            "Scan a category and return the top safe/probably_safe/caution paths "
+            "ranked by size. Use this when the user asks about a specific category "
+            "(e.g. 'how much can I clean in xcode?')."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"category_id": {"type": "string"}},
+            "required": ["category_id"],
+        },
+        "tier": "A", "requires_approval": False,
+        "handler": _h_scan_category,
+    },
+    {
+        "name": "run_disk_survey",
+        "description": (
+            "Run a comprehensive filesystem survey. Discovers Claude Code worktrees, "
+            "stale build artifacts (.next, dist, .next-local), large node_modules, "
+            "and measures all known caches (Docker.raw, DerivedData, etc.). "
+            "Takes 15-45 seconds. Returns the full ranked target list. Use this "
+            "when the user asks for a deep audit or 'what's eating my disk'."
+        ),
+        "input_schema": {"type": "object", "properties": {}, "required": []},
+        "tier": "A", "requires_approval": False,
+        "handler": _h_run_disk_survey,
+    },
+    {
+        "name": "measure_path",
+        "description": (
+            "Measure on-disk size of a specific path (du -sh equivalent). "
+            "Only paths under ~/Library, ~/Developer, ~/Documents, ~/Downloads, "
+            "~/Desktop, ~/Movies, ~/Music, ~/Pictures, /Applications, and common "
+            "dev caches (~/.npm, ~/.cargo, etc.) are allowed. System dirs are blocked."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"path": {"type": "string", "description": "Absolute or tilde-expanded path"}},
+            "required": ["path"],
+        },
+        "tier": "A", "requires_approval": False,
+        "handler": _h_measure_path,
+    },
+    {
+        "name": "list_directory",
+        "description": (
+            "List the immediate children of a directory with their sizes. Returns "
+            "up to 50 entries sorted by size desc. Same safety rules as measure_path. "
+            "Use this to drill into what's inside a big folder you found."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"path": {"type": "string"}},
+            "required": ["path"],
+        },
+        "tier": "A", "requires_approval": False,
+        "handler": _h_list_directory,
+    },
+    {
+        "name": "get_recent_runs",
+        "description": (
+            "Get the user's recent cleanup history (last N runs). Each entry has "
+            "timestamp, category, action, freed_gb. Use this to understand patterns: "
+            "'what did I clean last week?', 'how often do I run Docker prune?'"
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"limit": {"type": "integer", "default": 20}},
+            "required": [],
+        },
+        "tier": "A", "requires_approval": False,
+        "handler": _h_get_recent_runs,
+    },
+
+    # ── Tier B: action, requires approval (toggle-able for safe-tier) ──
+    {
+        "name": "run_category_action",
+        "description": (
+            "Run a pre-defined cleanup action (e.g. clear DerivedData, docker prune). "
+            "ALWAYS list_category_actions first to know what's available and what each "
+            "does. The user will be shown an approval card with the action's full "
+            "description and cost before it runs (unless they've enabled safe-tier "
+            "auto-approval in Settings)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "category_id": {"type": "string"},
+                "action_id":   {"type": "string"},
+            },
+            "required": ["category_id", "action_id"],
+        },
+        "tier": "B", "requires_approval": True,
+        "handler": _h_run_category_action,
+    },
+    {
+        "name": "clean_path",
+        "description": (
+            "Clean a single path that's already in a category's safe or probably_safe "
+            "group. Path must match exactly what was returned by scan_category — the "
+            "server validates against cleaners.py. Requires user approval."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "category_id": {"type": "string"},
+                "path":        {"type": "string"},
+            },
+            "required": ["category_id", "path"],
+        },
+        "tier": "B", "requires_approval": True,
+        "handler": _h_clean_path,
+    },
+
+    # ── Tier C: meta / client-side ──
+    {
+        "name": "navigate_to_tab",
+        "description": (
+            "Tell the UI to switch tabs. Valid tab ids: 'overview', 'emergency', "
+            "'survey', 'agent', 'ai-chat', 'settings', or any category id from "
+            "list_categories. Use this to direct the user to where they should look."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"tab_id": {"type": "string"}},
+            "required": ["tab_id"],
+        },
+        "tier": "C", "requires_approval": False,
+        "handler": _h_navigate_to_tab,
+    },
+    {
+        "name": "ask_user",
+        "description": (
+            "Ask the user a follow-up question with optional multiple-choice options. "
+            "Use this when you need a decision before proceeding (e.g. 'I see two "
+            "ways to free space — which would you like?')."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "question": {"type": "string"},
+                "options":  {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["question"],
+        },
+        "tier": "C", "requires_approval": False,
+        "handler": _h_ask_user,
+    },
+]
+
+# Index by name for O(1) dispatch
+_BY_NAME: dict[str, dict] = {t["name"]: t for t in TOOLS}
+
+
+# ── Schema projections for each provider ─────────────────────────────────────
+
+def schemas_anthropic() -> list[dict]:
+    """Tool schemas in Anthropic Messages API shape."""
+    return [
+        {
+            "name":         t["name"],
+            "description":  t["description"],
+            "input_schema": t["input_schema"],
+        }
+        for t in TOOLS
+    ]
+
+
+def schemas_openai() -> list[dict]:
+    """Tool schemas in OpenAI function-calling shape."""
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name":        t["name"],
+                "description": t["description"],
+                "parameters":  t["input_schema"],
+            },
+        }
+        for t in TOOLS
+    ]
+
+
+# ── Dispatch ─────────────────────────────────────────────────────────────────
+
+def get_tool(name: str) -> Optional[dict]:
+    return _BY_NAME.get(name)
+
+
+def run_tool(name: str, args: dict, ctx: dict) -> dict:
+    """
+    Execute a tool. Returns a dict with the tool's result OR an error dict.
+    Catches all exceptions so the model can recover gracefully.
+    """
+    t = _BY_NAME.get(name)
+    if not t:
+        return {"error": f"unknown tool: {name}", "available": list(_BY_NAME.keys())}
+    handler: Callable = t["handler"]
+    try:
+        t0 = time.time()
+        result = handler(args or {}, ctx or {})
+        return {"ok": True, "result": result, "elapsed_ms": int((time.time() - t0) * 1000)}
+    except Exception as e:
+        return {"ok": False, "error": str(e), "tool": name}
+
+
+def needs_approval(name: str, args: dict, allow_safe_auto: bool, cleaners_dict: dict) -> bool:
+    """
+    Decide whether a tool call needs explicit user approval.
+
+    Rules:
+      - Tier A and C: never need approval
+      - Tier B: need approval UNLESS allow_safe_auto is True AND the action's
+        tier in cleaners.py is 'safe'
+    """
+    t = _BY_NAME.get(name)
+    if not t:
+        return True  # Unknown tool — always require approval
+    if not t.get("requires_approval", False):
+        return False
+
+    if not allow_safe_auto:
+        return True
+
+    # Determine if this is a safe-tier action
+    if name == "run_category_action":
+        # We treat all explicit named actions as needing approval unless we can
+        # confidently classify them as "safe tier" — for now, ANY run_category_action
+        # call requires approval since action shells are arbitrary by nature.
+        # Future: tag each action in cleaners.py with explicit tier metadata.
+        return True
+    if name == "clean_path":
+        cid = (args.get("category_id") or "").strip()
+        path = (args.get("path") or "").strip()
+        cat = cleaners_dict.get(cid)
+        if not cat:
+            return True
+        # Auto-approve only if path appears in the 'safe' group
+        for label, p in cat.get("groups", {}).get("safe", []):
+            if os.path.expanduser(p) == os.path.expanduser(path) or p == path:
+                return False
+        return True
+
+    return True
+
+
+def approval_summary(name: str, args: dict, cleaners_dict: dict) -> dict:
+    """
+    Build the human-facing approval card payload for a Tier-B tool call.
+    Pulls 'desc' and 'cost' text from cleaners.py so wording stays curated.
+    """
+    if name == "run_category_action":
+        cid = (args.get("category_id") or "").strip()
+        aid = (args.get("action_id") or "").strip()
+        cat = cleaners_dict.get(cid, {})
+        action = cat.get("actions", {}).get(aid, {})
+        return {
+            "summary": f"Run '{action.get('label', aid)}' in {cat.get('label', cid)}",
+            "desc":    action.get("desc", ""),
+            "cost":    action.get("cost", ""),
+            "category_id": cid,
+            "action_id":   aid,
+        }
+    if name == "clean_path":
+        cid = (args.get("category_id") or "").strip()
+        path = (args.get("path") or "").strip()
+        cat = cleaners_dict.get(cid, {})
+        return {
+            "summary": f"Clean {path}",
+            "desc":    f"Delete the contents of {path} (this path is in '{cat.get('label', cid)}').",
+            "cost":    "The path will be removed. If it's a cache it will rebuild on next use.",
+            "category_id": cid,
+            "path":        path,
+        }
+    return {"summary": f"Run {name}", "desc": json.dumps(args), "cost": "Unknown."}

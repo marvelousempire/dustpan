@@ -78,6 +78,14 @@ try:
 except ImportError:
     _agent = None  # type: ignore
 
+# Plan 0023: conversational tool-calling agent
+try:
+    import agent_chat as _agent_chat
+    import agent_tools as _agent_tools
+except ImportError:
+    _agent_chat  = None  # type: ignore
+    _agent_tools = None  # type: ignore
+
 def _init_store():
     """Pick the best available store. Called once at startup."""
     global _store
@@ -562,6 +570,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 })
             return self._serve_json(_store.get_ollama_settings())
 
+        # ── Plan 0023: GET /api/settings/agent — read auto-approve toggle ─────
+        if path == "/api/settings/agent":
+            return self._serve_json(self._read_agent_settings())
+
         if path == "/api/habits":
             if not _db_available():
                 return self._serve_json_status(501, _no_db_response())
@@ -688,6 +700,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self._serve_json({"ok": True, "recommendation": text})
             except Exception as e:
                 return self._serve_json_status(500, {"error": str(e)})
+
+        # ── Plan 0023: POST /api/ai/chat — conversational tool-calling agent ──
+        if path == "/api/ai/chat":
+            return self._stream_chat(body)
+
+        # ── Plan 0023: POST /api/settings/agent — auto-approve toggle ─────────
+        if path == "/api/settings/agent":
+            return self._save_agent_settings(body)
 
         self.send_error(404)
 
@@ -1390,6 +1410,129 @@ class Handler(http.server.BaseHTTPRequestHandler):
             })
         except (BrokenPipeError, ConnectionResetError):
             return
+
+    # ── Plan 0023: conversational tool-calling agent ─────────────────────────
+
+    def _agent_settings_path(self) -> "Path":
+        return Path.home() / ".dustpan" / "agent-settings.json"
+
+    def _read_agent_settings(self) -> dict:
+        """Read agent settings from ~/.dustpan/agent-settings.json (or Postgres in Docker mode)."""
+        # Postgres path: store as a single 'agent_settings' row keyed by user='default'
+        if _db_available():
+            try:
+                rows = _store.fetchall(
+                    "SELECT value FROM kv_store WHERE key = %s LIMIT 1",
+                    ("agent_settings",),
+                )
+                if rows:
+                    return json.loads(rows[0][0]) if isinstance(rows[0], (list, tuple)) else json.loads(rows[0]["value"])
+            except Exception:
+                pass
+        # File path
+        p = self._agent_settings_path()
+        if p.exists():
+            try:
+                return json.loads(p.read_text())
+            except Exception:
+                pass
+        return {"allow_safe_auto": False}
+
+    def _save_agent_settings(self, body: dict):
+        allow = bool(body.get("allow_safe_auto", False))
+        payload = {"allow_safe_auto": allow}
+        # Try DB first, fall back to file
+        if _db_available():
+            try:
+                _store.execute(
+                    "INSERT INTO kv_store (key, value) VALUES (%s, %s) "
+                    "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+                    ("agent_settings", json.dumps(payload)),
+                )
+                return self._serve_json({"ok": True, **payload})
+            except Exception:
+                pass
+        # File path
+        p = self._agent_settings_path()
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(json.dumps(payload, indent=2))
+            return self._serve_json({"ok": True, **payload})
+        except Exception as e:
+            return self._serve_json_status(500, {"error": f"failed to save: {e}"})
+
+    def _stream_chat(self, body: dict):
+        """POST /api/ai/chat — multi-turn agent loop streamed via SSE."""
+        if _agent_chat is None or _agent_tools is None:
+            return self._serve_json_status(501, {"error": "agent_chat module not available"})
+
+        messages         = body.get("messages") or []
+        pending_results  = body.get("pending_tool_results")  # optional
+        allow_override   = body.get("allow_safe_auto")
+        provider_overrid = body.get("provider")
+
+        # Read persisted setting if not in body
+        if allow_override is None:
+            persisted = self._read_agent_settings()
+            allow_safe_auto = bool(persisted.get("allow_safe_auto", False))
+        else:
+            allow_safe_auto = bool(allow_override)
+
+        if not messages and not pending_results:
+            return self._serve_json_status(400, {"error": "messages required"})
+
+        # SSE headers
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.end_headers()
+
+        # Build server_helpers dict — bound references the tools can call
+        def _build_doctor_report_wrapper():
+            return self._build_doctor_report()
+
+        def _run_survey_sync_wrapper():
+            # Returning the cached doctor report is the cheap proxy.
+            # The full survey is async by nature — we'd need to refactor
+            # _stream_survey to provide a true sync version. For Ship 1,
+            # we direct the model to scan_category + doctor instead.
+            return {
+                "note": "Use scan_category(category_id) per category for fresh measurements, "
+                        "or call get_doctor_report for cached safe-tier ranking.",
+            }
+
+        server_helpers = {
+            "get_status":          get_status,
+            "build_doctor_report": _build_doctor_report_wrapper,
+            "scan_category":       scan_category,
+            "run_survey_sync":     _run_survey_sync_wrapper,
+            "scan_cache":          _get_scan_cache(),
+        }
+
+        def on_event(ev: dict) -> None:
+            try:
+                self._send_sse(ev)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+        try:
+            _agent_chat.chat_turn(
+                messages         = messages,
+                on_event         = on_event,
+                server_helpers   = server_helpers,
+                cleaners_dict    = cleaners.CATEGORIES,
+                allow_safe_auto  = allow_safe_auto,
+                pending_results  = pending_results,
+                provider_override= provider_overrid,
+            )
+        except (BrokenPipeError, ConnectionResetError):
+            return
+        except Exception as e:
+            try:
+                self._send_sse({"event": "error", "data": {"message": str(e)}})
+            except Exception:
+                pass
 
     def _serve_json_status(self, status: int, data: dict):
         body = json.dumps(data, default=str).encode("utf-8")
