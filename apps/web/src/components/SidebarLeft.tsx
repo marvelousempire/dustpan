@@ -107,6 +107,13 @@ export function SidebarLeft() {
         })}
         {/* SADPA + Emergency + Settings — hard-coded footer, not server-driven */}
         <div className="mt-1.5 border-t border-border/10 pt-1.5 flex flex-col gap-0.5">
+          {/* Chat with SADPA — conversational agent w/ tool-use */}
+          <SidebarFooterBtn
+            label="💬 Chat with SADPA"
+            active={activeTab === "ai-chat"}
+            onClick={() => setActiveTab("ai-chat")}
+            icon={null}
+          />
           {/* Space Survey — SADPA's full filesystem crawl */}
           <SidebarFooterBtn
             label="📊 Space Survey"

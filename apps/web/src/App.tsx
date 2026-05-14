@@ -9,6 +9,7 @@ import { AISettingsPanel } from "./components/AISettingsPanel";
 import { AgentPanel } from "./components/AgentPanel";
 import { EmergencyPanel } from "./components/EmergencyPanel";
 import { SurveyPanel } from "./components/SurveyPanel";
+import { AIAgentChat } from "./components/AIAgentChat";
 import { OutputConsole } from "./components/OutputConsole";
 import { ChangelogModal } from "./components/ChangelogModal";
 import { AboutModal } from "./components/AboutModal";
@@ -104,7 +105,9 @@ function AppBody() {
               mounts) instead of an outer AnimatePresence that depends on a
               composite key. */}
           <div key={activeTab + ":" + (currentSub || "")}>
-            {activeTab === "survey" ? (
+            {activeTab === "ai-chat" ? (
+              <AIAgentChat />
+            ) : activeTab === "survey" ? (
               <SurveyPanel />
             ) : activeTab === "emergency" ? (
               <EmergencyPanel />
@@ -128,7 +131,7 @@ function AppBody() {
               no terminal. On every other tab, the bottom console is the only
               place output appears. */}
           {/* Emergency + Agent panels have their own output surface (the app-level terminal); Settings has none */}
-          {activeTab !== "overview" && activeTab !== "settings" && activeTab !== "agent" && <OutputConsole />}
+          {activeTab !== "overview" && activeTab !== "settings" && activeTab !== "agent" && activeTab !== "ai-chat" && <OutputConsole />}
         </main>
 
         {hasSub ? <SidebarRight /> : null}
