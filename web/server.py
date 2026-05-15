@@ -11,6 +11,8 @@ Endpoints:
     GET  /api/category/<id>/scan        → {groups, totals} for that category
     GET  /api/category/<id>/actions     → list of {id, label, desc, cost} for that category
     GET  /api/run?category=<>&action=<> → SSE stream of action output
+    GET  /api/emergency/estimate         → per-action reclaimable GB for Emergency panel
+    GET  /api/growth                    → plan 0027: per-path + disk 3m/9m/20m size deltas
     GET  /api/report                    → CSV history sparkline data
     GET  /api/ai/status                 → {docker_mode, providers}
     GET  /api/habits                    → [{category, growth_gb_per_week, days_to_threshold, …}]
@@ -31,6 +33,7 @@ import http.server
 import itertools
 import json
 import os
+import re
 import shutil
 import socketserver
 import subprocess
@@ -40,6 +43,7 @@ import webbrowser
 import concurrent.futures
 import socket
 import time
+from collections import deque
 from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
@@ -414,6 +418,251 @@ def list_actions(category_id: str):
     ]
 
 
+# Emergency Run All — cleanup actions only (matches emergency-run-all shell).
+EMERGENCY_CLEANUP_ACTION_IDS = (
+    "emergency-deriveddata",
+    "emergency-devicesupport",
+    "emergency-mediaanalysisd",
+    "emergency-documentationindex",
+    "emergency-docker-prune",
+)
+
+
+def _parse_docker_size_token(s: str) -> float:
+    """Parse Docker df size tokens like '800MB (66%)' or '1.2GB' → GB."""
+    m = re.match(r"([\d.]+)\s*(B|kB|KB|MB|GB|TB)", (s or "").strip(), re.I)
+    if not m:
+        return 0.0
+    val = float(m.group(1))
+    unit = m.group(2).upper()
+    if unit == "B":
+        return val / 1024 ** 3
+    if unit in ("KB",):
+        return val / 1024 ** 2
+    if unit == "MB":
+        return val / 1024
+    if unit == "GB":
+        return val
+    if unit == "TB":
+        return val * 1024
+    return 0.0
+
+
+def _docker_prune_estimate_gb() -> float:
+    """Upper-bound reclaim from `docker system prune -f` (Images + Containers rows)."""
+    if not shutil.which("docker"):
+        return 0.0
+    try:
+        r = subprocess.run(
+            ["docker", "system", "df", "--format", "{{.Type}}\t{{.Reclaimable}}"],
+            capture_output=True, text=True, timeout=20,
+        )
+        if r.returncode != 0:
+            return 0.0
+        total = 0.0
+        for line in r.stdout.strip().splitlines():
+            parts = line.split("\t", 1)
+            if len(parts) != 2:
+                continue
+            typ, reclaim = parts[0].strip(), parts[1].strip()
+            if typ in ("Images", "Containers"):
+                total += _parse_docker_size_token(reclaim)
+        return round(total, 2)
+    except (subprocess.TimeoutExpired, ValueError, FileNotFoundError):
+        return 0.0
+
+
+def estimate_emergency_sizes() -> dict:
+    """Parallel du on emergency paths + Docker df reclaimable → per-action + total GB."""
+    cat = cleaners.CATEGORIES.get("emergency")
+    if not cat:
+        return None
+
+    measure = cat.get("action_measure") or {}
+    work = [
+        (action_id, action_id, path)
+        for action_id, paths in measure.items()
+        for path in paths
+    ]
+
+    started_at = time.time()
+    by_action: dict[str, float] = {aid: 0.0 for aid in measure}
+    if work:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+            for action_id, _label, _path, size_kb, exists, denied in ex.map(
+                _measure_path, work
+            ):
+                if exists and not denied:
+                    by_action[action_id] = round(
+                        by_action[action_id] + size_kb / 1024 / 1024, 2
+                    )
+
+    by_action["emergency-docker-prune"] = _docker_prune_estimate_gb()
+
+    total = round(
+        sum(by_action.get(aid, 0.0) for aid in EMERGENCY_CLEANUP_ACTION_IDS), 2
+    )
+    return {
+        "by_action": by_action,
+        "total_reclaimable_gb": total,
+        "scan_ms": int((time.time() - started_at) * 1000),
+    }
+
+
+# ── Plan 0027 — Disk Growth Watch ─────────────────────────────────────────────
+
+_GROWTH_SAMPLER_LOCK = threading.Lock()
+_GROWTH_SAMPLER_STARTED = False
+
+
+class GrowthTracker:
+    """Ring-buffer histories for watched paths + whole-disk used space."""
+
+    MAX_SAMPLES = 45   # ~22.5 min at 30s spacing
+    INTERVAL_SEC = 30.0
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._hist: dict[str, deque] = {
+            entry["id"]: deque(maxlen=self.MAX_SAMPLES)
+            for entry in cleaners.GROWTH_WATCH_PATHS
+        }
+
+    def sample_tick(self) -> None:
+        now = time.time()
+        entries = cleaners.GROWTH_WATCH_PATHS
+
+        def measure_entry(entry: dict) -> tuple[str, float, int]:
+            eid = entry["id"]
+            if entry.get("kind") == "disk_used":
+                try:
+                    _total_s, used_b, _free_s = shutil.disk_usage("/")
+                    return (eid, now, int(used_b // 1024))
+                except OSError:
+                    return (eid, now, 0)
+            tpl = entry.get("path")
+            if not tpl:
+                return (eid, now, 0)
+            _gn, _ln, _pth, size_kb, exists, denied = _measure_path(("-", "-", tpl))
+            kb = int(size_kb) if exists and not denied else 0
+            return (eid, now, kb)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+            results = list(ex.map(measure_entry, entries))
+
+        with self._lock:
+            for eid, t, kb in results:
+                dq = self._hist.get(eid)
+                if dq is not None:
+                    dq.append({"t": t, "kb": kb})
+
+    @staticmethod
+    def _window_delta(samples: list, sec: float) -> dict:
+        if len(samples) < 2:
+            return {"gb": None, "pct": None, "partial": True}
+        latest = samples[-1]
+        current_kb = latest["kb"]
+        target_t = latest["t"] - sec
+        anchor = None
+        for s in samples:
+            if s["t"] <= target_t:
+                anchor = s
+            else:
+                break
+        if anchor is None:
+            anchor = samples[0]
+        span = latest["t"] - anchor["t"]
+        partial = span < sec * 0.85
+        past_kb = max(anchor["kb"], 0)
+        delta_kb = current_kb - past_kb
+        delta_gb = round(delta_kb / 1024 / 1024, 2)
+        if past_kb > 0:
+            pct = round((delta_kb / past_kb) * 100, 1)
+        else:
+            pct = round(100.0, 1) if delta_kb > 0 else 0.0
+        return {"gb": delta_gb, "pct": pct, "partial": partial}
+
+    def build_payload(self) -> dict:
+        meta = {entry["id"]: entry for entry in cleaners.GROWTH_WATCH_PATHS}
+        paths_out = []
+        with self._lock:
+            for eid, dq in self._hist.items():
+                entry_meta = meta.get(eid, {})
+                samples = list(dq)
+                current_gb = (
+                    round(samples[-1]["kb"] / 1024 / 1024, 2) if samples else 0.0
+                )
+                row = {
+                    "id":         eid,
+                    "label":      entry_meta.get("label", eid),
+                    "current_gb": current_gb,
+                    "deltas": {
+                        "m3":  self._window_delta(samples, 180),
+                        "m9":  self._window_delta(samples, 540),
+                        "m20": self._window_delta(samples, 1200),
+                    },
+                    "disk_used": entry_meta.get("kind") == "disk_used",
+                }
+                p = entry_meta.get("path")
+                if p:
+                    row["path"] = p
+                paths_out.append(row)
+
+        paths_out.sort(key=lambda r: r["id"])
+
+        ranked = sorted(
+            [r for r in paths_out if r["deltas"]["m3"]["gb"] is not None],
+            key=lambda r: abs(r["deltas"]["m3"]["gb"] or 0),
+            reverse=True,
+        )
+
+        return {
+            "ts": time.time(),
+            "sample_interval_sec": int(self.INTERVAL_SEC),
+            "paths": paths_out,
+            "top_ids_m3": [r["id"] for r in ranked[:8]],
+        }
+
+
+_growth_tracker = GrowthTracker()
+
+
+def _ensure_growth_sampler_started() -> None:
+    global _GROWTH_SAMPLER_STARTED
+    with _GROWTH_SAMPLER_LOCK:
+        if _GROWTH_SAMPLER_STARTED:
+            return
+        _GROWTH_SAMPLER_STARTED = True
+
+        def _loop():
+            # Prime quickly so REST + UI have one row early.
+            time.sleep(0.5)
+            try:
+                _growth_tracker.sample_tick()
+            except Exception:
+                pass
+            while True:
+                time.sleep(GrowthTracker.INTERVAL_SEC)
+                try:
+                    _growth_tracker.sample_tick()
+                except Exception:
+                    pass
+
+        threading.Thread(target=_loop, daemon=True, name="growth-sampler").start()
+
+
+def get_growth_payload() -> dict:
+    _ensure_growth_sampler_started()
+    with _growth_tracker._lock:
+        empty = all(len(dq) == 0 for dq in _growth_tracker._hist.values())
+    if empty:
+        try:
+            _growth_tracker.sample_tick()
+        except Exception:
+            pass
+    return _growth_tracker.build_payload()
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
@@ -503,6 +752,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if sub == "actions":
                     actions = list_actions(cid)
                     return self._serve_json({"actions": actions}) if actions is not None else self.send_error(404)
+
+        if path == "/api/emergency/estimate":
+            result = estimate_emergency_sizes()
+            return self._serve_json(result) if result else self.send_error(404)
+
+        if path == "/api/growth":
+            return self._serve_json(get_growth_payload())
 
         if path == "/api/run":
             cid    = query.get("category", [""])[0]
@@ -803,7 +1059,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_error(404)
 
     # ── /api/live — long-lived SSE that pushes disk + running-cleans deltas ───
-    # Replaces the client's 15s poll. Emits two named events:
+    # Plan 0027 adds `{event:"growth", data:<get_growth_payload()>}` every ≤60 s
+    # when the snapshot changes. Base events:
     #   {event:"status",  data: <get_status() payload>}
     #   {event:"running", data: [{token,category,kind,started_at}, ...]}
     # Only sends when the signature changes (so quiet periods are quiet). Also
@@ -818,6 +1075,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         last_status_sig = None
         last_running_sig = None
         last_keepalive = time.time()
+        last_growth_sig = None
+        last_growth_emit = 0.0
         # Send initial snapshots immediately so the client doesn't sit on
         # placeholder data until the first tick.
         try:
@@ -827,6 +1086,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             running = _snapshot_running()
             self._send_sse({"event": "running", "data": running})
             last_running_sig = json.dumps(running, sort_keys=True)
+            growth0 = get_growth_payload()
+            self._send_sse({"event": "growth", "data": growth0})
+            last_growth_sig = json.dumps(growth0, sort_keys=True)
+            last_growth_emit = time.time()
             while True:
                 time.sleep(2.0)
                 status = get_status()
@@ -839,6 +1102,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if r_sig != last_running_sig:
                     self._send_sse({"event": "running", "data": running})
                     last_running_sig = r_sig
+                now_t = time.time()
+                if now_t - last_growth_emit >= 60:
+                    growth = get_growth_payload()
+                    g_sig = json.dumps(growth, sort_keys=True)
+                    if g_sig != last_growth_sig:
+                        self._send_sse({"event": "growth", "data": growth})
+                        last_growth_sig = g_sig
+                    last_growth_emit = now_t
                 if time.time() - last_keepalive > 25:
                     try:
                         self.wfile.write(b":keepalive\n\n")

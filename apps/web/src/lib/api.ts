@@ -1,6 +1,7 @@
 import type {
   DiskStatus,
   DoctorReport,
+  GrowthPayload,
   HistoryReport,
   CategoryScan,
   Action,
@@ -64,8 +65,16 @@ async function jsonFetch<T>(path: string): Promise<T> {
   return r.json() as Promise<T>;
 }
 
+export interface EmergencyEstimate {
+  by_action: Record<string, number>;
+  total_reclaimable_gb: number;
+  scan_ms: number;
+}
+
 export const api = {
   status:    () => jsonFetch<DiskStatus>("/api/status"),
+  emergencyEstimate: () => jsonFetch<EmergencyEstimate>("/api/emergency/estimate"),
+  growth:    () => jsonFetch<GrowthPayload>("/api/growth"),
   report:    () => jsonFetch<HistoryReport>("/api/report"),
   tabs:      () => jsonFetch<{ tabs: TopLevelTab[] }>("/api/tabs"),
   scan:      (catId: string) => jsonFetch<CategoryScan>(`/api/category/${catId}/scan`),

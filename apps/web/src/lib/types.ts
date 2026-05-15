@@ -83,6 +83,33 @@ export interface DoctorReport {
   categories_scanned: number;
 }
 
+/** Plan 0027 — Disk Growth Watch (/api/growth, SSE event `growth`). */
+export interface GrowthWindowDelta {
+  gb: number | null;
+  pct: number | null;
+  partial?: boolean;
+}
+
+export interface GrowthPathRow {
+  id: string;
+  label: string;
+  path?: string;
+  current_gb: number;
+  deltas: {
+    m3: GrowthWindowDelta;
+    m9: GrowthWindowDelta;
+    m20: GrowthWindowDelta;
+  };
+  disk_used?: boolean;
+}
+
+export interface GrowthPayload {
+  ts: number;
+  sample_interval_sec: number;
+  paths: GrowthPathRow[];
+  top_ids_m3: string[];
+}
+
 // Plan 0006 — AI + habits types ──────────────────────────────────────────────
 
 /** AI mode state: whether the backend has Docker + DB configured. */

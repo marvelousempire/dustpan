@@ -15,6 +15,7 @@ import type {
   CategoryScan,
   DiskStatus,
   DoctorReport,
+  GrowthPayload,
   Habit,
   HistoryReport,
   TopLevelTab,
@@ -67,6 +68,8 @@ interface DashboardState {
   habits: Habit[];
   /** Plan 0009: doctor report — ranked safe items across all scanned categories. */
   doctorReport: DoctorReport | null;
+  /** Plan 0027: rolling folder + disk growth (3m/9m/20m deltas). */
+  growth: GrowthPayload | null;
   /** Plan 0023 Ship 2: pending AI cleaner proposals (for sidebar badge). */
   pendingProposals: number;
   refreshProposalsCount: () => void;
@@ -123,6 +126,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   }, []);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [doctorReport, setDoctorReport] = useState<DoctorReport | null>(null);
+  const [growth, setGrowth] = useState<GrowthPayload | null>(null);
   const [showChangelog, setShowChangelog] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmOptions | null>(null);
 
@@ -148,6 +152,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
           const msg = JSON.parse(ev.data);
           if (msg.event === "status") setStatus(msg.data);
           else if (msg.event === "running") setRunningCleans(msg.data || []);
+          else if (msg.event === "growth") setGrowth(msg.data);
         } catch { /* ignore malformed frames */ }
       };
       liveES.onerror = () => {
@@ -160,6 +165,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
     // One-shot fetch primes the hero immediately; live channel handles deltas after.
     api.status().then(setStatus).catch(() => { /* ignore */ });
+    api.growth().then(setGrowth).catch(() => { /* ignore */ });
     connect();
     return () => {
       cancelled = true;
@@ -499,6 +505,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       aiStatus,
       habits,
       doctorReport,
+      growth,
       pendingProposals,
       refreshProposalsCount,
       setActiveTab,
@@ -518,7 +525,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     [
       status, history, tabs, allCategories, scans, runningCleans, activeTab, activeSub,
       output, outputVisible, busy, scanning, overviewAutoScanned, showChangelog, confirm,
-      aiStatus, habits, doctorReport, pendingProposals, refreshProposalsCount,
+      aiStatus, habits, doctorReport, growth, pendingProposals, refreshProposalsCount,
       setActiveTab, setActiveSub, scanCategory, scanEverything, cleanPath,
       cleanAllTier, cleanEverywhere, runAction, runActionDirect, openConfirm, closeOutput,
     ],

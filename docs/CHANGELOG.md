@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.27.4] — 2026-05-15 Eastern · *Changelog + version sync, human-readable release dates in the app, Growth Watch rollup, Home folder reclaim guidance*
+
+### Fixed / Changed — versioning & changelog UX
+
+The **changelog was stuck at [0.20.7]** in `docs/CHANGELOG.md` while the AppleScript/UI stack had drifted forward — `get_version()` (and thus the dashboard badge) reads only the newest `## [x.y.z]` heading, so versions looked wrong everywhere the UI showed them.
+
+Release headers are still canonical (`## [semver] — date Eastern ·`) for parsing, but **Changelog viewer** formats each entry as readable prose (weekday month day, year).
+
+### Previously shipped features now reflected in changelog
+
+Rolling summary — see plans for detail:
+
+- **Plan 0027 — Growth Watch**: `GET /api/growth`, watched paths + startup-disk **used-space** deltas at **~3 min / ~9 min / ~20 min** sliding windows (`/api/live` SSE `growth` event). Overview panel table.
+- **Emergency panel**: reclaim tallies from `GET /api/emergency/estimate` (`action_measure` in `cleaners.py`).
+- **0024 – 0026** arcs (foreign-owned space, conversational SADPA + proposals, skills extraction).
+
+### Added — guidance when **~/ (user folder)** is the problem
+
+Almost all reclaimable caches live under **`~/Library`** and peers (Xcode, Docker, browsers, iCloud stubs, Containers). DustPan deliberately maps those as **named categories**. New **Overview** callout directs people to Emergency, Space Survey, category tabs, FDA (Full Disk Access) if totals read as zero — so they know where help lives.
+
+### kVersion / package bumps
+
+Root `package.json`, `apps/web/package.json`, `dustpan.applescript` **`kVersion`** → `0.27.4`.
+
+---
+
 ## [0.20.7] — 2026-05-13 18:30:00 Eastern · *Overview layout: buttons top → bar chart → banners → 3-pane → history → cards*
 
 ### Changed — Overview page layout order

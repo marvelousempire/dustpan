@@ -55,6 +55,7 @@ writing them into the repo we get:
 | [0022](0022-space-survey.md) | Space Survey — live-streaming filesystem crawl (worktrees, build artifacts, large node_modules) with per-worktree merge status and "Probably not worth touching" section | shipped | v0.22.0 / v0.22.1 |
 | [0023](0023-conversational-sadpa-agent.md) | Conversational SADPA with tool-calling (Anthropic + OpenAI), sandboxed filesystem peek, approval gates, and AI cleaner proposals with paste-ready snippets | shipped | v0.23.0 (Ship 1) / v0.25.0 (Ship 2) |
 | [0024](0024-foreign-ownership-discovery.md) | Foreign-ownership discovery — find disk space locked behind previous users' UIDs (`/opt/homebrew` owned by 'olivia', `/Users/<oldname>/`, Guest leftovers) with copy-paste takeover commands | shipped | v0.24.0 |
+| [0027](0027-disk-growth-watch-3m-9m-20m-deltas.md) | Disk Growth Watch — sliding 3m/9m/20m deltas (`/api/growth`, Overview) | shipped | pending tag |
 
 ## When to add a plan
 

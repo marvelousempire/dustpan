@@ -12,6 +12,40 @@ interface Props {
 function escapeHtml(s: string) {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
 }
+
+/** Readable dates in the changelog modal (ISO timestamps are hard to skim). */
+function humanizeCanonicalChangelog(md: string): string {
+  // ## [x.y.z] — 2026-05-13 18:30:00 Eastern · *tagline*
+  // ## [x.y.z] — 2026-05-15 Eastern · ...
+  const re =
+    /^## \[(\d+)\.(\d+)\.(\d+)\]\s*—\s*(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}:\d{2}(?::\d{2})?))?\s*Eastern\s*·(.*)$/imu;
+  return md.replace(/^##[^\n]*$/gm, (line) => {
+    const m = line.trim().match(re);
+    if (!m) return line;
+    const ver = `${m[1]}.${m[2]}.${m[3]}`;
+    const yyyy = Number(m[4]);
+    const mm = Number(m[5]) - 1;
+    const dd = Number(m[6]);
+    const clock = m[7];
+    let tail = (m[8] ?? "").trim();
+    const d = new Date(yyyy, mm, dd);
+    if (!Number.isNaN(d.getTime())) {
+      const long = new Intl.DateTimeFormat("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }).format(d);
+      const clockPart = clock ? ` · ${clock} Eastern` : "";
+      if (tail.startsWith("*") && tail.endsWith("*"))
+        tail = tail.slice(1, -1);
+      tail = tail.replace(/^\s*·\s*/, "").trim();
+      const subtitle = tail ? ` — ${tail}` : "";
+      return `## v${ver} · ${long}${clockPart}${subtitle}`;
+    }
+    return line;
+  });
+}
 function renderInline(s: string) {
   return escapeHtml(s)
     .replace(/`([^`]+)`/g, "<code>$1</code>")
@@ -44,7 +78,9 @@ export function ChangelogModal({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) return;
     setBody("Loading…");
-    api.changelog().then((md) => setBody(renderMarkdown(md))).catch(() => setBody("Failed to load changelog."));
+    api.changelog()
+      .then((md) => setBody(renderMarkdown(humanizeCanonicalChangelog(md))))
+      .catch(() => setBody("Failed to load changelog."));
   }, [open]);
 
   // v0.18.1 — the Dialog.Overlay is now a flex container so the Dialog.Content

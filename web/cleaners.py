@@ -1547,6 +1547,22 @@ CATEGORIES = {
         "tagline": "Disk at zero. These 6 commands recover 5\u201315 GB in under 60 seconds \u2014 all safe, all auto-rebuild.",
         "meta":    True,   # not a category tab \u2014 rendered by EmergencyPanel
         "groups":  {"safe": [], "probably_safe": [], "caution": []},
+        # Paths measured by GET /api/emergency/estimate for Run-button reclaim tallies.
+        "action_measure": {
+            "emergency-deriveddata": [
+                "~/Library/Developer/Xcode/DerivedData",
+            ],
+            "emergency-devicesupport": [
+                "~/Library/Developer/Xcode/iOS DeviceSupport",
+            ],
+            "emergency-mediaanalysisd": [
+                "~/Library/Containers/com.apple.mediaanalysisd/Data/Library",
+                "~/Library/Containers/com.apple.mediaanalysisd/Data/tmp",
+            ],
+            "emergency-documentationindex": [
+                "~/Library/Developer/Xcode/DocumentationIndex",
+            ],
+        },
         "actions": {
 
             # \u2500\u2500 1 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -1810,6 +1826,26 @@ CATEGORIES = {
         },
     },
 }
+
+# ── Plan 0027 — Disk Growth Watch ─────────────────────────────────────────────
+# Paths sampled server-side (~30s interval) so the UI can show 3m/9m/20m deltas.
+# Synthetic entry `kind: "disk_used"` uses shutil.disk_usage (whole startup disk).
+
+GROWTH_WATCH_PATHS = [
+    {"id": "startup-disk-used", "label": "Startup disk · used space", "kind": "disk_used"},
+    {"id": "xcode-deriveddata", "label": "Xcode DerivedData", "path": "~/Library/Developer/Xcode/DerivedData"},
+    {"id": "xcode-ios-devicesupport", "label": "Xcode iOS DeviceSupport", "path": "~/Library/Developer/Xcode/iOS DeviceSupport"},
+    {"id": "xcode-watch-devicesupport", "label": "Xcode watchOS DeviceSupport", "path": "~/Library/Developer/Xcode/watchOS DeviceSupport"},
+    {"id": "xcode-tvos-devicesupport", "label": "Xcode tvOS DeviceSupport", "path": "~/Library/Developer/Xcode/tvOS DeviceSupport"},
+    {"id": "xcode-doc-index", "label": "Xcode DocumentationIndex", "path": "~/Library/Developer/Xcode/DocumentationIndex"},
+    {"id": "mediaanalysis-library", "label": "Photos analysis cache (Library)", "path": "~/Library/Containers/com.apple.mediaanalysisd/Data/Library"},
+    {"id": "mediaanalysis-tmp", "label": "Photos analysis cache (tmp)", "path": "~/Library/Containers/com.apple.mediaanalysisd/Data/tmp"},
+    {"id": "core-simulator", "label": "CoreSimulator (iOS simulators)", "path": "~/Library/Developer/CoreSimulator"},
+    {"id": "docker-vm-raw", "label": "Docker VM disk (Docker.raw)", "path": "~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw"},
+    {"id": "docker-group-container", "label": "Docker group container", "path": "~/Library/Group Containers/group.com.docker"},
+    {"id": "npm-cache", "label": "npm cache", "path": "~/.npm"},
+    {"id": "brew-cache", "label": "Homebrew cache", "path": "~/Library/Caches/Homebrew"},
+]
 
 # Tab structure — top-level navigation.
 # `meta: True` entries are UI-only (no cleaners.py category). The dashboard

@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useDashboard } from "../state/DashboardContext";
-import { cn } from "../lib/utils";
+import { api } from "../lib/api";
+import { cn, fmt } from "../lib/utils";
 
 /**
  * EmergencyPanel — DustPan's disk-at-zero rescue screen (plan 0011, v0.21.5).
@@ -106,6 +107,17 @@ const COMMANDS = [
   what: string; happens: string; typical: string; readOnly: boolean;
 }>;
 
+const CLEANUP_IDS = new Set(
+  COMMANDS.filter((c) => !c.readOnly).map((c) => c.id),
+);
+
+/** Human-readable reclaim size for buttons (du / docker df on disk). */
+function formatReclaimGb(gb: number | undefined): string | null {
+  if (gb == null || gb < 0.01) return null;
+  if (gb < 1) return `${Math.round(gb * 1024)} MB`;
+  return `${fmt(gb)} GB`;
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface CardState {
@@ -146,6 +158,31 @@ export function EmergencyPanel() {
   // Session accumulator — sum of all freed_gb from done events
   const [sessionFreed, setSessionFreed] = useState(0);
 
+  // Reclaimable sizes from parallel du + docker df (shown on Run buttons)
+  const [estimateLoading, setEstimateLoading] = useState(true);
+  const [byActionGb, setByActionGb] = useState<Record<string, number>>({});
+  const [totalReclaimGb, setTotalReclaimGb] = useState(0);
+
+  const refreshEstimates = useCallback(() => {
+    api.emergencyEstimate()
+      .then((data) => {
+        setByActionGb(data.by_action ?? {});
+        setTotalReclaimGb(data.total_reclaimable_gb ?? 0);
+      })
+      .catch(() => {
+        setByActionGb({});
+        setTotalReclaimGb(0);
+      })
+      .finally(() => setEstimateLoading(false));
+  }, []);
+
+  useEffect(() => {
+    setEstimateLoading(true);
+    refreshEstimates();
+  }, [refreshEstimates]);
+
+  const totalReclaimLabel = formatReclaimGb(totalReclaimGb);
+
   // Current live free space
   const free    = status?.free_gb ?? 0;
   const total   = status?.total_gb ?? 228;
@@ -184,9 +221,10 @@ export function EmergencyPanel() {
           [cmd.id]: { status: "done", freed_gb, startedAt: prev[cmd.id]?.startedAt ?? null, elapsed_s: elapsed },
         }));
         setSessionFreed(prev => prev + freed_gb);
+        refreshEstimates();
       },
     );
-  }, [busy, cards, runActionDirect]);
+  }, [busy, cards, runActionDirect, refreshEstimates]);
 
   const runAll = useCallback(() => {
     if (busy) return;
@@ -217,9 +255,10 @@ export function EmergencyPanel() {
           return next;
         });
         setSessionFreed(freed_gb);
+        refreshEstimates();
       },
     );
-  }, [busy, runActionDirect]);
+  }, [busy, runActionDirect, refreshEstimates]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -323,11 +362,19 @@ export function EmergencyPanel() {
               ? `✓ All done — ${liveDelta.toFixed(1)} GB recovered`
               : busy
                 ? "Running… (output streaming below)"
-                : "▶▶ Run All Emergency Commands Now"}
+                : estimateLoading
+                  ? "▶▶ Run All Emergency Commands — scanning sizes…"
+                  : totalReclaimLabel
+                    ? `▶▶ Run All Emergency Commands — up to ${totalReclaimLabel} reclaimable`
+                    : "▶▶ Run All Emergency Commands Now"}
           </button>
           {!allCleanupDone && !busy && (
             <p className="text-[11px] text-fg-faint mt-1.5 text-center">
-              Or run each command one at a time below — output streams live to the terminal.
+              {estimateLoading
+                ? "Measuring DerivedData, caches, and Docker reclaimable space…"
+                : totalReclaimLabel
+                  ? `Tally: ${totalReclaimLabel} across the ${CLEANUP_IDS.size} cleanup commands below (read-only checks excluded).`
+                  : "Or run each command one at a time below — output streams live to the terminal."}
             </p>
           )}
         </div>
@@ -344,6 +391,13 @@ export function EmergencyPanel() {
               card={card}
               idx={idx}
               busy={busy}
+              reclaimLabel={
+                cmd.readOnly
+                  ? null
+                  : estimateLoading
+                    ? null
+                    : formatReclaimGb(byActionGb[cmd.id])
+              }
               onRun={() => runOne(cmd)}
             />
           );
@@ -385,12 +439,13 @@ function MetricCell({
 }
 
 function CommandCard({
-  cmd, card, idx, busy, onRun,
+  cmd, card, idx, busy, reclaimLabel, onRun,
 }: {
   cmd: typeof COMMANDS[number];
   card: CardState;
   idx: number;
   busy: boolean;
+  reclaimLabel: string | null;
   onRun: () => void;
 }) {
   const running = card.status === "running";
@@ -400,9 +455,9 @@ function CommandCard({
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: idx * 0.04, duration: 0.22 }}
+      transition={{ delay: idx * 0.04, duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "rounded-lg border p-4 transition-colors duration-300",
+        "rounded-lg border p-4 transition-[border-color,background-color] duration-300",
         done    ? "border-safe/30 bg-[hsl(var(--safe)/0.05)]" :
         running ? "border-accent/25 bg-[hsl(var(--accent)/0.04)]" :
                   "border-border/20 bg-[hsl(var(--bg-2)/0.55)]",
@@ -423,7 +478,12 @@ function CommandCard({
           {/* Title + typical + readOnly badge */}
           <div className="flex items-baseline gap-2 flex-wrap mb-1.5">
             <span className="text-[13px] font-semibold text-fg">{cmd.label}</span>
-            {cmd.typical !== "—" && (
+            {reclaimLabel && !done && (
+              <span className="text-[11px] font-semibold text-accent tabular-nums">
+                up to {reclaimLabel}
+              </span>
+            )}
+            {cmd.typical !== "—" && !reclaimLabel && (
               <span className="text-[11px] text-fg-faint">typically {cmd.typical}</span>
             )}
             {cmd.readOnly && (
@@ -469,7 +529,9 @@ function CommandCard({
                   ? "Running…"
                   : cmd.readOnly
                     ? "▶ Run check"
-                    : "▶ Run this"}
+                    : reclaimLabel
+                      ? `▶ Run this · up to ${reclaimLabel}`
+                      : "▶ Run this"}
             </button>
 
             {/* Real-time result — only from actual SSE done event */}

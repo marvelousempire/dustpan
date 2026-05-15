@@ -8,6 +8,8 @@ import { HabitBanner } from "./HabitBanner";
 import { PermissionBanner } from "./PermissionBanner";
 import { QuickWins } from "./QuickWins";
 import { RescueBanner } from "./RescueBanner";
+import { GrowthWatch } from "./GrowthWatch";
+import { HomeFolderAdvice } from "./HomeFolderAdvice";
 import { History, RefreshCw, CheckCheck, AlertTriangle, ChevronRight, TabIcon } from "./icons";
 import { cn, fmt } from "../lib/utils";
 
@@ -83,6 +85,9 @@ export function OverviewPanel() {
         </div>
       </section>
 
+      {/* User-folder guidance (~ / Library) */}
+      <HomeFolderAdvice />
+
       {/* ── 2. 3-pane: hero · pie · terminal ─────────────────────────────── */}
       <div className="mb-3.5 grid gap-3.5 overview-top">
         <div className="overflow-hidden rounded-lg border border-border/15 shadow-md" style={{ background: "hsl(var(--bg-2))" }}>
@@ -121,6 +126,9 @@ export function OverviewPanel() {
 
       {/* ── 4. Space breakdown bar chart ─────────────────────────────────── */}
       <SpaceBarChart />
+
+      {/* ── 4b. Plan 0027 — short-window growth (3m / 9m / 20m) ───────────── */}
+      <GrowthWatch />
 
       {/* ── 5. Banners — rescue (disk low) · permission (FDA) · habits · quick wins */}
       <RescueBanner />
