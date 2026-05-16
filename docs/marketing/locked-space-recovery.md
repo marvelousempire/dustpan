@@ -85,10 +85,10 @@ Running either streams the same diagnostic output to the in-app terminal — sam
 
 ### The AI agent tool
 
-The `find_foreign_ownership` tool (Tier A, read-only) is registered with SADPA. Ask the agent *"Is any disk space locked by other users on this Mac?"* and it'll call the tool, get structured findings, and recommend in conversational form:
+The `find_foreign_ownership` tool (Tier A, read-only) is registered with Ask DustPan. Ask the agent *"Is any disk space locked by other users on this Mac?"* and it'll call the tool, get structured findings, and recommend in conversational form:
 
 ```
-SADPA: Yes — I found 38.4 GB locked across 3 paths:
+DustPan: Yes — I found 38.4 GB locked across 3 paths:
 
   1. /opt/homebrew (12 GB) — Homebrew installed by 'olivia'
      This is why `brew install` would fail for you. Transfer ownership with:

@@ -330,7 +330,7 @@ def complete_agent(
 #   complete_with_tools(
 #       provider="anthropic",
 #       api_key=key,
-#       system="You are SADPA, ...",
+#       system="You are Ask DustPan, ...",
 #       messages=[{"role":"user","content":"What's eating my disk?"}],
 #       tools=agent_tools.schemas_anthropic(),
 #       tool_runner=lambda name, args: agent_tools.run_tool(name, args, ctx),

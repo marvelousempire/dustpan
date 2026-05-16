@@ -1,10 +1,10 @@
-# 💬 Chat with SADPA — your AI disk co-pilot
+# 💬 Ask DustPan — your AI disk co-pilot
 
 **Tagline:** Talk to your Mac's disk like it's a senior sysadmin — bring your own API key, sandbox by default, never runs `sudo` for you.
 
 **Version:** v0.23.0 (Ship 1), v0.25.0 (Ship 2)
 **Plan:** [0023](../../plans/0023-conversational-sadpa-agent.md)
-**Surface:** Web dashboard tab `💬 Chat with SADPA`
+**Surface:** Web dashboard tab `💬 Ask DustPan`
 **Backend:** `web/agent_chat.py`, `web/agent_tools.py`, `web/ai.py::complete_with_tools()`
 **Frontend:** `apps/web/src/components/AIAgentChat.tsx`, `apps/web/src/lib/streamChat.ts`
 
@@ -12,9 +12,9 @@
 
 You see your Mac filling up. You want to ask an expert what to clean — but the expert costs $200/hour and needs ssh access. So you Google "which Xcode paths are safe to delete," paste the first three answers into Terminal, and hope none of them break your IDE.
 
-DustPan already had a one-shot "Diagnose" button (the original SADPA panel) — but it couldn't ask follow-ups, couldn't drill into a specific folder you spotted, and couldn't propose cleaners for things DustPan didn't already know about. It was a pamphlet, not a conversation.
+DustPan already had a one-shot "Diagnose" button — but it couldn't ask follow-ups, couldn't drill into a specific folder you spotted, and couldn't propose cleaners for things DustPan didn't already know about. It was a pamphlet, not a conversation.
 
-SADPA — **Smart Auto-Detector Protector Agent** — is now a chat. You bring your own Anthropic or OpenAI key (kept in macOS Keychain, never leaves the machine). The agent has 15 curated tools, a sandboxed filesystem peek, and an approval-card gate before any deletion runs. You can literally ask "what's eating my disk and what should I do about it?" and watch the agent measure, drill in, recommend, and (with your approval) clean.
+Ask DustPan is now a chat. You bring your own Anthropic or OpenAI key (kept in macOS Keychain, never leaves the machine). The agent has 15 curated tools, a sandboxed filesystem peek, and an approval-card gate before any deletion runs. You can literally ask "what's eating my disk and what should I do about it?" and watch the agent measure, drill in, recommend, and (with your approval) clean.
 
 ## How DustPan solves it
 
@@ -76,7 +76,7 @@ Every Tier-B tool call routes through `agent_tools.needs_approval()`:
 The approval card pulls `desc` and `cost` text from `cleaners.py` — never from the AI. So the warning is **curated, never hallucinated**:
 
 ```
-⚠️  SADPA wants to run this
+⚠️  DustPan wants to run this
 
     Run 'Clear Xcode Build Cache (DerivedData)' in Xcode
 
@@ -94,7 +94,7 @@ On approve: stream re-opens with `pending_tool_results: [{id, approved: true}]`.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  💬  Chat with SADPA                                                    │
+│  💬  Ask DustPan                                                        │
 │  Using anthropic / claude-3-5-sonnet-20241022                           │
 │  □  Trust the AI to run safe-tier cleanups without asking              │
 │                                                                          │
@@ -104,14 +104,14 @@ On approve: stream re-opens with `pending_tool_results: [{id, approved: true}]`.
 │  │ What's eating my disk?                                  │            │
 │  └─────────────────────────────────────────────────────────┘            │
 │                                                                          │
-│  ┌── SADPA ────────────────────────────────────────────────────┐        │
+│  ┌── DustPan ──────────────────────────────────────────────────┐        │
 │  │ Let me check.                                                │        │
 │  └──────────────────────────────────────────────────────────────┘        │
 │                                                                          │
 │  ● 🔧 get_disk_status                              → 6.2 GB free  [▼]   │
 │  ● 🔧 get_doctor_report                            → 14 quick wins [▼]  │
 │                                                                          │
-│  ┌── SADPA ────────────────────────────────────────────────────┐        │
+│  ┌── DustPan ──────────────────────────────────────────────────┐        │
 │  │ You have 6.2 GB free of 228 GB (97% used). The 3 biggest    │        │
 │  │ safe wins are:                                                │        │
 │  │                                                                │        │
@@ -158,7 +158,7 @@ The whole thing is stdlib Python — no FastAPI, no Pydantic, no Celery. SSE via
 
 > Your Mac filling up. You want to ask an expert what to delete. Now you can.
 >
-> DustPan v0.25 ships SADPA — a conversational AI agent (BYO Anthropic/OpenAI key) that measures your disk, drills into folders, runs pre-vetted cleanups *after you approve*, and proposes new cleaners.
+> DustPan v0.25 ships Ask DustPan — a conversational AI agent (BYO Anthropic/OpenAI key) that measures your disk, drills into folders, runs pre-vetted cleanups *after you approve*, and proposes new cleaners.
 >
 > https://github.com/marvelousempire/dustpan
 
@@ -166,7 +166,7 @@ The whole thing is stdlib Python — no FastAPI, no Pydantic, no Celery. SSE via
 
 > DustPan v0.25 ships something I've wanted for years: a conversational AI agent that can actually look at your Mac and recommend specific cleanups — not from training data, from real measurements.
 >
-> It's called SADPA (Smart Auto-Detector Protector Agent). Bring your own Anthropic or OpenAI key. The agent has 15 curated tools: get disk status, list directories, scan categories, run pre-vetted cleanups, and propose new ones for cleaners DustPan should learn about.
+> It's called Ask DustPan. Bring your own Anthropic or OpenAI key. The agent has 15 curated tools: get disk status, list directories, scan categories, run pre-vetted cleanups, and propose new ones for cleaners DustPan should learn about.
 >
 > Three design choices that mattered:
 >
@@ -236,7 +236,7 @@ The whole thing is stdlib Python — no FastAPI, no Pydantic, no Celery. SSE via
 >
 > Repo: https://github.com/marvelousempire/dustpan
 >
-> Try it: `git clone … && make ui`. Then drop an Anthropic or OpenAI key in Settings → AI and ask SADPA what's eating your disk.
+> Try it: `git clone … && make ui`. Then drop an Anthropic or OpenAI key in Settings → AI and ask DustPan what's eating your disk.
 
 ## FAQ
 
@@ -259,7 +259,7 @@ A: The loop caps at 10 rounds per turn. After that, the server emits `assistant_
 A: No file contents. `list_directory` returns only `{name, is_dir, size_bytes}`. `measure_path` returns size only. The agent can know that `~/Library/Caches/JetBrains/PyCharm2024.1` is 3.4 GB and contains some folders — it cannot read what's in them.
 
 **Q: Is there a free / no-key option?**
-A: The original one-shot SADPA panel (the `✨ SADPA Agent` tab) works without an API key — it's rule-based plus optional AI. The conversational chat requires a key because tool-calling requires a tool-capable LLM.
+A: The original one-shot AI Diagnosis panel works without an API key — it's rule-based plus optional AI. The conversational chat requires a key because tool-calling requires a tool-capable LLM.
 
 ## What it took to ship
 

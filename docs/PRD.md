@@ -26,9 +26,9 @@ DustPan collapses all of this into one auditable, local, free tool.
 | v0.4 | Xcode-only AppleScript cleanup with threshold gating + dry-run |
 | v0.10 | Web dashboard, 19+ categories, tiered safety classification |
 | v0.20 | Disk Doctor / Rescue Mode for under-10-GB-free Macs |
-| v0.21 | Emergency Rescue panel + SADPA auto-navigation |
+| v0.21 | Emergency Rescue panel + low-space auto-navigation |
 | v0.22 | Space Survey — comprehensive filesystem crawl |
-| v0.23 | Chat with SADPA — tool-calling AI agent (Anthropic + OpenAI) |
+| v0.23 | Ask DustPan — tool-calling AI agent (Anthropic + OpenAI) |
 | v0.24 | Foreign-ownership discovery — unlock space locked by previous users |
 | v0.25 | AI cleaner proposals — agent suggests new cleaners for DustPan to learn |
 

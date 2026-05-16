@@ -6,8 +6,8 @@ import { cn } from "../lib/utils";
 /**
  * ProposalsInbox — Plan 0023 Ship 2.
  *
- * Shows the AI's pending cleaner proposals at the bottom of the Chat with
- * SADPA panel. Each proposal:
+ * Shows the AI's pending cleaner proposals at the bottom of the Ask DustPan
+ * panel. Each proposal:
  *   - Renders the AI's reasoning + the proposed paths + suggested tiers
  *   - Has [✓ Accept] which generates a paste-ready Python snippet
  *   - Has [✕ Dismiss] which marks it as dismissed (kept for history)
@@ -80,7 +80,7 @@ export function ProposalsInbox({
       </div>
 
       <p className="text-[11px] text-fg-dim mb-3 leading-[1.6]">
-        When SADPA finds a cache or directory DustPan doesn't yet know about, or a recurring task that would feel better as a one-tap script, it proposes a {" "}
+        When Ask DustPan finds a cache or directory DustPan doesn't yet know about, or a recurring task that would feel better as a one-tap script, it proposes a{" "}
         <strong className="text-fg">cleaner</strong> or <strong className="text-fg">AppleScript</strong> here. Accept generates paste-ready files you can drop into <code className="font-mono text-fg">cleaners.py</code> or <code className="font-mono text-fg">applescripts/</code>. DustPan never auto-edits source — both surfaces are hand-curated.
       </p>
 
@@ -93,7 +93,7 @@ export function ProposalsInbox({
           <div className="text-[22px] mb-1">🔍</div>
           <div className="text-[12px] font-semibold text-fg mb-0.5">No {filter === "all" ? "" : filter} proposals</div>
           <div className="text-[11px] text-fg-faint">
-            Ask SADPA to explore your machine — if it finds something DustPan should know about, it'll propose a cleaner here.
+            Ask DustPan to explore your machine — if it finds something DustPan should know about, it'll propose a cleaner here.
           </div>
         </div>
       )}
@@ -393,7 +393,7 @@ function ArtifactBlock({
  * `cost_to_user`, and `script_body` before accepting.
  * For cleaner proposals: edits `name`, `rationale`, `cost_to_user`, and
  * `category_id_suggested`. Path-table editing is left for a future ship —
- * for now the user can dismiss + ask SADPA again with a refined intent if
+ * for now the user can dismiss + ask DustPan again with a refined intent if
  * paths need to change.
  */
 function ProposalEditor({

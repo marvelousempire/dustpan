@@ -5,7 +5,7 @@ import { useDashboard } from "../state/DashboardContext";
 import { cn } from "../lib/utils";
 
 /**
- * SurveyPanel — SADPA's comprehensive live-streaming disk space survey (plan 0022).
+ * SurveyPanel — comprehensive live-streaming disk space survey (plan 0022).
  *
  * Goes beyond predefined categories: dynamically crawls the filesystem for:
  *   - Known high-value paths (Docker.raw, DerivedData, DeviceSupport, Cursor, pnpm, npm, brew…)

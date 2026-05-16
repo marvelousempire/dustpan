@@ -8,7 +8,7 @@ import { ProposalsInbox } from "./ProposalsInbox";
 /**
  * AIAgentChat — Plan 0023.
  *
- * Conversational SADPA agent. Multi-turn chat with tool-calling against
+ * Ask DustPan chat. Multi-turn chat with tool-calling against
  * DustPan's safe endpoints. Action tools (cleanups) show an approval card
  * before executing.
  *
@@ -310,7 +310,7 @@ export function AIAgentChat() {
         <div className="text-[24px] mb-2">🔑</div>
         <div className="text-[14px] font-bold text-fg mb-1">Add an Anthropic or OpenAI key to chat</div>
         <p className="text-[12px] text-fg-dim max-w-md mx-auto leading-[1.6] mb-4">
-          The conversational SADPA agent needs tool-use support — currently only Anthropic and OpenAI provide it.
+          Ask DustPan needs tool-use support — currently only Anthropic and OpenAI provide it.
           Configure a key in Settings → AI, then come back.
         </p>
         <button type="button"
@@ -329,7 +329,7 @@ export function AIAgentChat() {
         <div className="flex items-center gap-3">
           <span className="text-[18px]" aria-hidden>💬</span>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-bold text-fg">Chat with SADPA</div>
+            <div className="text-[13px] font-bold text-fg">Ask DustPan</div>
             <div className="text-[11px] text-fg-faint truncate">
               {providerInfo
                 ? <>Using <span className="text-fg-dim font-mono">{providerInfo.provider}</span> {providerInfo.model && <>/ {providerInfo.model}</>}</>
@@ -365,7 +365,7 @@ export function AIAgentChat() {
             <div className="text-[26px] mb-3">🤖</div>
             <div className="text-[13px] font-semibold text-fg mb-1">Ready when you are.</div>
             <p className="text-[12px] text-fg-dim max-w-md mx-auto leading-[1.6] mb-5">
-              Ask SADPA anything about your disk. It can measure paths, run scans,
+              Ask DustPan anything about your disk. It can measure paths, run scans,
               and execute pre-vetted cleanups — with your approval.
             </p>
             <div className="flex flex-wrap gap-2 justify-center max-w-lg mx-auto">
@@ -395,7 +395,7 @@ export function AIAgentChat() {
           {busy && (
             <div className="flex items-center gap-2 text-[11px] text-fg-faint">
               <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse" />
-              SADPA is thinking…
+              Ask DustPan is thinking…
             </div>
           )}
         </div>
@@ -417,7 +417,7 @@ export function AIAgentChat() {
               send(input);
             }
           }}
-          placeholder="Ask SADPA something — 'what's eating my disk?', 'show me xcode caches', 'clean my downloads folder'…"
+          placeholder="Ask DustPan something — 'what's eating my disk?', 'show me xcode caches', 'clean my downloads folder'…"
           rows={2}
           disabled={busy}
           className="flex-1 resize-none rounded-md bg-transparent border-0 px-2 py-1.5 text-[13px] text-fg placeholder:text-fg-faint focus:outline-none disabled:opacity-50"
@@ -459,7 +459,7 @@ function TurnView({
         <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
           className="max-w-[92%] rounded-lg border border-border/15 bg-[hsl(var(--bg-2)/0.5)] px-3 py-2.5">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">SADPA</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">DustPan</span>
             {turn.streaming && <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />}
           </div>
           <div className="text-[13px] text-fg whitespace-pre-wrap leading-[1.6]">
@@ -500,7 +500,7 @@ function ToolChip({ turn, onNavigate }: { turn: Extract<Turn, { kind: "tool" }>;
   if (turn.name === "navigate_to_tab" && turn.status === "done" && turn.input?.tab_id) {
     return (
       <div className="self-start rounded-md border border-accent/25 bg-[hsl(var(--accent)/0.06)] px-3 py-1.5 flex items-center gap-2">
-        <span className="text-[11px] text-fg-dim">SADPA suggests:</span>
+        <span className="text-[11px] text-fg-dim">DustPan suggests:</span>
         <button type="button" onClick={() => onNavigate(turn.input.tab_id)}
           className="text-[12px] font-semibold text-accent hover:underline">
           → Open {turn.input.tab_id}
@@ -571,7 +571,7 @@ function ApprovalCard({
           <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-warn mb-1">
             {turn.status === "approved" ? "Approved — running" :
              turn.status === "rejected" ? "Rejected" :
-                                          "SADPA wants to run this"}
+                                          "DustPan wants to run this"}
           </div>
           <div className="text-[13px] font-bold text-fg mb-1">{turn.summary}</div>
           {turn.desc && <p className="text-[12px] text-fg-dim leading-[1.6] mb-1.5">{turn.desc}</p>}

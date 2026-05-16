@@ -28,7 +28,7 @@ Rolling summary — see plans for detail:
 
 - **Plan 0027 — Growth Watch**: `GET /api/growth`, watched paths + startup-disk **used-space** deltas at **~3 min / ~9 min / ~20 min** sliding windows (`/api/live` SSE `growth` event). Overview panel table.
 - **Emergency panel**: reclaim tallies from `GET /api/emergency/estimate` (`action_measure` in `cleaners.py`).
-- **0024 – 0026** arcs (foreign-owned space, conversational SADPA + proposals, skills extraction).
+- **0024 – 0026** arcs (foreign-owned space, Ask DustPan + proposals, skills extraction).
 
 ### Added — guidance when **~/ (user folder)** is the problem
 

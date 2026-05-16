@@ -34,7 +34,7 @@
 The big difference from other "Mac cleaners": Dustpan **tells you exactly what you lose before you click**. Cleaning Chrome's cache? *"The first time you load each website it'll be 1–3 seconds slower."* Cleaning Xcode's working files? *"Your next build will take about 30 extra seconds."* No mystery. No "trust me." No closed source.
 
 **Three new superpowers as of v0.25:**
-- 💬 **Chat with SADPA** — a conversational AI agent (bring your own Anthropic or OpenAI key) that can measure your disk, drill into folders, run cleanups *after you approve*, and even propose new cleaners DustPan should know about.
+- 💬 **Ask DustPan** — a conversational AI disk co-pilot (bring your own Anthropic or OpenAI key) that can measure your disk, drill into folders, run cleanups *after you approve*, and even propose new cleaners DustPan should know about.
 - 🔒 **Unlock space locked by previous users** — finds Homebrew owned by "olivia" from when she had the Mac, old `/Users/<name>/` home directories still on disk, and other multi-user cruft. Often **5–50 GB**. Shows the exact `sudo` command, never runs it for you.
 - 🚨 **Emergency Rescue panel** — when the disk is at zero and nothing else works, six numbered commands that recover space in under 60 seconds, with live output streaming to a terminal in the app.
 
@@ -108,11 +108,11 @@ The dashboard has three things side-by-side at the top, then a grid of category 
 │  │ Archives     │                                                          │
 │  │ System       │ ── Re-scan everything ── ✓ Clean ALL safe · 6.4 GB ───  │
 │  │──────────────│                                                          │
-│  │ 💬 Chat       │ ┌ Xcode ──────┐ ┌ LLMs ───────┐ ┌ Docker ─────────┐    │
-│  │   w/ SADPA[2]│ │ 6.4 GB safe │ │ 0.0 GB safe │ │ 0.0 GB safe     │    │
+│  │ 💬 Ask        │ ┌ Xcode ──────┐ ┌ LLMs ───────┐ ┌ Docker ─────────┐    │
+│  │   DustPan[2] │ │ 6.4 GB safe │ │ 0.0 GB safe │ │ 0.0 GB safe     │    │
 │  │ 📊 Survey     │ │ 0.2 GB opt-in│ │ 12.4 GB opt │ │ 0.0 GB opt-in   │    │
 │  │ 🚨 Emergency  │ │ ● 2.0 caution│ │             │ │ ● 14.6 caution  │    │
-│  │ ✨ SADPA      │ └──────────────┘ └──────────────┘ └──────────────────┘  │
+│  │ ✨ AI Diagnose│ └──────────────┘ └──────────────┘ └──────────────────┘  │
 │  │ ⚙️  Settings  │                                                          │
 │  │──────────────│                                                          │
 │  │  THEME       │                                                          │
@@ -133,17 +133,23 @@ The dashboard has three things side-by-side at the top, then a grid of category 
 
 ---
 
-## 💬 Chat with SADPA — your AI disk co-pilot
+## 💬 Ask DustPan — your AI disk co-pilot
 
 > *"It could have access to my computer. Look around my computer, suggest things and use dustpan as a tool, this thing should be so smart that it would even suggest tools that he needs to build to add to the app."*
 
-Drop in an **Anthropic** or **OpenAI** API key in Settings → AI. Open the **💬 Chat with SADPA** tab. Now you have a conversational disk-recovery expert.
+Drop in an **Anthropic** or **OpenAI** API key in Settings → AI. Open the **💬 Ask DustPan** tab. Now you have a conversational disk-recovery expert.
 
-SADPA stands for **Smart Auto-Detector Protector Agent**. It has access to 15 curated tools — never raw shell — including measuring paths, listing directories, scanning categories, running pre-vetted cleanups, and proposing new ones DustPan should learn about.
+### What Ask DustPan is
+
+**Ask DustPan** is the app's AI disk co-pilot: a chat interface that lets you ask normal questions like "what is eating my disk?" instead of hunting through folders by hand.
+
+For DustPan, it turns the app from a fixed list of cleaners into an expert assistant. It can read DustPan's live disk report, measure folders, list directories, scan categories, explain what is safe or risky, and prepare cleanups for your approval.
+
+It does **not** get raw shell access. It only uses 15 curated DustPan tools, including measuring paths, listing directories, scanning categories, running pre-vetted cleanups, and proposing new cleaners DustPan should learn about.
 
 ### What it can do, in plain English
 
-| Ask SADPA… | What happens |
+| Ask DustPan… | What happens |
 |---|---|
 | *"What's eating my disk?"* | Calls `get_disk_status` + `get_doctor_report`, returns a ranked list with real measured sizes — never speculation. |
 | *"Show me everything bigger than 5 GB in `~/Library/Containers`."* | Calls `list_directory`, returns sized children, drills into the big ones with `measure_path`. |
@@ -156,7 +162,7 @@ SADPA stands for **Smart Auto-Detector Protector Agent**. It has access to 15 cu
 Action tools (anything that deletes) show an **approval card** before running:
 
 ```
-⚠️  SADPA wants to run this
+⚠️  DustPan wants to run this
     Run 'Clear Xcode Build Cache (DerivedData)' in Xcode
     Removes ~/Library/Developer/Xcode/DerivedData/* — Xcode's scratch pad…
     Cost: One slightly slower Xcode build. That's it.
@@ -174,7 +180,7 @@ The agent can read sizes and list directories under `~/Library`, `~/Developer`, 
 
 ### Proposals inbox
 
-When SADPA finds a cache DustPan doesn't already cover, it can call `propose_new_cleaner`. The proposal goes to an inbox below the chat with **[✓ Accept & generate snippet]** / **[✕ Dismiss]** buttons.
+When Ask DustPan finds a cache DustPan doesn't already cover, it can call `propose_new_cleaner`. The proposal goes to an inbox below the chat with **[✓ Accept & generate snippet]** / **[✕ Dismiss]** buttons.
 
 Accept generates a **paste-ready Python snippet** for `cleaners.py` with the right tuples, tiers, and an optional action block:
 
@@ -249,7 +255,7 @@ Plus two **read-only diagnostic** cards above for the foreign-ownership case:
 🍺  Get the Homebrew takeover command     [▶ Run check]
 ```
 
-**The Smart Auto-Detector Protector Agent watches your free space in real time.** When it drops below 1 GB, DustPan auto-navigates you to the Emergency Rescue panel — no clicking required. When it drops below 10 GB, a full background scan kicks off so the quick-wins and survey panels have real data when you get to them.
+**DustPan watches your free space in real time.** When it drops below 1 GB, DustPan auto-navigates you to the Emergency Rescue panel — no clicking required. When it drops below 10 GB, a full background scan kicks off so the quick-wins and survey panels have real data when you get to them.
 
 ---
 
@@ -672,7 +678,7 @@ Every URL the Python server responds to.
 | `/api/run?category=<>&action=<>` | Stream while a predefined action runs |
 | `/api/survey` | Live-streaming comprehensive disk crawl (worktrees, build artifacts, large `node_modules`, foreign-owned paths) |
 | `POST /api/ai/chat` | Multi-turn chat with tool-calling — events: `provider_info`, `assistant_text`, `tool_use_start`, `tool_use_result`, `tool_approval_needed`, `assistant_done` |
-| `/api/ai/diagnose` | One-shot SADPA diagnosis (the original SADPA panel) |
+| `/api/ai/diagnose` | One-shot AI diagnosis panel |
 
 ### AI agent + proposals (Plan 0023, v0.23.0–v0.25.0)
 
@@ -752,14 +758,14 @@ Every cleanup action is defined in [`web/cleaners.py`](./web/cleaners.py). Every
 
 | Feature | What it does | Deep-dive |
 |---|---|---|
-| 💬 **Chat with SADPA** | Conversational AI agent with tool-calling — BYO Anthropic or OpenAI key | [chat-with-sadpa.md](./docs/marketing/chat-with-sadpa.md) |
+| 💬 **Ask DustPan** | Conversational AI agent with tool-calling — BYO Anthropic or OpenAI key | [chat-with-sadpa.md](./docs/marketing/chat-with-sadpa.md) |
 | 🔒 **Locked-space recovery** | Finds disk space owned by previous Mac users (Homebrew, old /Users/<name>) | [locked-space-recovery.md](./docs/marketing/locked-space-recovery.md) |
 | 🚨 **Emergency Rescue** | Disk-at-zero rescue panel with live in-app terminal | [emergency-rescue.md](./docs/marketing/emergency-rescue.md) |
 | 📊 **Space Survey** | Live-streaming filesystem crawl beyond predefined categories | [space-survey.md](./docs/marketing/space-survey.md) |
-| 📋 **AI cleaner proposals** | SADPA proposes new cleaners → paste-ready Python snippets | [cleaner-proposals.md](./docs/marketing/cleaner-proposals.md) |
+| 📋 **AI cleaner proposals** | Ask DustPan proposes new cleaners → paste-ready Python snippets | [cleaner-proposals.md](./docs/marketing/cleaner-proposals.md) |
 | 💬 **Cost annotations everywhere** | Every cleanup tells you what you'll lose before you click | [every-cleanup-tells-you-the-cost.md](./docs/marketing/every-cleanup-tells-you-the-cost.md) |
 | 🧹 **The original Xcode pitch** | The 150-line AppleScript that started it all | [the-original-pitch.md](./docs/marketing/the-original-pitch.md) |
-| 🍎 **AppleScript library** | Native-UI scripts for one-tap actions — disk status dialog, quick rescue progress bar, locked-space recovery. SADPA can propose new ones. | [`applescripts/`](./applescripts/) |
+| 🍎 **AppleScript library** | Native-UI scripts for one-tap actions — disk status dialog, quick rescue progress bar, locked-space recovery. Ask DustPan can propose new ones. | [`applescripts/`](./applescripts/) |
 | 🥧 **Live disk pie chart** | A donut that shows where your gigabytes are going. Each slice is one category. Click a slice → jump to that category. Updates every time you scan. |
 | 📊 **Hero free-space counter** | The big GB-free number at the top updates in real time. If anything outside Dustpan frees disk (like Time Machine, or you deleting a file in Finder), the number ticks immediately. |
 | 🪟 **Three dashboard versions** | The main one (built with React), a simpler vanilla one, and an experimental Next.js one. All run from the same Python server. |

@@ -41,10 +41,10 @@ Each cleaner action in `cleaners.py` carries a `cost` field that ships unchanged
 
 ### The approval card in the AI chat
 
-When SADPA wants to run a cleanup, the approval card pulls `desc` and `cost` straight from `cleaners.py` — **never AI-generated text**. So the warning you see is curated copy from the canonical source, not the model trying to sound authoritative:
+When Ask DustPan wants to run a cleanup, the approval card pulls `desc` and `cost` straight from `cleaners.py` — **never AI-generated text**. So the warning you see is curated copy from the canonical source, not the model trying to sound authoritative:
 
 ```
-⚠️  SADPA wants to run this
+⚠️  DustPan wants to run this
 
     Run 'Clear Xcode Build Cache (DerivedData)' in Xcode
 

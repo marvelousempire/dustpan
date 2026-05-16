@@ -1539,8 +1539,7 @@ CATEGORIES = {
     # \u2500\u2500 Emergency category (plan 0011) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     # Disk at zero. These are the fastest safe commands that actually recover
     # meaningful space \u2014 each one is 100% reversible (files rebuild automatically).
-    # The Smart Auto-Detector Protector Agent (SADPA) surfaces this panel
-    # automatically when free_gb < 1.
+    # DustPan surfaces this panel automatically when free_gb < 1.
     "emergency": {
         "label":   "Emergency",
         "icon":    "\ud83d\udea8",

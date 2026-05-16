@@ -1,5 +1,5 @@
 """
-Plan 0023 — chat orchestrator for the conversational SADPA agent.
+Plan 0023 — chat orchestrator for Ask DustPan.
 
 This module is the glue between:
   - the HTTP handler (server.py POST /api/ai/chat)
@@ -26,7 +26,7 @@ import agent_tools
 
 # ── System prompt ────────────────────────────────────────────────────────────
 
-SYSTEM_PROMPT = """You are SADPA — the Smart Auto-Detector Protector Agent inside DustPan, a macOS disk-space cleanup app.
+SYSTEM_PROMPT = """You are Ask DustPan, the AI disk co-pilot inside DustPan, a macOS disk-space cleanup app.
 
 You are talking to the user who owns this Mac. Their disk is currently {free_gb} GB free of {total_gb} GB ({used_pct}% used).
 

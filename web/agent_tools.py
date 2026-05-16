@@ -1,5 +1,5 @@
 """
-Plan 0023 — Tool registry for the conversational SADPA agent.
+Plan 0023 — Tool registry for Ask DustPan.
 
 This module is the single source of truth for what the AI agent can do.
 Everything is curated:
@@ -479,7 +479,7 @@ def _h_clean_path(args: dict, ctx: dict) -> dict:
 
 def _h_list_applescript_library(args: dict, ctx: dict) -> dict:
     """
-    Returns the contents of the applescripts/ library so SADPA knows what
+    Returns the contents of the applescripts/ library so Ask DustPan knows what
     already exists before proposing a new script. Reads the docs/ folder
     and returns one entry per documented script with title, status, type,
     and the rationale (the "moment that prompted it" section).
@@ -592,7 +592,7 @@ def _h_propose_new_applescript(args: dict, ctx: dict) -> dict:
         "proposal_id": record["id"],
         "summary":     f"Proposed AppleScript '{name}' filed to review inbox (id {record['id']}).",
         "warnings":    warnings_list,
-        "ui_hint":     "User reviews at the bottom of the Chat with SADPA panel — accept generates two paste-ready artifacts (script + doc).",
+        "ui_hint":     "User reviews at the bottom of the Ask DustPan panel — accept generates two paste-ready artifacts (script + doc).",
     }
 
 
@@ -637,7 +637,7 @@ def _h_propose_new_cleaner(args: dict, ctx: dict) -> dict:
         "status":      record["status"],
         "name":        record["name"],
         "summary":     f"Proposal '{name}' saved for review (id {record['id']}).",
-        "ui_hint":     "User can review at the bottom of the Chat with SADPA panel.",
+        "ui_hint":     "User can review at the bottom of the Ask DustPan panel.",
     }
 
 

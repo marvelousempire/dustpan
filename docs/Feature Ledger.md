@@ -104,11 +104,11 @@ These five releases substantially widened DustPan from "Xcode cleaner" to "local
 
 | Version | Feature | What it adds |
 |---|---|---|
-| **v0.21.4** | 🚨 Emergency Rescue panel (Plan 0021) | Disk-at-zero rescue with 6 numbered command cards, in-app terminal streaming, SADPA auto-navigation when `free_gb < 1`. |
+| **v0.21.4** | 🚨 Emergency Rescue panel (Plan 0021) | Disk-at-zero rescue with 6 numbered command cards, in-app terminal streaming, low-space auto-navigation when `free_gb < 1`. |
 | **v0.21.5** | Real-time calc fix | EmergencyPanel now wires to the actual SSE `done` event (not a fake 1500ms timer); per-card freed-GB counters from kernel reads. |
 | **v0.22.0** | 📊 Space Survey (Plan 0022) | Live-streaming filesystem crawl beyond predefined categories. Finds Claude Code worktrees, `.next`/`dist` artifacts, large `node_modules`, plus 11 known caches measured fresh. |
 | **v0.22.1** | Per-worktree merge status | `git branch -r --merged origin/main` cross-reference — flags worktrees safe to prune. Plus the "🚫 Probably not worth touching" section (mediaanalysisd, Spotlight). |
-| **v0.23.0** | 💬 Chat with SADPA (Plan 0023 Ship 1) | Conversational agent with tool-calling. Anthropic + OpenAI tool-use loops. 13 curated tools (read-only + action). Sandboxed filesystem peek with allowlist. Approval cards pull desc+cost from `cleaners.py`. Settings toggle for safe-tier auto-approve. |
+| **v0.23.0** | 💬 Ask DustPan (Plan 0023 Ship 1) | Conversational agent with tool-calling. Anthropic + OpenAI tool-use loops. 13 curated tools (read-only + action). Sandboxed filesystem peek with allowlist. Approval cards pull desc+cost from `cleaners.py`. Settings toggle for safe-tier auto-approve. |
 | **v0.24.0** | 🔒 Foreign-ownership discovery (Plan 0024) | Finds disk locked by previous users (Homebrew owned by old account, `/Users/<oldname>/` still on disk). Survey + Emergency surfaces show takeover commands with [📋 Copy]. AI agent gets `find_foreign_ownership` tool. Never runs `sudo` — macOS password prompt is the consent gate. |
 | **v0.25.0** | AI cleaner proposals (Plan 0023 Ship 2) | `propose_new_cleaner` tool (#15). Proposals land in review inbox at `~/.dustpan/proposals.json`. Accept generates paste-ready Python snippet for `cleaners.py` — never auto-edits source. Sidebar badge with pending count. |
 | **v0.27.5** | Library atlas (Overview) | Teach **where macOS stacks weight** under the home folder, with one-click navigation to the matching category tabs — complements **Space Survey** and **Home folder guidance**. |

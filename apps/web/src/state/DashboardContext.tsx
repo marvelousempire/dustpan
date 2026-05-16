@@ -178,7 +178,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     api.report().then(setHistory).catch(() => {});
   }, []);
 
-  // ── SADPA: Smart Auto-Detector Protector Agent (plan 0011) ───────────────
+  // ── Low-space auto-navigation (plan 0011) ────────────────────────────────
   // Monitors free_gb via the live SSE channel (already running — no extra
   // polling). Two tiers of response:
   //   < 1 GB  → navigate immediately to Emergency Rescue panel

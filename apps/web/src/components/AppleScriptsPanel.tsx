@@ -14,7 +14,7 @@ import { cn } from "../lib/utils";
  *   📂 Reveal      — POST /api/applescripts/<name>/reveal (open -R in Finder)
  *   📄 View doc    — toggle inline markdown preview from /api/applescripts/<name>/doc
  *
- * SADPA can propose new scripts via propose_new_applescript (review-inbox
+ * Ask DustPan can propose new scripts via propose_new_applescript (review-inbox
  * pattern). When accepted, the paste-ready artifacts land on disk and a
  * fresh entry appears here on next reload.
  */
@@ -107,7 +107,7 @@ export function AppleScriptsPanel() {
           <div className="text-[13px] font-semibold text-fg mb-1">Library is empty</div>
           <p className="text-[12px] text-fg-dim max-w-md mx-auto">
             No `.applescript` files found in <code className="font-mono">applescripts/</code>.
-            Ask SADPA to propose one — it'll suggest a native-UI script and put the body + doc into your review inbox.
+            Ask DustPan to propose one — it'll suggest a native-UI script and put the body + doc into your review inbox.
           </p>
         </div>
       )}

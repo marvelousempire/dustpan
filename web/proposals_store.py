@@ -310,7 +310,7 @@ def generate_applescript_artifacts(proposal: dict) -> dict:
         if line.strip() != "--":
             header.append(line.rstrip())
         header.append("--")
-    header.append("-- Proposed by SADPA. Part of the DustPan AppleScript Library.")
+    header.append("-- Proposed by Ask DustPan. Part of the DustPan AppleScript Library.")
     header.append(f"-- Documentation: {doc_path}")
     header.append("")
     script_full = "\n".join(header) + body_raw + ("\n" if not body_raw.endswith("\n") else "")
@@ -325,7 +325,7 @@ def generate_applescript_artifacts(proposal: dict) -> dict:
         "",
         "## What it does",
         "",
-        "_(One paragraph in plain English. Take the SADPA-proposed rationale below as a starting point and refine.)_",
+        "_(One paragraph in plain English. Take the Ask DustPan-proposed rationale below as a starting point and refine.)_",
         "",
         rationale,
         "",

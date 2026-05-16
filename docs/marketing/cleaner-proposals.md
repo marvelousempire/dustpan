@@ -1,10 +1,10 @@
 # 📋 AI cleaner proposals — the app teaches itself
 
-**Tagline:** When SADPA finds a cache DustPan doesn't already track, it proposes a new cleaner. You review, accept, and get a paste-ready Python snippet. The source file stays hand-curated.
+**Tagline:** When Ask DustPan finds a cache DustPan doesn't already track, it proposes a new cleaner. You review, accept, and get a paste-ready Python snippet. The source file stays hand-curated.
 
 **Version:** v0.25.0 (Plan 0023 Ship 2)
 **Plan:** [0023 Ship 2](../../plans/)
-**Surface:** Inbox inside the `💬 Chat with SADPA` tab + pending-count badge in the sidebar
+**Surface:** Inbox inside the `💬 Ask DustPan` tab + pending-count badge in the sidebar
 **Backend:** `web/proposals_store.py`, `web/agent_tools.py::_h_propose_new_cleaner`
 **Frontend:** `apps/web/src/components/ProposalsInbox.tsx`
 
@@ -62,7 +62,7 @@ The tool **never modifies `cleaners.py`**. It writes to `~/.dustpan/proposals.js
 
 ### The inbox
 
-A `ProposalsInbox` component sits at the bottom of the Chat with SADPA panel. It shows pending proposals immediately; filter chips let you switch to accepted / dismissed / all. Each card has:
+A `ProposalsInbox` component sits at the bottom of the Ask DustPan panel. It shows pending proposals immediately; filter chips let you switch to accepted / dismissed / all. Each card has:
 
 - The proposal's name + category + path count
 - The agent's rationale and cost-to-user text
@@ -105,13 +105,13 @@ The snippet is shown in a monospace block with a **[📋 Copy]** button. You cop
 
 ### The sidebar badge
 
-The Dashboard context polls `/api/ai/proposals/count` on mount and every 30 seconds. When pending > 0, the **💬 Chat with SADPA** sidebar entry shows a small accent-coloured badge with the count:
+The Dashboard context polls `/api/ai/proposals/count` on mount and every 30 seconds. When pending > 0, the **💬 Ask DustPan** sidebar entry shows a small accent-coloured badge with the count:
 
 ```
-💬 Chat with SADPA  [2]
+💬 Ask DustPan  [2]
 ```
 
-So even if you're on a different tab and SADPA filed a proposal during a previous chat, you'll see the badge and know to check.
+So even if you're on a different tab and Ask DustPan filed a proposal during a previous chat, you'll see the badge and know to check.
 
 ## What it looks like — full inbox mockup
 
@@ -120,7 +120,7 @@ So even if you're on a different tab and SADPA filed a proposal during a previou
 │ 📋 AI Cleaner Proposals          [2 pending]                            │
 │                          [pending] [accepted] [dismissed] [all]         │
 │                                                                          │
-│ When SADPA finds a cache or directory DustPan doesn't yet know about,   │
+│ When Ask DustPan finds a cache or directory DustPan doesn't know yet,   │
 │ it proposes a new cleaner here. Accept generates a paste-ready snippet  │
 │ you can drop into cleaners.py. DustPan never auto-edits source — the    │
 │ file is hand-curated.                                                    │
@@ -214,7 +214,7 @@ This is a Tier-B tool in spirit (it modifies state) but doesn't trigger an appro
 
 > DustPan v0.25 ships AI cleaner proposals.
 >
-> SADPA finds a cache DustPan doesn't track. Proposes it with paths, tiers, rationale, cost. You accept. Get a paste-ready Python snippet for cleaners.py.
+> Ask DustPan finds a cache DustPan doesn't track. Proposes it with paths, tiers, rationale, cost. You accept. Get a paste-ready Python snippet for cleaners.py.
 >
 > The app teaches itself. Source stays hand-curated.
 
@@ -256,8 +256,8 @@ This is a Tier-B tool in spirit (it modifies state) but doesn't trigger an appro
 
 ## FAQ
 
-**Q: Can SADPA file proposals without my asking?**
-A: Only during conversation. The tool isn't called on a schedule or in the background. If you don't chat with SADPA, no proposals appear.
+**Q: Can Ask DustPan file proposals without my asking?**
+A: Only during conversation. The tool isn't called on a schedule or in the background. If you don't use Ask DustPan, no proposals appear.
 
 **Q: What if the AI proposes something silly?**
 A: Dismiss it. The status changes to `dismissed`; the proposal stays in the inbox under the "dismissed" filter for history. You can also reload the chat and ask it to investigate the specific path and propose again with better input.
@@ -272,7 +272,7 @@ A: The proposal validation requires at least one path. The `tier` field defaults
 A: Not in v0.25. The proposal renders read-only. If you want to tweak, copy the snippet, edit the snippet, then paste your edits into cleaners.py. Inline editing is a wishlist item.
 
 **Q: Do dismissed proposals come back?**
-A: No. SADPA doesn't see the proposals file. If the same condition recurs (e.g. the cache is still there next time you ask), SADPA might propose again — but it's not aware of history. That's deliberate; we want fresh judgments per session.
+A: No. Ask DustPan doesn't see the proposals file. If the same condition recurs (e.g. the cache is still there next time you ask), it might propose again — but it's not aware of history. That's deliberate; we want fresh judgments per session.
 
 ## What it took to ship
 

@@ -14,7 +14,7 @@ This library gives us:
 
 1. **A place to put new scripts** as we invent them — one `.applescript` per script, one `docs/NNNN-…md` per script with the story behind it.
 2. **A snippets vault** (`snippets/`) of reusable patterns — native confirmation, progress bar, notification, file picker, secure password prompt — that any new script can lift directly.
-3. **A clear way for SADPA to propose new scripts.** The AI agent has a `propose_new_applescript` tool that files proposals to a review inbox, with paste-ready code that follows the native-UI house style.
+3. **A clear way for Ask DustPan to propose new scripts.** The AI agent has a `propose_new_applescript` tool that files proposals to a review inbox, with paste-ready code that follows the native-UI house style.
 4. **Documentation that explains why each script exists** — the moment, the pain, the user need. Future contributors don't have to reverse-engineer intent from code.
 
 ## Library structure
@@ -107,9 +107,9 @@ FOO_FLAG=1 osascript applescripts/[name].applescript
 - [link to another doc]
 ```
 
-## SADPA can propose new scripts
+## Ask DustPan can propose new scripts
 
-When you chat with SADPA (the AI agent), it has a `propose_new_applescript` tool. If it finds a recurring task that would feel better as a one-tap script, it files a proposal to the review inbox — same flow as cleaner proposals, but for AppleScripts.
+When you chat with Ask DustPan, it has a `propose_new_applescript` tool. If it finds a recurring task that would feel better as a one-tap script, it files a proposal to the review inbox — same flow as cleaner proposals, but for AppleScripts.
 
 Accept generates a paste-ready `.applescript` file plus a draft doc you copy into `applescripts/docs/`. The library stays hand-curated; the AI's contribution is the **idea, the native-UI design, and the boilerplate** — you ship by reading and pasting.
 

@@ -2,7 +2,7 @@
 
 **Tagline:** Disk at 0 bytes free. macOS is refusing to do anything. Six numbered commands, each with a Run button, live output streaming into a terminal inside the app. 8 GB recovered in under 60 seconds.
 
-**Version:** v0.21.4 (panel + SADPA auto-navigate), v0.21.5 (real-time freed counters)
+**Version:** v0.21.4 (panel + low-space auto-navigation), v0.21.5 (real-time freed counters)
 **Plan:** [0021](../../plans/) (folded into ongoing series)
 **Surface:** Web dashboard tab `🚨 Emergency Rescue`
 **Backend:** `web/cleaners.py::CATEGORIES["emergency"]`
@@ -50,9 +50,9 @@ Each card explains, in plain English:
 - **A live elapsed timer** — ticks every second while running, stops when the command exits.
 - **The freed-GB counter** — pulled from the actual SSE `done` event from `/api/run`, not a fake setTimeout. "✓ Done · +6.2 GB freed · in 4s"
 
-### SADPA auto-navigation
+### Low-space auto-navigation
 
-The Smart Auto-Detector Protector Agent monitors disk space in real time (via the SSE `/api/live` channel). Two thresholds:
+DustPan monitors disk space in real time (via the SSE `/api/live` channel). Two thresholds:
 
 - **`free_gb < 1`** → automatically switches to the Emergency Rescue tab. No clicking required.
 - **`free_gb < 10`** → kicks off a background full-scan so the Survey + QuickWins panels have real data when the user gets to them.
@@ -174,7 +174,7 @@ The output streams via the same SSE channel the per-command run uses — so you 
 > Recovered 6.2 GB in 4 seconds with one click on the DerivedData card. The header shows a live "Freed this session" counter and an animated disk bar with a green overlay growing in real time as space comes back.
 >
 > What makes it different from running the same commands manually in Terminal:
-> 1. The Smart Auto-Detector Protector Agent auto-navigates to this panel when free space drops below 1 GB — no clicking required.
+> 1. DustPan auto-navigates to this panel when free space drops below 1 GB — no clicking required.
 > 2. Each card's freed-GB counter comes from the kernel's reported delta, not an estimate.
 > 3. There's also a Run-All button that chains the five cleanup commands with progress markers.
 >
@@ -216,7 +216,7 @@ A: Xcode will probably error out the in-progress build. Re-run it. The deleted f
 A: No — the command checks `command -v docker` first and prints "Docker not installed or not running — skipping" if it's not there. Same for any tool that's optional.
 
 **Q: Why is the panel auto-opened when my disk is low?**
-A: SADPA (Smart Auto-Detector Protector Agent) monitors `free_gb` via the live SSE channel. Below 1 GB free, it auto-navigates to this panel. The thinking is: when the disk is that low, you have a specific problem with a specific fix, and DustPan's general dashboard is the wrong starting point.
+A: DustPan monitors `free_gb` via the live SSE channel. Below 1 GB free, it auto-navigates to this panel. The thinking is: when the disk is that low, you have a specific problem with a specific fix, and DustPan's general dashboard is the wrong starting point.
 
 **Q: Can I disable the auto-navigation?**
 A: It only fires once per app session (tracked via `autoEmergencyRef`). After you click into any other tab, you stay there. Reload the app to re-arm it.
@@ -228,7 +228,7 @@ A: Runs the five cleanup commands (not the read-only diagnostic ones) in sequenc
 
 **Two PRs**:
 
-- **v0.21.4** — Panel + SADPA auto-navigate. 8 files changed, ~520 lines.
+- **v0.21.4** — Panel + low-space auto-navigation. 8 files changed, ~520 lines.
 - **v0.21.5** — Real-time calculation fix (replaced fake setTimeout with actual SSE done callback). 3 files changed, ~250 lines.
 
 ### Things we deliberately chose not to do

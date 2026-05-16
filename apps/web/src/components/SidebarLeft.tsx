@@ -105,11 +105,11 @@ export function SidebarLeft() {
             </button>
           );
         })}
-        {/* SADPA + Emergency + Settings — hard-coded footer, not server-driven */}
+        {/* Ask DustPan + Emergency + Settings — hard-coded footer, not server-driven */}
         <div className="mt-1.5 border-t border-border/10 pt-1.5 flex flex-col gap-0.5">
-          {/* Chat with SADPA — conversational agent w/ tool-use */}
+          {/* Ask DustPan — conversational agent w/ tool-use */}
           <SidebarFooterBtn
-            label="💬 Chat with SADPA"
+            label="💬 Ask DustPan"
             active={activeTab === "ai-chat"}
             onClick={() => setActiveTab("ai-chat")}
             icon={null}
@@ -122,21 +122,21 @@ export function SidebarLeft() {
             onClick={() => setActiveTab("applescripts")}
             icon={null}
           />
-          {/* Space Survey — SADPA's full filesystem crawl */}
+          {/* Space Survey — full filesystem crawl */}
           <SidebarFooterBtn
             label="📊 Space Survey"
             active={activeTab === "survey"}
             onClick={() => setActiveTab("survey")}
             icon={null}
           />
-          {/* Emergency Rescue — shown prominently; auto-activated by SADPA */}
+          {/* Emergency Rescue — shown prominently; auto-activated at very low free space */}
           <SidebarFooterBtn
             label="🚨 Emergency Rescue"
             active={activeTab === "emergency"}
             onClick={() => setActiveTab("emergency")}
             icon={null}
           />
-          {/* Smart Auto-Detector Protector Agent (SADPA) */}
+          {/* One-shot AI diagnosis */}
           <button
             type="button"
             onClick={() => setActiveTab("agent")}
@@ -151,7 +151,7 @@ export function SidebarLeft() {
             <Sparkles
               className={cn("h-4 w-4 flex-shrink-0", activeTab === "agent" ? "text-accent" : "text-fg-faint")}
             />
-            <span className="flex-1 truncate">SADPA Agent</span>
+            <span className="flex-1 truncate">AI Diagnosis</span>
           </button>
           {/* Settings */}
           <button
@@ -190,7 +190,7 @@ export function SidebarLeft() {
 // 16x16 inline donut showing safe/opt-in/caution split for a tab (elevation H).
 // Hidden when the tab has no scanned data so first-load doesn't show six grey
 // rings before any data is back. Three stroke-dasharray segments around r=13.
-/** Simple footer button for non-category tabs (Emergency, SADPA, Settings). */
+/** Simple footer button for non-category tabs (Emergency, Ask DustPan, Settings). */
 function SidebarFooterBtn({
   label, active, onClick, icon, badge,
 }: {

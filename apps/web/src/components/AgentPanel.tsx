@@ -140,7 +140,7 @@ export function AgentPanel() {
       <div className="flex items-start gap-3">
         <div className="flex-1">
           <div className="text-[13px] font-semibold text-fg">
-            Smart Auto-Detector Protector Agent
+            AI Disk Diagnosis
           </div>
           <div className="text-[12px] text-fg-dim mt-0.5">
             {hasKey
