@@ -19,6 +19,13 @@ Keep entries short — 5–7 lines is fine. Cite specific files / PRs / versions
 
 ## 2026-05-17
 
+### 12:41 Eastern — AI handbook loaded in chat but not every AI path
+
+**Symptom:** `AI_AGENT_RULES` was present and Ask DustPan chat loaded it, but the lightweight scan-summary and diagnosis provider helpers still used their old standalone system prompts.
+**Diagnosis:** `agent_chat.py` had the new handbook loader, while `ai.py` remained the shared lower-level provider path for simple completions and diagnosis calls.
+**Fix:** v0.27.9 routes `ai.py` provider calls through the same compact `AI_AGENT_RULES` loader before sending requests.
+**Would have prevented it:** When adding a prompt policy, grep all provider entrypoints (`complete`, `complete_agent`, `complete_with_tools`) instead of only the chat orchestrator.
+
 ### 11:36 Eastern — AI prompt law was spread across too many places
 
 **Symptom:** Ask DustPan had strong hard-coded safety rules, but repo-specific AI

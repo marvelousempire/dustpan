@@ -7,6 +7,8 @@
   especially LLM runtime bundles.
 - Prompt context must stay bounded. Full changelog and issue history belong in
   docs; the AI runtime gets compact summaries plus read-on-demand tools.
+- Prompt policy must cover every provider entrypoint, not only the newest chat
+  orchestrator. Check `complete`, `complete_agent`, and tool loops together.
 - Runtime AI should preserve the same safety model as the UI: measure first,
   curated actions only, and approval before destructive work.
 

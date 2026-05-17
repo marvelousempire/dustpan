@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.27.9] — 2026-05-17 12:41:28 Eastern · *AI handbook reaches every DustPan AI path*
+
+### Fixed — **AI_AGENT_RULES loading for all API-key AI calls**
+
+The `0.27.8` handbook wiring covered Ask DustPan chat and its
+`read_ai_agent_rules` tool, but the lighter scan-summary and diagnosis helpers
+still used their older standalone system prompts. DustPan now routes those
+provider calls through the same compact `AI_AGENT_RULES` loader, so entering an
+API key gives every DustPan AI surface the same local-law context.
+
+### kVersion / package bumps
+
+Root `package.json`, `apps/web/package.json`, `apps/web-next/package.json`,
+`dustpan.applescript` **`kVersion`** → `0.27.9`.
+
+---
+
 ## [0.27.8] — 2026-05-17 11:36:05 Eastern · *AI_AGENT_RULES handbook for Ask DustPan*
 
 ### Added — **AI_AGENT_RULES app binder**

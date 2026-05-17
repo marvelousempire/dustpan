@@ -21,8 +21,12 @@ import time
 from pathlib import Path
 from typing import Callable, Optional
 
-from ai_agent_rules import load_compact_handbook_context
-import agent_tools
+try:
+    from ai_agent_rules import load_compact_handbook_context
+    import agent_tools
+except ModuleNotFoundError:  # Allows `from web.agent_chat import ...` in tests.
+    from .ai_agent_rules import load_compact_handbook_context
+    from . import agent_tools
 
 
 # ── System prompt ────────────────────────────────────────────────────────────

@@ -20,6 +20,11 @@ import urllib.request
 import urllib.error
 from typing import Optional
 
+try:
+    from ai_agent_rules import load_compact_handbook_context
+except ModuleNotFoundError:  # Allows `from web.ai import ...` in repo-root tests.
+    from .ai_agent_rules import load_compact_handbook_context
+
 # ── Provider catalogue ────────────────────────────────────────────────────────
 
 PROVIDERS = {
@@ -39,6 +44,20 @@ SYSTEM_PROMPT = (
     "plain-English 2-sentence recommendation. Be specific about what to clean "
     "and why. Do not use markdown. Do not repeat the numbers back verbatim."
 )
+
+
+def _with_ai_agent_rules(system: str) -> str:
+    """Attach compact local AI law to any API-key-backed DustPan AI call."""
+    context = load_compact_handbook_context()
+    if not context:
+        return system
+    return (
+        f"{system}\n\n"
+        "# Local AI handbook\n"
+        "DustPan carries app-specific AI law in AI_AGENT_RULES/. Follow this "
+        "compact context before answering:\n"
+        f"{context}"
+    )
 
 # ── HTTP helper ───────────────────────────────────────────────────────────────
 
@@ -104,6 +123,7 @@ def _post_streaming(url: str, headers: dict, body: dict, timeout: int = 300):
 
 def _openai_complete(base_url: str, api_key: str, model: str, prompt: str) -> str:
     url = base_url.rstrip("/") + "/v1/chat/completions"
+    system = _with_ai_agent_rules(SYSTEM_PROMPT)
     resp = _post(
         url,
         headers={
@@ -113,7 +133,7 @@ def _openai_complete(base_url: str, api_key: str, model: str, prompt: str) -> st
         body={
             "model": model,
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system},
                 {"role": "user",   "content": prompt},
             ],
             "max_tokens": 180,
@@ -123,6 +143,7 @@ def _openai_complete(base_url: str, api_key: str, model: str, prompt: str) -> st
     return resp["choices"][0]["message"]["content"].strip()
 
 def _anthropic_complete(api_key: str, model: str, prompt: str) -> str:
+    system = _with_ai_agent_rules(SYSTEM_PROMPT)
     resp = _post(
         "https://api.anthropic.com/v1/messages",
         headers={
@@ -133,7 +154,7 @@ def _anthropic_complete(api_key: str, model: str, prompt: str) -> str:
         body={
             "model": model,
             "max_tokens": 180,
-            "system": SYSTEM_PROMPT,
+            "system": system,
             "messages": [{"role": "user", "content": prompt}],
         },
     )
@@ -144,7 +165,7 @@ def _gemini_complete(api_key: str, model: str, prompt: str) -> str:
         f"https://generativelanguage.googleapis.com/v1beta/models/"
         f"{model}:generateContent?key={api_key}"
     )
-    combined = f"{SYSTEM_PROMPT}\n\n{prompt}"
+    combined = f"{_with_ai_agent_rules(SYSTEM_PROMPT)}\n\n{prompt}"
     resp = _post(
         url,
         headers={"Content-Type": "application/json"},
@@ -263,6 +284,8 @@ def complete_agent(
     model   = pinfo["default_model"]
     fmt     = pinfo["fmt"]
     base    = pinfo["base"] or os.environ.get("OLLAMA_URL", "http://localhost:11434")
+
+    system = _with_ai_agent_rules(system)
 
     # Compose the chat body with the agent's system + user messages
     if fmt == "anthropic":

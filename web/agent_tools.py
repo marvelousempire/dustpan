@@ -21,7 +21,10 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from ai_agent_rules import read_ai_agent_rules_section
+try:
+    from ai_agent_rules import read_ai_agent_rules_section
+except ModuleNotFoundError:  # Allows `from web.agent_tools import ...` in tests.
+    from .ai_agent_rules import read_ai_agent_rules_section
 
 
 # ── Path safety: home-subtree allowlist + hard denies ────────────────────────

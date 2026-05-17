@@ -1,6 +1,6 @@
 # Feature Ledger
 
-*Last updated: 2026-05-17 Eastern (v0.27.8)*
+*Last updated: 2026-05-17 Eastern (v0.27.9)*
 
 Status legend: **✅ shipped** · **✔️ partial / works but rough** · **🔜 next** · **❌ deferred / out of scope**
 
@@ -115,6 +115,7 @@ These five releases substantially widened DustPan from "Xcode cleaner" to "local
 | **v0.27.6** | Xcode Build Rescue (Plan 0029) | Encodes the disk-full Xcode recovery path: read-only diagnostics, active-build guard, SwiftPM/Xcode cache cleanup, and Emergency coverage for package-resolution failures. |
 | **v0.27.7** | Dev Build Rescue Payload (Plan 0030) | Adds the Red-E Play recovery lesson: Claude Desktop `vm_bundles` can be the real 10+ GB blocker, and external/network DerivedData can cause Xcode `disk I/O error`; DustPan now diagnoses both and clears the rebuildable VM bundle cache without a full Claude reset. |
 | **v0.27.8** | AI_AGENT_RULES Handbook (Plan 0031) | Adds a root AI binder and wires Ask DustPan to load compact local-law context, with read-only section lookup through `read_ai_agent_rules`. |
+| **v0.27.9** | AI_AGENT_RULES Provider Coverage | Extends compact handbook loading from Ask DustPan chat to every API-key provider call, including scan summaries and diagnosis helpers. |
 
 ## Next (v0.26+ wishlist)
 
