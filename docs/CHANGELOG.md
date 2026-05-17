@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.27.6] — 2026-05-17 09:39:55 Eastern · *Xcode Build Rescue — guarded cleanup for disk-full builds*
+
+### Added — **Xcode Build Rescue**
+
+DustPan now encodes the real recovery path for Xcode builds that fail because
+the Mac is out of disk space: check free space, detect active Xcode/compiler
+processes, inspect the largest Xcode folders, then clear only rebuildable
+Developer caches.
+
+- **Xcode tab**: new read-only `Diagnose Xcode build space` action prints disk
+  state, active `xcodebuild` / compiler processes, Xcode cache sizes, and
+  SwiftPM cache sizes.
+- **Xcode tab**: new guarded `Xcode build rescue: free build space` action
+  clears `DerivedData`, `iOS DeviceSupport`, SwiftPM caches, and Xcode caches,
+  but refuses to run while a build is active.
+- **Emergency panel**: new `SwiftPM + Xcode Package Caches` card covers the
+  `No space left on device` failure during package checkout/resolution.
+- **Emergency Run All** now includes SwiftPM/Xcode package caches and uses the
+  same active-build guard before cleaning.
+
+### kVersion / package bumps
+
+Root `package.json`, `apps/web/package.json`, `apps/web-next/package.json`,
+`dustpan.applescript` **`kVersion`** → `0.27.6`.
+
+---
+
 ## [0.27.5] — 2026-05-15 14:45:00 Eastern · *Library atlas on Overview — ~/Library heavy zones with tab jumps*
 
 ### Added — **Library atlas** (Overview)

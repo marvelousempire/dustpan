@@ -422,6 +422,7 @@ def list_actions(category_id: str):
 EMERGENCY_CLEANUP_ACTION_IDS = (
     "emergency-deriveddata",
     "emergency-devicesupport",
+    "emergency-swiftpm-xcode-caches",
     "emergency-mediaanalysisd",
     "emergency-documentationindex",
     "emergency-docker-prune",

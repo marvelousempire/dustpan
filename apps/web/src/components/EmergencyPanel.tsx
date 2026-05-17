@@ -43,8 +43,18 @@ const COMMANDS = [
     readOnly: false,
   },
   {
-    id:      "emergency-mediaanalysisd",
+    id:      "emergency-swiftpm-xcode-caches",
     num:     "③",
+    label:   "SwiftPM + Xcode Package Caches",
+    shell:   "rm -rf ~/Library/Caches/org.swift.swiftpm/* ~/Library/org.swift.swiftpm/* ~/Library/Caches/com.apple.dt.Xcode/*",
+    what:    "Package checkouts and Xcode build-system caches. This is the cache family that can make Swift package resolution fail with 'No space left on device'.",
+    happens: "Next build may re-resolve and re-download Swift packages. Your projects, archives, profiles, and source stay untouched.",
+    typical: "0.5–5 GB",
+    readOnly: false,
+  },
+  {
+    id:      "emergency-mediaanalysisd",
+    num:     "④",
     label:   "macOS Photo Recognition Cache",
     shell:   "rm -rf ~/Library/Containers/com.apple.mediaanalysisd/Data/Library/*\nrm -rf ~/Library/Containers/com.apple.mediaanalysisd/Data/tmp/*",
     what:    "The AI brain macOS builds from Photos to recognize faces and scenes. Your actual photos are untouched.",
@@ -54,7 +64,7 @@ const COMMANDS = [
   },
   {
     id:      "emergency-documentationindex",
-    num:     "④",
+    num:     "⑤",
     label:   "Xcode Documentation Index",
     shell:   "rm -rf ~/Library/Developer/Xcode/DocumentationIndex/*",
     what:    "Xcode's searchable copy of Apple's developer docs.",
@@ -64,7 +74,7 @@ const COMMANDS = [
   },
   {
     id:      "emergency-docker-prune",
-    num:     "⑤",
+    num:     "⑥",
     label:   "Docker: Remove Unused Images & Containers",
     shell:   "docker system prune -f",
     what:    "Removes unused blueprints and stopped containers from inside Docker. Running containers are completely safe.",
@@ -94,7 +104,7 @@ const COMMANDS = [
   },
   {
     id:       "emergency-check-disk",
-    num:      "⑥",
+    num:      "⑦",
     label:    "Check Disk Space Right Now",
     shell:    "df -h /",
     what:     "Shows exactly how full your disk is. Nothing is deleted.",

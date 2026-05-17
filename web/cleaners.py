@@ -72,6 +72,50 @@ CATEGORIES = {
             ],
         },
         "actions": {
+            "diagnose-build-space": {
+                "label": "Diagnose Xcode build space",
+                "desc":  "Read-only check: disk free, active Xcode/compiler processes, and the biggest Xcode + SwiftPM cache folders.",
+                "cost":  "Read-only. Nothing is deleted.",
+                "informational": True,
+                "shell": (
+                    "echo '🔎 Xcode build-space diagnosis'; echo ''; "
+                    "echo 'Disk:'; df -h / | awk 'NR==2{print \"  \"$4\" free of \"$2\" (\"$5\" used)\"}'; echo ''; "
+                    "echo 'Active Xcode/compiler processes:'; "
+                    "ACTIVE=$(pgrep -lf '[x]codebuild|[s]wift-frontend|[c]lang|[l]d ' || true); "
+                    "if [ -n \"$ACTIVE\" ]; then echo \"$ACTIVE\" | sed 's/^/  /'; else echo '  none'; fi; echo ''; "
+                    "echo 'Xcode cache sizes:'; "
+                    "du -sh ~/Library/Developer/Xcode/* 2>/dev/null | sort -h | sed 's/^/  /'; echo ''; "
+                    "echo 'SwiftPM cache sizes:'; "
+                    "du -sh ~/Library/Caches/org.swift.swiftpm ~/Library/org.swift.swiftpm 2>/dev/null | sort -h | sed 's/^/  /'"
+                ),
+            },
+            "xcode-build-rescue-safe": {
+                "label": "Xcode build rescue: free build space",
+                "desc":  "Guarded cleanup for the exact failure mode where Xcode cannot build because DerivedData, DeviceSupport, SwiftPM, or Xcode caches filled the disk.",
+                "cost":  "Refuses to run while builds are active. Next build re-resolves packages, re-downloads device symbols, and rebuilds caches. Source, archives, profiles, and projects are untouched.",
+                "shell": (
+                    "echo '🧰 Xcode Build Rescue'; "
+                    "ACTIVE=$(pgrep -lf '[x]codebuild|[s]wift-frontend|[c]lang|[l]d ' || true); "
+                    "if [ -n \"$ACTIVE\" ]; then "
+                    "  echo 'Active Xcode/compiler processes found — refusing to clean while a build is running:'; "
+                    "  echo \"$ACTIVE\" | sed 's/^/  /'; "
+                    "  echo 'Stop the build, then run this action again.'; "
+                    "  exit 2; "
+                    "fi; "
+                    "echo ''; echo 'Before:'; df -h / | awk 'NR==2{print \"  \"$4\" free of \"$2\" (\"$5\" used)\"}'; "
+                    "echo ''; echo 'Top Xcode folders before cleanup:'; "
+                    "du -sh ~/Library/Developer/Xcode/* 2>/dev/null | sort -h | tail -12 | sed 's/^/  /'; "
+                    "echo ''; echo 'Clearing DerivedData, DeviceSupport, SwiftPM, and Xcode caches…'; "
+                    "rm -rf ~/Library/Developer/Xcode/DerivedData/* "
+                    "~/Library/Developer/Xcode/iOS\\ DeviceSupport/* "
+                    "~/Library/Caches/org.swift.swiftpm/* "
+                    "~/Library/org.swift.swiftpm/* "
+                    "~/Library/Caches/com.apple.dt.Xcode/* 2>/dev/null; "
+                    "xcrun simctl delete unavailable 2>/dev/null || true; "
+                    "echo ''; echo 'After:'; df -h / | awk 'NR==2{print \"  \"$4\" free of \"$2\" (\"$5\" used)\"}'; "
+                    "echo '✓ Xcode build rescue complete.'"
+                ),
+            },
             "clean-safe": {
                 "label": "Clean all safe Xcode caches",
                 "desc":  "Wipes DerivedData + DeviceSupport + SwiftPM cache + simulator caches + Xcode extras.",
@@ -1543,7 +1587,7 @@ CATEGORIES = {
     "emergency": {
         "label":   "Emergency",
         "icon":    "\ud83d\udea8",
-        "tagline": "Disk at zero. These 6 commands recover 5\u201315 GB in under 60 seconds \u2014 all safe, all auto-rebuild.",
+        "tagline": "Disk at zero. These 7 commands recover 5\u201315 GB in under 60 seconds \u2014 all safe, all auto-rebuild.",
         "meta":    True,   # not a category tab \u2014 rendered by EmergencyPanel
         "groups":  {"safe": [], "probably_safe": [], "caution": []},
         # Paths measured by GET /api/emergency/estimate for Run-button reclaim tallies.
@@ -1553,6 +1597,11 @@ CATEGORIES = {
             ],
             "emergency-devicesupport": [
                 "~/Library/Developer/Xcode/iOS DeviceSupport",
+            ],
+            "emergency-swiftpm-xcode-caches": [
+                "~/Library/Caches/org.swift.swiftpm",
+                "~/Library/org.swift.swiftpm",
+                "~/Library/Caches/com.apple.dt.Xcode",
             ],
             "emergency-mediaanalysisd": [
                 "~/Library/Containers/com.apple.mediaanalysisd/Data/Library",
@@ -1601,6 +1650,32 @@ CATEGORIES = {
             },
 
             # \u2500\u2500 3 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+            "emergency-swiftpm-xcode-caches": {
+                "label": "Clear SwiftPM + Xcode package caches",
+                "desc":  (
+                    "Removes Swift Package Manager caches and Xcode's build-system "
+                    "cache. This targets the failure where package checkout or "
+                    "dependency resolution dies with 'No space left on device'."
+                ),
+                "cost":  "Next build may re-resolve and re-download Swift packages. Project files, archives, provisioning profiles, and source are untouched.",
+                "shell": (
+                    "echo '\u2462 Checking for active Xcode/compiler processes\u2026'; "
+                    "ACTIVE=$(pgrep -lf '[x]codebuild|[s]wift-frontend|[c]lang|[l]d ' || true); "
+                    "if [ -n \"$ACTIVE\" ]; then "
+                    "  echo 'Active build processes found \u2014 refusing to clean package caches mid-build:'; "
+                    "  echo \"$ACTIVE\" | sed 's/^/  /'; "
+                    "  echo 'Stop the build, then run this action again.'; "
+                    "  exit 2; "
+                    "fi; "
+                    "echo '\u2462 Clearing SwiftPM + Xcode caches\u2026'; "
+                    "rm -rf ~/Library/Caches/org.swift.swiftpm/* "
+                    "~/Library/org.swift.swiftpm/* "
+                    "~/Library/Caches/com.apple.dt.Xcode/* 2>/dev/null; "
+                    "echo '\u2713 Done.'; "
+                    "df -h / | awk 'NR==2{print \"  Disk: \"$4\" free of \"$2}'"
+                ),
+            },
+
             "emergency-mediaanalysisd": {
                 "label": "Clear macOS Photo Analysis Cache",
                 "desc":  (
@@ -1781,14 +1856,22 @@ CATEGORIES = {
             "emergency-run-all": {
                 "label": "Run All Emergency Commands",
                 "desc":  (
-                    "Runs all 5 cleanup commands in sequence \u2014 DerivedData, "
-                    "iOS DeviceSupport, media analysis cache, DocumentationIndex, "
-                    "and Docker prune. Then shows the new disk status. "
+                    "Runs all 6 cleanup commands in sequence \u2014 DerivedData, "
+                    "iOS DeviceSupport, SwiftPM/Xcode caches, media analysis cache, "
+                    "DocumentationIndex, and Docker prune. Then shows the new disk status. "
                     "All files rebuild automatically. Nothing important is deleted."
                 ),
-                "cost":  "One slower Xcode build + 1\u20132 min device re-sync + Docker image re-pull if needed.",
+                "cost":  "One slower Xcode build + 1\u20132 min device re-sync + package re-resolve + Docker image re-pull if needed.",
                 "shell": (
                     "echo '\ud83d\udea8 DustPan Emergency Cleanup \u2014 starting\u2026'; "
+                    "echo ''; "
+                    "ACTIVE=$(pgrep -lf '[x]codebuild|[s]wift-frontend|[c]lang|[l]d ' || true); "
+                    "if [ -n \"$ACTIVE\" ]; then "
+                    "  echo 'Active Xcode/compiler processes found \u2014 refusing to run emergency cleanup mid-build:'; "
+                    "  echo \"$ACTIVE\" | sed 's/^/  /'; "
+                    "  echo 'Stop the build, then run Emergency again.'; "
+                    "  exit 2; "
+                    "fi; "
                     "echo ''; "
 
                     "echo '\u2460 DerivedData\u2026'; "
@@ -1799,16 +1882,22 @@ CATEGORIES = {
                     "rm -rf ~/Library/Developer/Xcode/'iOS DeviceSupport'/* 2>/dev/null; "
                     "echo '  \u2713 cleared'; "
 
-                    "echo '\u2462 Media analysis cache\u2026'; "
+                    "echo '\u2462 SwiftPM + Xcode caches\u2026'; "
+                    "rm -rf ~/Library/Caches/org.swift.swiftpm/* 2>/dev/null; "
+                    "rm -rf ~/Library/org.swift.swiftpm/* 2>/dev/null; "
+                    "rm -rf ~/Library/Caches/com.apple.dt.Xcode/* 2>/dev/null; "
+                    "echo '  \u2713 cleared'; "
+
+                    "echo '\u2463 Media analysis cache\u2026'; "
                     "rm -rf ~/Library/Containers/com.apple.mediaanalysisd/Data/Library/* 2>/dev/null; "
                     "rm -rf ~/Library/Containers/com.apple.mediaanalysisd/Data/tmp/* 2>/dev/null; "
                     "echo '  \u2713 cleared'; "
 
-                    "echo '\u2463 DocumentationIndex\u2026'; "
+                    "echo '\u2464 DocumentationIndex\u2026'; "
                     "rm -rf ~/Library/Developer/Xcode/DocumentationIndex/* 2>/dev/null; "
                     "echo '  \u2713 cleared'; "
 
-                    "echo '\u2464 Docker prune\u2026'; "
+                    "echo '\u2465 Docker prune\u2026'; "
                     "if command -v docker >/dev/null 2>&1; then "
                     "  docker system prune -f 2>&1 | tail -5; "
                     "  echo '  \u2713 done'; "

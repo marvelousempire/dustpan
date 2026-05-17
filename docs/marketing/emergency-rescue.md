@@ -161,7 +161,7 @@ The output streams via the same SSE channel the per-command run uses — so you 
 
 > Your Mac is at 0 bytes free. macOS won't let you open anything. Spotlight broke. iCloud is throwing errors.
 >
-> DustPan's Emergency Rescue panel: 6 numbered commands, each with a Run button, live output streaming inside the app.
+> DustPan's Emergency Rescue panel: 7 numbered commands, each with a Run button, live output streaming inside the app.
 >
 > 8 GB back in 60 seconds. https://github.com/marvelousempire/dustpan
 

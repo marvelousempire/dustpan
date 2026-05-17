@@ -57,6 +57,7 @@ writing them into the repo we get:
 | [0024](0024-foreign-ownership-discovery.md) | Foreign-ownership discovery — find disk space locked behind previous users' UIDs (`/opt/homebrew` owned by 'olivia', `/Users/<oldname>/`, Guest leftovers) with copy-paste takeover commands | shipped | v0.24.0 |
 | [0027](0027-disk-growth-watch-3m-9m-20m-deltas.md) | Disk Growth Watch — sliding 3m/9m/20m deltas (`/api/growth`, Overview) | shipped | pending tag |
 | [0028](0028-full-viewport-responsive-dashboard-shell.md) | Full-viewport responsive dashboard shell — no max-width gutter, fluid sidebars, dvh-safe root | drafted | pending tag |
+| [0029](0029-xcode-build-rescue.md) | Xcode Build Rescue — disk/process diagnostics + guarded cleanup for DerivedData, DeviceSupport, SwiftPM, and Xcode caches | drafted | v0.27.6 |
 
 ## When to add a plan
 

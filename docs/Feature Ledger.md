@@ -1,6 +1,6 @@
 # Feature Ledger
 
-*Last updated: 2026-05-15 Eastern (v0.27.5)*
+*Last updated: 2026-05-17 Eastern (v0.27.6)*
 
 Status legend: **✅ shipped** · **✔️ partial / works but rough** · **🔜 next** · **❌ deferred / out of scope**
 
@@ -60,7 +60,7 @@ Status legend: **✅ shipped** · **✔️ partial / works but rough** · **🔜
 
 | # | Category | Paths | Actions | Status | Added |
 |---|---|---|---|---|---|
-| 26 | Xcode | 20 | 4 | ✅ | v0.7.0 |
+| 26 | Xcode | 20 | 6 | ✅ | v0.7.0 / refined v0.27.6 |
 | 27 | LLMs/Claude | 8 | 4 (incl. opt-in `reset-claude-desktop` for 10+ GB app state) | ✅ | v0.7.0 |
 | 28 | LLMs/Cursor | 13 | 2 | ✅ | v0.7.0 |
 | 29 | LLMs/ChatGPT | 3 | 1 | ✅ | v0.7.0 |
@@ -112,6 +112,7 @@ These five releases substantially widened DustPan from "Xcode cleaner" to "local
 | **v0.24.0** | 🔒 Foreign-ownership discovery (Plan 0024) | Finds disk locked by previous users (Homebrew owned by old account, `/Users/<oldname>/` still on disk). Survey + Emergency surfaces show takeover commands with [📋 Copy]. AI agent gets `find_foreign_ownership` tool. Never runs `sudo` — macOS password prompt is the consent gate. |
 | **v0.25.0** | AI cleaner proposals (Plan 0023 Ship 2) | `propose_new_cleaner` tool (#15). Proposals land in review inbox at `~/.dustpan/proposals.json`. Accept generates paste-ready Python snippet for `cleaners.py` — never auto-edits source. Sidebar badge with pending count. |
 | **v0.27.5** | Library atlas (Overview) | Teach **where macOS stacks weight** under the home folder, with one-click navigation to the matching category tabs — complements **Space Survey** and **Home folder guidance**. |
+| **v0.27.6** | Xcode Build Rescue (Plan 0029) | Encodes the disk-full Xcode recovery path: read-only diagnostics, active-build guard, SwiftPM/Xcode cache cleanup, and Emergency coverage for package-resolution failures. |
 
 ## Next (v0.26+ wishlist)
 

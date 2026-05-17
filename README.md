@@ -36,7 +36,7 @@ The big difference from other "Mac cleaners": Dustpan **tells you exactly what y
 **Three new superpowers as of v0.25:**
 - 💬 **Ask DustPan** — a conversational AI disk co-pilot (bring your own Anthropic or OpenAI key) that can measure your disk, drill into folders, run cleanups *after you approve*, and even propose new cleaners DustPan should know about.
 - 🔒 **Unlock space locked by previous users** — finds Homebrew owned by "olivia" from when she had the Mac, old `/Users/<name>/` home directories still on disk, and other multi-user cruft. Often **5–50 GB**. Shows the exact `sudo` command, never runs it for you.
-- 🚨 **Emergency Rescue panel** — when the disk is at zero and nothing else works, six numbered commands that recover space in under 60 seconds, with live output streaming to a terminal in the app.
+- 🚨 **Emergency Rescue panel** — when the disk is at zero and nothing else works, seven numbered commands that recover space in under 60 seconds, with live output streaming to a terminal in the app.
 
 ---
 
@@ -240,10 +240,11 @@ When `df -h /` shows `0 bytes free` and macOS starts refusing to do anything, th
 ```
 ① Xcode Build Cache (DerivedData)        typically 5–20 GB    [▶ Run this]
 ② Xcode Device Debug Files               typically 2–8 GB     [▶ Run this]
-③ macOS Photo Recognition Cache          typically 2–5 GB     [▶ Run this]
-④ Xcode Documentation Index              typically 1–5 GB     [▶ Run this]
-⑤ Docker: Remove Unused Images           typically 2–20 GB    [▶ Run this]
-⑥ Check Disk Space Right Now             read-only            [▶ Run check]
+③ SwiftPM + Xcode Package Caches         typically 0.5–5 GB   [▶ Run this]
+④ macOS Photo Recognition Cache          typically 2–5 GB     [▶ Run this]
+⑤ Xcode Documentation Index              typically 1–5 GB     [▶ Run this]
+⑥ Docker: Remove Unused Images           typically 2–20 GB    [▶ Run this]
+⑦ Check Disk Space Right Now             read-only            [▶ Run check]
 
 [▶▶ Run All Emergency Commands Now]
 ```
@@ -256,6 +257,10 @@ Plus two **read-only diagnostic** cards above for the foreign-ownership case:
 ```
 
 **DustPan watches your free space in real time.** When it drops below 1 GB, DustPan auto-navigates you to the Emergency Rescue panel — no clicking required. When it drops below 10 GB, a full background scan kicks off so the quick-wins and survey panels have real data when you get to them.
+
+The Xcode rescue actions use an active-build guard: if `xcodebuild`, Swift
+compiler, Clang, or linker processes are running, DustPan prints them and
+refuses to delete build caches until the build stops.
 
 ---
 

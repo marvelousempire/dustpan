@@ -104,7 +104,7 @@ Show HN: DustPan – a local macOS disk cleaner you can chat with (BYO API key)
 >
 > 2. **Unlock space locked by previous users.** macOS file permissions hide huge amounts of disk space behind UIDs that aren't your current login. Real case from my own Mac: `/opt/homebrew` was owned by 'olivia' from before I had it; `brew` couldn't manage it under my account; 12 GB invisible to standard cleaners. DustPan finds these, shows the exact `sudo chown -R $(whoami) <path>` command, but never runs sudo itself — that's the macOS password prompt's job, not the app's.
 >
-> 3. **Emergency Rescue panel** for disk-at-zero. When `df -h /` shows 0 free, the app auto-navigates to a panel with six numbered commands that each run with live output streaming into an in-app terminal. Recovered 8+ GB in under 60 seconds on a frozen Mac this morning.
+> 3. **Emergency Rescue panel** for disk-at-zero. When `df -h /` shows 0 free, the app auto-navigates to a panel with seven numbered commands that each run with live output streaming into an in-app terminal. Recovered 8+ GB in under 60 seconds on a frozen Mac this morning.
 >
 > Architecturally: Python stdlib HTTP server (no FastAPI, no pip installs), Vite+React dashboard, AppleScript bridge, SSE for streaming. Everything is auditable in ~5000 lines. MIT, no telemetry, no auto-update phone-home.
 >
