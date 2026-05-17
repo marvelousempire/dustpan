@@ -6,6 +6,9 @@ export interface DiskStatus {
   total_gb: number;
   used_pct: number;
   version?: string;
+  server_host?: string;
+  server_port?: number;
+  server_scope?: "localhost" | "network" | string;
 }
 
 export interface HistoryReport {
@@ -142,6 +145,118 @@ export interface Run {
   duration_ms: number | null;
   disk_before_gb: number | null;
   disk_after_gb: number | null;
+}
+
+export interface PerformanceProcess {
+  pid: number;
+  name: string;
+  cpu_pct: number;
+  mem_pct: number;
+  rss_mb: number;
+}
+
+export interface PerformanceNetworkRow {
+  command: string;
+  pid: number;
+  user: string;
+  protocol: string;
+  name: string;
+}
+
+export interface PerformanceService {
+  id: string;
+  label: string;
+  host: string;
+  port: number;
+  reachable: boolean;
+  status: string;
+  scope: "local" | "remote" | string;
+  details?: string[];
+}
+
+export interface PerformanceActivityPath {
+  label: string;
+  path: string;
+  exists: boolean;
+  permission_denied: boolean;
+  size_gb: number;
+}
+
+export interface PerformanceRecommendation {
+  severity: "critical" | "warning" | "info" | string;
+  title: string;
+  action: string;
+  target_tab?: string;
+}
+
+export interface PerformancePayload {
+  ts: number;
+  host: string;
+  platform?: string;
+  lan_ip: string | null;
+  system: {
+    disk: DiskStatus;
+    load: {
+      load_1: number;
+      load_5: number;
+      load_15: number;
+      cpu_count: number;
+      load_pct: number;
+    };
+    memory: {
+      total_mb: number;
+      free_mb: number;
+      used_mb: number;
+      used_pct: number;
+    };
+  };
+  processes: PerformanceProcess[];
+  network: {
+    available: boolean;
+    listeners: PerformanceNetworkRow[];
+    connections: PerformanceNetworkRow[];
+    errors?: string[];
+    message?: string;
+  };
+  services: PerformanceService[];
+  series?: {
+    disk?: Array<DiskStatus & { ts: number }>;
+    load?: Array<PerformancePayload["system"]["load"] & { ts: number }>;
+    memory?: Array<PerformancePayload["system"]["memory"] & { ts: number }>;
+  };
+  bottlenecks?: PerformanceBottleneck[];
+  activity: {
+    heavy_paths: PerformanceActivityPath[];
+    automation_processes: string[];
+    recommendations: PerformanceRecommendation[];
+  };
+  controls: Array<{
+    id: string;
+    label: string;
+    kind: string;
+    target_tab?: string;
+    approval_required: boolean;
+  }>;
+}
+
+export interface PerformanceBottleneck {
+  severity: "critical" | "warning" | "info" | string;
+  title: string;
+  detail: string;
+  target_tab?: string;
+}
+
+export interface PerformanceBenchmarkResult {
+  ts: number;
+  duration_ms: number;
+  overall: number;
+  scores: Record<string, number | null>;
+  notes: string[];
+}
+
+export interface PerformanceBenchmarkStatus {
+  available: boolean;
+  last_result: PerformanceBenchmarkResult | null;
 }
 
 // Live stream events pushed from /api/live
