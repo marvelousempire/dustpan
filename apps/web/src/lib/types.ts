@@ -113,6 +113,30 @@ export interface GrowthPayload {
   top_ids_m3: string[];
 }
 
+export interface LatestFileActivityItem {
+  name: string;
+  path: string;
+  folder: string;
+  extension: string;
+  mime: string | null;
+  size_mb: number;
+  modified_ts: number;
+  created_ts: number | null;
+  age_seconds: number;
+  source_app: string;
+  runner_app: string;
+  confidence: number;
+  activity_score: number;
+}
+
+export interface LatestFileActivityPayload {
+  ts: number;
+  roots: Array<{ label: string; path: string }>;
+  items: LatestFileActivityItem[];
+  errors: Array<{ root: string; error: string }>;
+  scan_ms: number;
+}
+
 // Plan 0006 — AI + habits types ──────────────────────────────────────────────
 
 /** AI mode state: whether the backend has Docker + DB configured. */
@@ -161,6 +185,8 @@ export interface PerformanceNetworkRow {
   user: string;
   protocol: string;
   name: string;
+  remote?: string | null;
+  scope?: "local" | "lan" | "vps" | "public" | "unknown" | string;
 }
 
 export interface PerformanceService {
@@ -209,6 +235,23 @@ export interface PerformancePayload {
       used_mb: number;
       used_pct: number;
     };
+    swap?: {
+      total_mb: number;
+      free_mb: number;
+      used_mb: number;
+      used_pct: number;
+    };
+    battery?: {
+      available: boolean;
+      percent?: number | null;
+      state?: string;
+      raw?: string;
+    };
+    thermal?: {
+      available: boolean;
+      level?: string;
+      raw?: string;
+    };
   };
   processes: PerformanceProcess[];
   network: {
@@ -223,6 +266,7 @@ export interface PerformancePayload {
     disk?: Array<DiskStatus & { ts: number }>;
     load?: Array<PerformancePayload["system"]["load"] & { ts: number }>;
     memory?: Array<PerformancePayload["system"]["memory"] & { ts: number }>;
+    swap?: Array<NonNullable<PerformancePayload["system"]["swap"]> & { ts: number }>;
   };
   bottlenecks?: PerformanceBottleneck[];
   activity: {

@@ -22,7 +22,11 @@ def known_services(preferred_port: int = 8765) -> list[dict]:
         {"id": "nephew-loop-legacy", "label": "Nephew loop legacy port", "host": "127.0.0.1", "port": 7337},
         {"id": "n8n", "label": "n8n", "host": "127.0.0.1", "port": 5678},
         {"id": "ollama", "label": "Ollama", "host": "127.0.0.1", "port": 11434},
+        {"id": "postgres", "label": "Postgres", "host": "127.0.0.1", "port": 5432},
+        {"id": "redis", "label": "Redis", "host": "127.0.0.1", "port": 6379},
+        {"id": "qdrant", "label": "Qdrant", "host": "127.0.0.1", "port": 6333},
         {"id": "gitlab", "label": "Self-hosted GitLab", "host": "clinic.yousirjuan.ai", "port": 443},
+        {"id": "gitlab-ssh", "label": "Self-hosted GitLab SSH", "host": "clinic.yousirjuan.ai", "port": 2424},
     ]
     out = []
     for svc in services:

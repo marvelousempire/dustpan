@@ -64,6 +64,7 @@ export function ServerPerformancePanel() {
   const cpuBreakdown = useMemo(() => topCpuItems(payload), [payload]);
   const memoryBreakdown = useMemo(() => topMemoryItems(payload), [payload]);
   const serviceBreakdown = useMemo(() => topServiceItems(payload), [payload]);
+  const swapUsed = payload?.system.swap?.used_pct ?? 0;
 
   return (
     <div className="space-y-4">
@@ -113,7 +114,7 @@ export function ServerPerformancePanel() {
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <PressureGauge label="Disk used" value={diskUsed} detail={payload ? `${fmt(payload.system.disk.free_gb)} GB free of ${fmt(payload.system.disk.total_gb)} GB` : "Loading"} breakdown={diskBreakdown} />
         <PressureGauge label="CPU load" value={loadPct} detail={payload ? `1m ${payload.system.load.load_1} / ${payload.system.load.cpu_count} cores` : "Loading"} breakdown={cpuBreakdown} />
-        <PressureGauge label="Memory used" value={memoryUsed} detail={payload ? `${Math.round(payload.system.memory.free_mb)} MB free` : "Loading"} breakdown={memoryBreakdown} />
+        <PressureGauge label="Memory used" value={memoryUsed} detail={payload ? `${Math.round(payload.system.memory.free_mb)} MB free · swap ${fmt(swapUsed)}%` : "Loading"} breakdown={memoryBreakdown} />
         <div className="rounded-lg border border-border/15 bg-[hsl(var(--bg-2)/0.78)] p-4 shadow-sm">
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-faint">Services online</div>
           <div className="text-[28px] font-bold tabular text-safe">{payload ? `${onlineCount}/${payload.services.length}` : "--"}</div>
@@ -126,11 +127,12 @@ export function ServerPerformancePanel() {
         <MetricSparkline label="Disk used" values={(payload?.series?.disk ?? []).map((row) => row.used_pct)} valueSuffix="%" />
         <MetricSparkline label="CPU load" values={(payload?.series?.load ?? []).map((row) => row.load_pct)} valueSuffix="%" />
         <MetricSparkline label="Memory used" values={(payload?.series?.memory ?? []).map((row) => row.used_pct)} valueSuffix="%" />
+        <MetricSparkline label="Swap used" values={(payload?.series?.swap ?? []).map((row) => row.used_pct)} valueSuffix="%" />
       </div>
 
       <BottleneckRadar items={payload?.bottlenecks ?? []} onOpenTab={setActiveTab} />
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+      <div className="grid gap-3 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Panel title="Known Services" subtitle="Local first, remote checks only for allowlisted targets">
           <ServiceGrid services={payload?.services ?? []} />
         </Panel>
@@ -139,7 +141,7 @@ export function ServerPerformancePanel() {
         </Panel>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+      <div className="grid gap-3 2xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
         <Panel title="Network Monitor" subtitle="Little Snitch-style visibility without silent blocking">
           <div className="grid gap-3 lg:grid-cols-2">
             <NetworkFlowTable title="Listening ports" rows={payload?.network.listeners ?? []} />
@@ -182,6 +184,9 @@ function buildUltraMeters(payload: PerformancePayload | null, onlineCount: numbe
   const heavyPathPct = heaviestPath ? Math.min((heaviestPath.size_gb / Math.max(payload.system.disk.total_gb, 1)) * 100, 100) : 0;
   const bottleneckPct = Math.min(((payload.bottlenecks ?? []).filter((item) => item.severity !== "info").length / 4) * 100, 100);
   const automationPct = Math.min(((payload.activity.automation_processes ?? []).length / 12) * 100, 100);
+  const swapPct = payload.system.swap?.used_pct ?? 0;
+  const batteryPct = payload.system.battery?.available && payload.system.battery.percent != null ? payload.system.battery.percent : 0;
+  const thermalLimited = payload.system.thermal?.available && payload.system.thermal.level && payload.system.thermal.level !== "normal";
 
   return [
     { label: "Disk pressure", value: payload.system.disk.used_pct, display: `${fmt(payload.system.disk.used_pct)}%`, detail: `${fmt(payload.system.disk.free_gb)} GB free` },
@@ -193,6 +198,9 @@ function buildUltraMeters(payload: PerformancePayload | null, onlineCount: numbe
     { label: "Largest watched path", value: heavyPathPct, display: heaviestPath ? `${fmt(heaviestPath.size_gb)} GB` : "--", detail: heaviestPath?.label ?? "no heavy path" },
     { label: "Bottleneck radar", value: bottleneckPct, display: String((payload.bottlenecks ?? []).length), detail: "live recommendations", tone: bottleneckPct > 50 ? "warn" : "safe" },
     { label: "Automation stack", value: automationPct, display: String((payload.activity.automation_processes ?? []).length), detail: "detected runners", tone: "accent" },
+    { label: "Swap", value: swapPct, display: `${fmt(swapPct)}%`, detail: payload.system.swap?.total_mb ? `${fmt(payload.system.swap.used_mb)} MB used` : "not active", tone: swapPct > 20 ? "warn" : "safe" },
+    { label: "Battery", value: batteryPct, display: payload.system.battery?.available ? `${batteryPct}%` : "--", detail: payload.system.battery?.state ?? "not available", tone: "accent" },
+    { label: "Thermal", value: thermalLimited ? 100 : 0, display: payload.system.thermal?.level ?? "--", detail: payload.system.thermal?.available ? "pmset therm" : "not available", tone: thermalLimited ? "warn" : "safe" },
   ];
 }
 
@@ -285,8 +293,8 @@ function topServiceItems(payload: PerformancePayload | null): GaugeBreakdownItem
 
 function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
-    <section className="rounded-lg border border-border/15 bg-[hsl(var(--bg-2)/0.78)] p-4 shadow-sm">
-      <div className="mb-3 flex items-start gap-2">
+    <section className="rounded-lg border border-border/15 bg-[hsl(var(--bg-2)/0.78)] p-3 shadow-sm">
+      <div className="mb-2.5 flex items-start gap-2">
         <Cpu className="mt-0.5 h-4 w-4 text-accent" />
         <div>
           <h2 className="text-[15px] font-bold text-fg">{title}</h2>

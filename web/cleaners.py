@@ -481,6 +481,47 @@ CATEGORIES = {
                     "pgrep -lf '[n]pm|[p]npm|[n]ode-gyp' 2>/dev/null | sed 's/^/  /' || echo '  none'"
                 ),
             },
+            "automation-npm-cache-verify": {
+                "label": "Verify npm cache",
+                "desc":  "Runs npm's built-in cache verification and reports the configured npm cache path before any cleanup.",
+                "cost":  "Read-only npm integrity check. Nothing is deleted.",
+                "informational": True,
+                "shell": (
+                    "echo 'npm cache configuration'; "
+                    "if command -v npm >/dev/null 2>&1; then "
+                    "  npm config get cache 2>/dev/null | sed 's/^/  cache: /'; "
+                    "  echo ''; npm cache verify 2>&1; "
+                    "else echo 'npm not found'; fi"
+                ),
+            },
+            "automation-npm-cache-clean": {
+                "label": "Clean npm cache safely",
+                "desc":  "Runs npm cache clean after refusing to run while npm/node-gyp installs are active.",
+                "cost":  "npm re-downloads packages on the next install. Current projects and installed global binaries are untouched.",
+                "shell": (
+                    "ACTIVE=$(pgrep -lf '[n]pm|[n]ode-gyp' 2>/dev/null || true); "
+                    "if [ -n \"$ACTIVE\" ]; then echo 'Active npm/node-gyp process found — refusing to clean mid-install:'; echo \"$ACTIVE\" | sed 's/^/  /'; exit 2; fi; "
+                    "if command -v npm >/dev/null 2>&1; then "
+                    "  echo 'Before:'; npm config get cache 2>/dev/null | xargs du -sh 2>/dev/null || true; "
+                    "  npm cache clean --force 2>&1; "
+                    "  echo 'After:'; npm config get cache 2>/dev/null | xargs du -sh 2>/dev/null || true; "
+                    "else echo 'npm not found'; fi"
+                ),
+            },
+            "automation-pnpm-store-prune": {
+                "label": "Prune pnpm store",
+                "desc":  "Uses pnpm's own store prune command instead of deleting the whole store.",
+                "cost":  "pnpm removes unreferenced packages only. Future installs may re-download packages, but active projects are untouched.",
+                "shell": (
+                    "ACTIVE=$(pgrep -lf '[p]npm|[n]ode-gyp' 2>/dev/null || true); "
+                    "if [ -n \"$ACTIVE\" ]; then echo 'Active pnpm/node-gyp process found — refusing to prune mid-install:'; echo \"$ACTIVE\" | sed 's/^/  /'; exit 2; fi; "
+                    "if command -v pnpm >/dev/null 2>&1; then "
+                    "  echo 'Before:'; pnpm store path 2>/dev/null | xargs du -sh 2>/dev/null || true; "
+                    "  pnpm store prune 2>&1; "
+                    "  echo 'After:'; pnpm store path 2>/dev/null | xargs du -sh 2>/dev/null || true; "
+                    "else echo 'pnpm not found'; fi"
+                ),
+            },
             "automation-clear-failed-n8n-install-artifacts": {
                 "label": "Clear failed n8n install artifacts",
                 "desc":  "Removes DustPan/Nephew-specific failed n8n npm-global and npm-cache directories under ~/.nephew.",
@@ -492,6 +533,35 @@ CATEGORIES = {
                     "rm -rf ~/.nephew/npm-cache ~/.nephew/npm-global 2>/dev/null; "
                     "echo 'Done. ~/.n8n was not touched.'; "
                     "df -h / | awk 'NR==2{print \"  Disk: \"$4\" free of \"$2}'"
+                ),
+            },
+            "automation-service-controls-guide": {
+                "label": "Show guarded service control commands",
+                "desc":  "Prints stop/restart/inspect commands for known local services without running them.",
+                "cost":  "Read-only. You choose any command manually after reviewing impact.",
+                "informational": True,
+                "shell": (
+                    "echo 'Guarded local service controls (copy/paste only)'; echo ''; "
+                    "echo 'DustPan:'; echo '  make ui-local'; echo ''; "
+                    "echo 'Nephew loop:'; echo '  launchctl print gui/$(id -u)/com.marvelousempire.nephew 2>/dev/null'; "
+                    "echo '  launchctl kickstart -k gui/$(id -u)/com.marvelousempire.nephew'; echo ''; "
+                    "echo 'n8n:'; echo '  lsof -nP -iTCP:5678'; echo '  pkill -f \"[n]8n\"'; echo ''; "
+                    "echo 'Ollama:'; echo '  lsof -nP -iTCP:11434'; echo '  pkill -f \"[o]llama serve\"'; echo ''; "
+                    "echo 'Docker:'; echo '  docker ps'; echo '  open -a Docker'; echo '  killall Docker  # only if Docker Desktop is wedged'"
+                ),
+            },
+            "automation-network-control-guide": {
+                "label": "Show network-control recommendations",
+                "desc":  "Lists listening ports and prints copy-paste inspection commands. DustPan does not silently block traffic.",
+                "cost":  "Read-only. No firewall, pf, socket, or process state is changed.",
+                "informational": True,
+                "shell": (
+                    "echo 'Network visibility (observe first)'; echo ''; "
+                    "echo 'Listening ports:'; lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | sed 's/^/  /' || true; echo ''; "
+                    "echo 'Established connections:'; lsof -nP -iTCP -sTCP:ESTABLISHED 2>/dev/null | head -80 | sed 's/^/  /' || true; echo ''; "
+                    "echo 'If something is suspicious, inspect the PID first:'; "
+                    "echo '  ps -p <PID> -o pid,ppid,user,etime,pcpu,pmem,command'; "
+                    "echo 'Then choose a guarded action: stop the app, disable its launch agent, or add a firewall rule manually.'"
                 ),
             },
         },
@@ -2036,9 +2106,13 @@ GROWTH_WATCH_PATHS = [
     {"id": "docker-vm-raw", "label": "Docker VM disk (Docker.raw)", "path": "~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw"},
     {"id": "docker-group-container", "label": "Docker group container", "path": "~/Library/Group Containers/group.com.docker"},
     {"id": "npm-cache", "label": "npm cache", "path": "~/.npm"},
+    {"id": "pnpm-legacy-store", "label": "pnpm legacy store", "path": "~/.pnpm-store"},
     {"id": "pnpm-store", "label": "pnpm store", "path": "~/Library/pnpm/store"},
+    {"id": "pnpm-library", "label": "pnpm Library folder", "path": "~/Library/pnpm"},
+    {"id": "nephew-home", "label": "Nephew home/tooling", "path": "~/.nephew"},
     {"id": "nephew-n8n-cache", "label": "Nephew n8n failed-install cache", "path": "~/.nephew/npm-cache"},
     {"id": "nephew-run-traces", "label": "Nephew run traces", "path": "~/Developer/nephew/data/run-traces"},
+    {"id": "developer-node-modules", "label": "Developer node_modules pressure", "kind": "node_modules_total", "root": "~/Developer"},
     {"id": "cursor-project-cache", "label": "Cursor project/session cache", "path": "~/.cursor/projects"},
     {"id": "brew-cache", "label": "Homebrew cache", "path": "~/Library/Caches/Homebrew"},
 ]

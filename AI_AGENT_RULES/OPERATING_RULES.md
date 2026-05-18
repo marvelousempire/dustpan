@@ -45,6 +45,12 @@ design tokens, or packages, update the Tech Stack tab in the changelog/system
 modal so users can see what powers the UI. Keep it grouped by runtime, UI,
 design system, monitoring modules, and package/tooling layers.
 
+## Latest File Activity Stays Read-Only
+
+Latest-file activity is a bounded dashboard signal, not a cleanup surface. It may
+infer source/opening apps from folder, extension, and metadata, but it must not
+claim authoritative provenance, crawl the full disk, or add destructive actions.
+
 ## Keep Prompt Context Bounded
 
 Runtime prompts load compact summaries from this handbook. Full files are

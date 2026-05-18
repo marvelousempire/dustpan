@@ -9,6 +9,7 @@ import type {
   LiveEvent,
   AIStatus,
   Habit,
+  LatestFileActivityPayload,
   PerformanceBenchmarkStatus,
   PerformancePayload,
   Run,
@@ -82,6 +83,7 @@ export const api = {
     fetch(API_BASE + "/api/performance/benchmark/run", { method: "POST", body: "{}" })
       .then((r) => r.json()) as Promise<PerformanceBenchmarkStatus["last_result"]>,
   emergencyEstimate: () => jsonFetch<EmergencyEstimate>("/api/emergency/estimate"),
+  latestFiles: () => jsonFetch<LatestFileActivityPayload>("/api/disk/latest-files"),
   growth:    () => jsonFetch<GrowthPayload>("/api/growth"),
   report:    () => jsonFetch<HistoryReport>("/api/report"),
   tabs:      () => jsonFetch<{ tabs: TopLevelTab[] }>("/api/tabs"),

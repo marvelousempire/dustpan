@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.28.3] — 2026-05-17 21:23:13 Eastern · *Disk activity cockpit and denser server panels*
+
+### Added — **Latest file activity**
+
+The Disk/Overview page now includes a live, read-only "Latest files added"
+section with a distinct activity background, charts, live meters, and
+best-effort app inference.
+
+- **Latest file probe**: `/api/disk/latest-files` samples bounded user-facing
+  folders and returns recent files with size, age, extension, likely source app,
+  likely opener/runner app, confidence, and activity score.
+- **Disk activity cockpit**: Overview renders a colored live activity zone with
+  file rows, activity meters, folder-size bars, and a recency pulse chart.
+- **Denser Server Performance bottom panels**: Services, processes, network,
+  and DustBench now use tighter rows and live progress meters so more monitors
+  fit on screen at once.
+
+### kVersion / package bumps
+
+Root `package.json`, `apps/web/package.json`, `apps/web-next/package.json`,
+`dustpan.applescript` **`kVersion`** → `0.28.3`.
+
+---
+
 ## [0.28.2] — 2026-05-17 18:58:20 Eastern · *AI rules for dashboard release discipline*
 
 ### Added — **AI agent release rules**

@@ -8,6 +8,10 @@ Endpoints:
     GET  /                              → index.html
     GET  /api/status                    → {free_gb, used_gb, total_gb, used_pct}
     GET  /api/performance/status        → server-performance summary
+    GET  /api/performance/snapshot      → realtime performance snapshot
+    GET  /api/performance/live          → SSE stream of performance frames
+    GET  /api/performance/benchmark     → DustBench status
+    POST /api/performance/benchmark/run → run DustBench benchmark
     GET  /api/performance/processes     → top local processes
     GET  /api/performance/network       → listening ports + established TCP
     GET  /api/performance/services      → known local/LAN/VPS service health
@@ -96,11 +100,13 @@ except ImportError:
     _agent_tools = None  # type: ignore
 
 try:
+    from performance.activity_files import latest as latest_activity_files
     from performance.benchmark import run as run_dustbench
     from performance.benchmark import status as dustbench_status
     from performance.sampler import get_snapshot as get_performance_snapshot
     from performance.sampler import iter_live_events as iter_performance_events
 except ImportError:
+    latest_activity_files = None  # type: ignore
     run_dustbench = None  # type: ignore
     dustbench_status = None  # type: ignore
     get_performance_snapshot = None  # type: ignore
@@ -814,6 +820,31 @@ _GROWTH_SAMPLER_LOCK = threading.Lock()
 _GROWTH_SAMPLER_STARTED = False
 
 
+def _node_modules_total_kb(root_tpl: str = "~/Developer", max_dirs: int = 32) -> int:
+    """Bounded node_modules pressure estimate for growth watch.
+
+    This intentionally caps work so the 30s sampler cannot turn into a full
+    filesystem crawl. Space Survey owns deep discovery.
+    """
+    root = Path(os.path.expanduser(root_tpl))
+    if not root.exists():
+        return 0
+    total = 0
+    seen = 0
+    for current, dirs, _files in os.walk(root):
+        dirs[:] = [d for d in dirs if d not in {".git", ".venv", "venv", "Library"} and not d.startswith(".")]
+        if "node_modules" in dirs:
+            path = os.path.join(current, "node_modules")
+            _gn, _ln, _pth, size_kb, exists, denied = _measure_path(("-", "node_modules", path))
+            if exists and not denied:
+                total += int(size_kb)
+            seen += 1
+            dirs.remove("node_modules")
+            if seen >= max_dirs:
+                break
+    return total
+
+
 class GrowthTracker:
     """Ring-buffer histories for watched paths + whole-disk used space."""
 
@@ -839,6 +870,8 @@ class GrowthTracker:
                     return (eid, now, int(used_b // 1024))
                 except OSError:
                     return (eid, now, 0)
+            if entry.get("kind") == "node_modules_total":
+                return (eid, now, _node_modules_total_kb(entry.get("root", "~/Developer")))
             tpl = entry.get("path")
             if not tpl:
                 return (eid, now, 0)
@@ -905,6 +938,9 @@ class GrowthTracker:
                 p = entry_meta.get("path")
                 if p:
                     row["path"] = p
+                if entry_meta.get("kind") == "node_modules_total":
+                    row["path"] = entry_meta.get("root", "~/Developer")
+                    row["kind"] = "node_modules_total"
                 paths_out.append(row)
 
         paths_out.sort(key=lambda r: r["id"])
@@ -1041,6 +1077,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._serve_json({"services": _known_services()})
         if path == "/api/performance/activity":
             return self._serve_json(_activity_snapshot())
+        if path == "/api/disk/latest-files":
+            if latest_activity_files is None:
+                return self._serve_json_status(501, {"error": "latest_files_unavailable", "items": []})
+            return self._serve_json(latest_activity_files())
         if path == "/api/tabs":
             return self._serve_json({"tabs": cleaners.TABS})
         if path == "/api/report":

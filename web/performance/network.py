@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ipaddress
+import re
 import shutil
 
 from .platform import SYSTEM, run_capture
@@ -21,12 +23,16 @@ def _parse_lsof(lines: list[str], limit: int = 80) -> list[dict]:
         parts = line.split()
         if len(parts) < 9:
             continue
+        name = " ".join(parts[8:])
+        remote = _remote_from_name(name)
         out.append({
             "command": parts[0],
             "pid": int(parts[1]) if parts[1].isdigit() else 0,
             "user": parts[2],
             "protocol": parts[7],
-            "name": " ".join(parts[8:]),
+            "name": name,
+            "remote": remote,
+            "scope": classify_remote(remote),
         })
     return out
 
@@ -51,12 +57,16 @@ def _ss_rows(args: list[str], limit: int = 80) -> list[dict]:
         parts = line.split()
         if len(parts) < 5:
             continue
+        name = " ".join(parts[3:])
+        remote = _remote_from_name(name)
         rows.append({
             "command": "ss",
             "pid": 0,
             "user": "",
             "protocol": parts[0],
-            "name": " ".join(parts[3:]),
+            "name": name,
+            "remote": remote,
+            "scope": classify_remote(remote),
         })
     return rows
 
@@ -68,3 +78,36 @@ def _ss_snapshot() -> dict:
         "connections": _ss_rows(["-tnp", "state", "established"])[:50],
         "errors": [],
     }
+
+
+def _remote_from_name(name: str) -> str | None:
+    target = name.split("->", 1)[-1].strip() if "->" in name else name.strip()
+    if not target:
+        return None
+    target = target.strip("[]")
+    match = re.search(r"([A-Za-z0-9_.:-]+):\d+(?:\s|$)", target)
+    if not match:
+        return None
+    host = match.group(1).strip("[]")
+    if host in {"*", "localhost"}:
+        return host
+    return host
+
+
+def classify_remote(host: str | None) -> str:
+    if not host:
+        return "unknown"
+    lowered = host.lower()
+    if lowered in {"*", "localhost"} or lowered.startswith("127.") or lowered == "::1":
+        return "local"
+    if "clinic.yousirjuan.ai" in lowered or "72.167.151.251" in lowered:
+        return "vps"
+    try:
+        ip = ipaddress.ip_address(host.split("%", 1)[0])
+        if ip.is_loopback:
+            return "local"
+        if ip.is_private or ip.is_link_local:
+            return "lan"
+        return "public"
+    except ValueError:
+        return "public"

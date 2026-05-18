@@ -1,6 +1,6 @@
 # Feature Ledger
 
-*Last updated: 2026-05-17 Eastern (v0.28.2)*
+*Last updated: 2026-05-17 Eastern (v0.28.3)*
 
 Status legend: **✅ shipped** · **✔️ partial / works but rough** · **🔜 next** · **❌ deferred / out of scope**
 
@@ -119,6 +119,7 @@ These five releases substantially widened DustPan from "Xcode cleaner" to "local
 | **v0.28.0** | Realtime Server Performance analytics (Plan 0033) | Adds Mac/Linux snapshot + SSE performance APIs, Ultra Dashboard live meter wall, gauges and sparklines, process/network/service views, Detailed Activity Monitor, bottleneck radar, and DustPan's own safe DustBench benchmark. |
 | **v0.28.1** | Header status pill + stack modal | Bumps the release after the header/server-status work: top-left pill shows live LED + connected port, and the modal now has Change Log plus Tech Stack tabs with under-the-hood sections. |
 | **v0.28.2** | AI dashboard release rules | Refreshes `AI_AGENT_RULES/` so future agents preserve server-status visibility, version/changelog coupling, Tech Stack modal updates, and compact meter-rich monitoring behavior. |
+| **v0.28.3** | Disk Activity cockpit + server bottom density | Adds bounded latest-file activity on Disk/Overview with app inference, charts, and live meters; tightens Server Performance lower panels with denser meter-rich rows. |
 
 ## Next (v0.26+ wishlist)
 

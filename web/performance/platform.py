@@ -55,6 +55,61 @@ def memory() -> dict:
     return _darwin_memory()
 
 
+def swap() -> dict:
+    if SYSTEM == "linux":
+        values: dict[str, int] = {}
+        try:
+            for line in Path("/proc/meminfo").read_text().splitlines():
+                key, val = line.split(":", 1)
+                values[key] = int(val.strip().split()[0])
+        except Exception:
+            values = {}
+        total_mb = values.get("SwapTotal", 0) // 1024
+        free_mb = values.get("SwapFree", 0) // 1024
+        used_mb = max(total_mb - free_mb, 0)
+        return {"total_mb": total_mb, "free_mb": free_mb, "used_mb": used_mb, "used_pct": round((used_mb / total_mb * 100), 1) if total_mb else 0.0}
+
+    rc, out, _err = run_capture(["sysctl", "-n", "vm.swapusage"], timeout=2)
+    if rc != 0:
+        return {"total_mb": 0, "free_mb": 0, "used_mb": 0, "used_pct": 0.0}
+    matches = dict((key.lower(), float(val)) for key, val in re.findall(r"(total|used|free)\s*=\s*([\d.]+)M", out, re.I))
+    total_mb = matches.get("total", 0.0)
+    used_mb = matches.get("used", 0.0)
+    free_mb = matches.get("free", max(total_mb - used_mb, 0.0))
+    return {"total_mb": round(total_mb, 1), "free_mb": round(free_mb, 1), "used_mb": round(used_mb, 1), "used_pct": round((used_mb / total_mb * 100), 1) if total_mb else 0.0}
+
+
+def battery() -> dict:
+    if SYSTEM != "darwin":
+        return {"available": False}
+    rc, out, _err = run_capture(["pmset", "-g", "batt"], timeout=2)
+    if rc != 0:
+        return {"available": False}
+    percent_match = re.search(r"(\d+)%", out)
+    state = "charging" if "AC Power" in out or "charging" in out.lower() else "battery"
+    return {
+        "available": True,
+        "percent": int(percent_match.group(1)) if percent_match else None,
+        "state": state,
+        "raw": " ".join(line.strip() for line in out.splitlines() if line.strip())[:240],
+    }
+
+
+def thermal() -> dict:
+    if SYSTEM != "darwin":
+        return {"available": False}
+    rc, out, _err = run_capture(["pmset", "-g", "therm"], timeout=2)
+    if rc != 0:
+        return {"available": False}
+    level = "normal"
+    lowered = out.lower()
+    if "cpu_speed_limit" in lowered and not re.search(r"cpu_speed_limit\s*=\s*100", lowered):
+        level = "limited"
+    if "thermal pressure" in lowered and "nominal" not in lowered:
+        level = "pressure"
+    return {"available": True, "level": level, "raw": " ".join(line.strip() for line in out.splitlines() if line.strip())[:240]}
+
+
 def _linux_memory() -> dict:
     values: dict[str, int] = {}
     try:

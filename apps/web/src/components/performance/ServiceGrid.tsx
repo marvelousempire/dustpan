@@ -3,18 +3,21 @@ import { cn } from "../../lib/utils";
 
 export function ServiceGrid({ services }: { services: PerformanceService[] }) {
   return (
-    <div className="space-y-2">
+    <div className="grid gap-2 md:grid-cols-2">
       {services.map((svc) => (
-        <div key={svc.id} className="rounded-md border border-border/10 bg-[hsl(var(--bg-3)/0.42)] p-3">
+        <div key={svc.id} className="rounded-md border border-border/10 bg-[hsl(var(--bg-3)/0.42)] p-2.5">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <div className="truncate text-[13px] font-semibold text-fg">{svc.label}</div>
+              <div className="truncate text-[12px] font-semibold text-fg">{svc.label}</div>
               <div className="truncate text-[11px] tabular text-fg-faint">{svc.host}{svc.port ? `:${svc.port}` : ""} · {svc.scope}</div>
             </div>
             <span className={cn("shrink-0 rounded-full px-2 py-1 text-[10px] font-bold tabular", svc.reachable ? "bg-safe/15 text-safe" : "bg-bg-1 text-fg-faint")}>{svc.status}</span>
           </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[hsl(var(--bg-1)/0.72)]">
+            <div className={cn("h-full rounded-full", svc.reachable ? "bg-safe" : "bg-danger/70")} style={{ width: svc.reachable ? "100%" : "8%" }} />
+          </div>
           {svc.details?.length ? (
-            <pre className="mt-2 max-h-28 overflow-auto rounded bg-[hsl(var(--bg-1)/0.7)] p-2 text-[10px] leading-[1.4] text-fg-dim">{svc.details.join("\n")}</pre>
+            <pre className="mt-2 max-h-16 overflow-auto rounded bg-[hsl(var(--bg-1)/0.7)] p-2 text-[10px] leading-[1.4] text-fg-dim">{svc.details.slice(0, 3).join("\n")}</pre>
           ) : null}
         </div>
       ))}

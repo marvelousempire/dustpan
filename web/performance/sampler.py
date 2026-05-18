@@ -27,10 +27,14 @@ def cheap_sample() -> dict:
         "disk": platform.disk(),
         "load": platform.load(),
         "memory": platform.memory(),
+        "swap": platform.swap(),
+        "battery": platform.battery(),
+        "thermal": platform.thermal(),
     }
     STORE.push("disk", sample["disk"])
     STORE.push("load", sample["load"])
     STORE.push("memory", sample["memory"])
+    STORE.push("swap", sample["swap"])
     return sample
 
 
@@ -60,6 +64,7 @@ def get_snapshot(include_slow: bool = True, preferred_port: int = 8765) -> dict:
             "disk": STORE.series("disk"),
             "load": STORE.series("load"),
             "memory": STORE.series("memory"),
+            "swap": STORE.series("swap"),
         },
         "bottlenecks": [],
         "controls": [

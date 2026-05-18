@@ -10,6 +10,7 @@ import { QuickWins } from "./QuickWins";
 import { RescueBanner } from "./RescueBanner";
 import { GrowthWatch } from "./GrowthWatch";
 import { HomeFolderAdvice } from "./HomeFolderAdvice";
+import { LatestFileActivity } from "./LatestFileActivity";
 import { History, RefreshCw, CheckCheck, AlertTriangle, ChevronRight, TabIcon } from "./icons";
 import { cn, fmt } from "../lib/utils";
 
@@ -129,6 +130,8 @@ export function OverviewPanel() {
 
       {/* ── 4b. Plan 0027 — short-window growth (3m / 9m / 20m) ───────────── */}
       <GrowthWatch />
+
+      <LatestFileActivity />
 
       {/* ── 5. Banners — rescue (disk low) · permission (FDA) · habits · quick wins */}
       <RescueBanner />

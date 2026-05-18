@@ -45,6 +45,7 @@ const TECH_STACK_SECTIONS = [
       ["Server Performance", "Realtime snapshot + live stream", "Disk, CPU, memory, services, network, bottlenecks, and activity."],
       ["Ultra Dashboard", "Meter wall", "Dense live progress meters make more monitors visible at the same time."],
       ["Activity Monitor", "Modern htop-style table", "Process search, sorting, CPU/RAM meters, and consumer-friendly labels."],
+      ["Latest File Activity", "Bounded disk activity probe", "Recent files, likely source app, runner/open app, charts, and live meters without full-disk crawling."],
       ["DustBench", "Local benchmark", "CPU, filesystem, JSON, subprocess, loopback, and optional Docker responsiveness."],
     ],
   },

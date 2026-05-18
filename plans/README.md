@@ -62,6 +62,7 @@ writing them into the repo we get:
 | [0031](0031-ai-agent-rules-handbook.md) | AI_AGENT_RULES Handbook — root AI binder plus Ask DustPan prompt/tool loading | implemented in working tree | v0.27.8 / v0.27.9 |
 | [0032](0032-server-performance-and-cleaning-split.md) | Server Performance and Cleaning split — second full page for iStat-style stats, Little Snitch-style network visibility, activity monitoring, and guarded controls | active | pending |
 | [0033](0033-realtime-cross-platform-performance-analytics.md) | Realtime Cross-Platform Performance Analytics — live metrics spine, Mac/Linux probes, charts, bottleneck analytics, and DustBench benchmark suite | drafted | pending |
+| [0034](0034-disk-activity-and-server-bottom-density.md) | Disk Activity and Server Bottom Density — compact Server Performance bottom panels plus latest-file activity on Disk/Overview | implemented in working tree | v0.28.3 |
 
 ## When to add a plan
 

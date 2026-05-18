@@ -591,12 +591,12 @@ function CommandCard({
 function RunningTimer({ startedAt }: { startedAt: number }) {
   const [secs, setSecs] = useState(0);
   // Use a ref-based interval that updates state
-  useState(() => {
+  useEffect(() => {
     const iv = setInterval(() => {
       setSecs(Math.floor((Date.now() - startedAt) / 1000));
     }, 1000);
     return () => clearInterval(iv);
-  });
+  }, [startedAt]);
   return (
     <span className="text-[11px] text-fg-faint tabular-nums">{secs}s elapsed</span>
   );

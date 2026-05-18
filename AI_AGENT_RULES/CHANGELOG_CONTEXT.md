@@ -2,10 +2,13 @@
 
 ## Current Version
 
-DustPan is moving from `0.28.1` to `0.28.2`.
+DustPan is moving from `0.28.2` to `0.28.3`.
 
 ## Recent Releases
 
+- `0.28.3` — Disk Activity cockpit and server bottom density. Adds bounded
+  latest-file activity with app inference, charts, and meters; tightens Server
+  Performance lower panels.
 - `0.28.2` — AI rule refresh for dashboard release discipline. Codifies server
   status visibility, version/changelog coupling, Tech Stack modal updates, and
   meter-rich Server Performance behavior.
@@ -20,7 +23,7 @@ DustPan is moving from `0.28.1` to `0.28.2`.
 
 ## This Release
 
-`0.28.2` refreshes the app AI binder so future agents preserve the dashboard
-release discipline: server connection state must remain visible,
-changelog/version bumps travel together, the Tech Stack modal stays current,
-and Server Performance remains compact, live, meter-rich, and read-only.
+`0.28.3` adds the latest-file Disk/Overview activity cockpit and improves the
+Server Performance lower-panel density. The file-activity surface is read-only,
+bounded, best-effort inference only, and must not become a full-disk watcher or
+a cleanup action.
