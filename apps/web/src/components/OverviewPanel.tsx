@@ -48,44 +48,48 @@ export function OverviewPanel() {
             <RefreshCw className={cn("h-3.5 w-3.5", scanning && "animate-spin")} />
             {scanning ? "Scanning…" : totals.scanned > 0 ? "Re-scan everything" : "Scan everything"}
           </button>
-          <button
-            type="button"
-            disabled={busy || totals.safe < 0.001}
-            onClick={() => cleanEverywhere("safe")}
-            className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent bg-accent px-4 py-2.5 text-[13px] font-semibold text-white shadow-[0_2px_8px_hsl(var(--accent)/0.20)] transition-all hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <CheckCheck className="h-3.5 w-3.5" />
-            Clean ALL safe {totals.safe >= 0.01
-              ? `· ${fmt(totals.safe)} GB`
-              : totals.scanned > 0 ? "· all clean ✓" : "· scan first"}
-          </button>
-          <button
-            type="button"
-            disabled={busy || totals.optin < 0.001}
-            onClick={() => cleanEverywhere("probably_safe")}
-            className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-md border border-border/20 bg-[hsl(var(--bg-2)/0.55)] px-4 py-2.5 text-[13px] font-semibold tabular transition-colors hover:border-accent disabled:opacity-45 disabled:cursor-not-allowed"
-          >
-            <AlertTriangle className="h-3.5 w-3.5" />
-            Clean ALL opt-in {totals.optin >= 0.01
-              ? `· ${fmt(totals.optin)} GB`
-              : totals.scanned > 0 ? "· all clean ✓" : "· scan first"}
-          </button>
         </div>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <CleanTotalCard
-            label="Total safe cleanup"
-            value={totals.scanned > 0 ? `${fmt(totals.safe)} GB` : "Scan first"}
-            detail="Can be cleaned with the Safe button."
-            tone="safe"
-            active={totals.safe >= 0.001}
-          />
-          <CleanTotalCard
-            label="Total opt-in cleanup"
-            value={totals.scanned > 0 ? `${fmt(totals.optin)} GB` : "Scan first"}
-            detail="Review first, then clean with the Opt-in button."
-            tone="warn"
-            active={totals.optin >= 0.001}
-          />
+          <div className="grid gap-2">
+            <CleanTotalCard
+              label="Total safe cleanup"
+              value={totals.scanned > 0 ? `${fmt(totals.safe)} GB` : "Scan first"}
+              detail="Safe cleanup can run first."
+              tone="safe"
+              active={totals.safe >= 0.001}
+            />
+            <button
+              type="button"
+              disabled={busy || totals.safe < 0.001}
+              onClick={() => cleanEverywhere("safe")}
+              className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-md border border-transparent bg-accent px-4 py-2.5 text-[13px] font-semibold text-white shadow-[0_2px_8px_hsl(var(--accent)/0.20)] transition-all hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <CheckCheck className="h-3.5 w-3.5" />
+              Clean ALL safe {totals.safe >= 0.01
+                ? `· ${fmt(totals.safe)} GB`
+                : totals.scanned > 0 ? "· all clean ✓" : "· scan first"}
+            </button>
+          </div>
+          <div className="grid gap-2">
+            <CleanTotalCard
+              label="Total opt-in cleanup"
+              value={totals.scanned > 0 ? `${fmt(totals.optin)} GB` : "Scan first"}
+              detail="Review opt-in cleanup before running."
+              tone="warn"
+              active={totals.optin >= 0.001}
+            />
+            <button
+              type="button"
+              disabled={busy || totals.optin < 0.001}
+              onClick={() => cleanEverywhere("probably_safe")}
+              className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-md border border-border/20 bg-[hsl(var(--bg-2)/0.55)] px-4 py-2.5 text-[13px] font-semibold tabular transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Clean ALL opt-in {totals.optin >= 0.01
+                ? `· ${fmt(totals.optin)} GB`
+                : totals.scanned > 0 ? "· all clean ✓" : "· scan first"}
+            </button>
+          </div>
         </div>
         <div className="mt-2.5 text-[12px] leading-[1.55] tabular text-fg-dim">
           {scanning ? (
